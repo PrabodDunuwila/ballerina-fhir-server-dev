@@ -1,6 +1,7 @@
 import ballerina_fhir_server.db_store;
 
 import ballerina/persist;
+import ballerina/time;
 // import ballerinax/health.fhir.r4.international401;
 
 // import ballerinax/health.fhir.r4.parser as fhirParser;
@@ -78,8 +79,90 @@ public class ReadMapper {
         foreach db_store:AppointmentTable appointment in appointments {
             boolean matches = true;
 
+            // Common FHIR search parameters
+
+            // Filter by _id (logical ID of the resource)
+            if queryParams.hasKey("_id") && matches {
+                string[] idValues = queryParams.get("_id");
+                if idValues.indexOf(appointment.APPOINTMENTTABLE_ID) == () {
+                    matches = false;
+                }
+            }
+
+            // Filter by _lastUpdated
+            if queryParams.hasKey("_lastUpdated") && matches {
+                string[] lastUpdatedValues = queryParams.get("_lastUpdated");
+                // Convert Civil to string for comparison (format: YYYY-MM-DDTHH:MM:SS)
+                time:Civil lastUpdated = appointment.LAST_UPDATED;
+                
+                boolean dateMatches = false;
+                foreach string searchDate in lastUpdatedValues {
+                    boolean|error comparison = self.compareDateWithPrefix(lastUpdated, searchDate);
+                    if comparison is boolean && comparison {
+                        dateMatches = true;
+                        break;
+                    }
+                }
+                if !dateMatches {
+                    matches = false;
+                }
+            }
+
+            // Filter by _tag
+            if queryParams.hasKey("_tag") && matches {
+                string[] tagValues = queryParams.get("_tag");
+                // Parse RESOURCE_JSON to check for tags in meta.tag
+                json|error resourceJson = self.convertAppointmentToJson(appointment);
+                if resourceJson is json {
+                    boolean|error tagMatches = self.matchesTags(resourceJson, tagValues);
+                    if tagMatches is boolean && !tagMatches {
+                        matches = false;
+                    } else if tagMatches is error {
+                        matches = false;
+                    }
+                } else {
+                    matches = false;
+                }
+            }
+
+            // Filter by _profile
+            if queryParams.hasKey("_profile") && matches {
+                string[] profileValues = queryParams.get("_profile");
+                // Parse RESOURCE_JSON to check for profiles in meta.profile
+                json|error resourceJson = self.convertAppointmentToJson(appointment);
+                if resourceJson is json {
+                    boolean|error profileMatches = self.matchesProfiles(resourceJson, profileValues);
+                    if profileMatches is boolean && !profileMatches {
+                        matches = false;
+                    } else if profileMatches is error {
+                        matches = false;
+                    }
+                } else {
+                    matches = false;
+                }
+            }
+
+            // Filter by _security
+            if queryParams.hasKey("_security") && matches {
+                string[] securityValues = queryParams.get("_security");
+                // Parse RESOURCE_JSON to check for security labels in meta.security
+                json|error resourceJson = self.convertAppointmentToJson(appointment);
+                if resourceJson is json {
+                    boolean|error securityMatches = self.matchesSecurity(resourceJson, securityValues);
+                    if securityMatches is boolean && !securityMatches {
+                        matches = false;
+                    } else if securityMatches is error {
+                        matches = false;
+                    }
+                } else {
+                    matches = false;
+                }
+            }
+
+            // Resource-specific search parameters
+
             // Filter by status
-            if queryParams.hasKey("status") {
+            if queryParams.hasKey("status") && matches {
                 string[] statusValues = queryParams.get("status");
                 if appointment.STATUS is string && statusValues.indexOf(<string>appointment.STATUS) == () {
                     matches = false;
@@ -134,6 +217,181 @@ public class ReadMapper {
         }
 
         return filtered;
+    }
+
+    // Helper function to check if resource matches tag search criteria
+    private isolated function matchesTags(json resourceJson, string[] searchTags) returns boolean|error {
+        json|error metaTags = resourceJson.meta?.tag;
+        
+        if metaTags is error || metaTags is () {
+            return false;
+        }
+
+        if metaTags is json[] {
+            foreach json tag in metaTags {
+                string? system = (check tag.system).toString();
+                string? code = (check tag.code).toString();
+                
+                foreach string searchTag in searchTags {
+                    // Support both "system|code" and just "code" formats
+                    if searchTag.includes("|") {
+                        string[] parts = re `\|`.split(searchTag);
+                        if parts.length() == 2 && system == parts[0] && code == parts[1] {
+                            return true;
+                        }
+                    } else {
+                        if code == searchTag {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // Helper function to check if resource matches profile search criteria
+    private isolated function matchesProfiles(json resourceJson, string[] searchProfiles) returns boolean|error {
+        json|error metaProfiles = resourceJson.meta?.profile;
+        
+        if metaProfiles is error || metaProfiles is () {
+            return false;
+        }
+
+        if metaProfiles is json[] {
+            foreach json profile in metaProfiles {
+                string profileUrl = profile.toString();
+                if searchProfiles.indexOf(profileUrl) != () {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // Helper function to check if resource matches security label search criteria
+    private isolated function matchesSecurity(json resourceJson, string[] searchSecurity) returns boolean|error {
+        json|error metaSecurity = resourceJson.meta?.security;
+        
+        if metaSecurity is error || metaSecurity is () {
+            return false;
+        }
+
+        if metaSecurity is json[] {
+            foreach json security in metaSecurity {
+                string? system = (check security.system).toString();
+                string? code = (check security.code).toString();
+                
+                foreach string searchSecurityLabel in searchSecurity {
+                    // Support both "system|code" and just "code" formats
+                    if searchSecurityLabel.includes("|") {
+                        string[] parts = re `\|`.split(searchSecurityLabel);
+                        if parts.length() == 2 && system == parts[0] && code == parts[1] {
+                            return true;
+                        }
+                    } else {
+                        if code == searchSecurityLabel {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // Helper function to pad numbers with leading zero
+    private isolated function padZero(int num) returns string {
+        return num < 10 ? string `0${num}` : num.toString();
+    }
+
+    // Helper function to compare dates with FHIR prefix operators
+    private isolated function compareDateWithPrefix(time:Civil resourceDate, string searchValue) returns boolean|error {
+        // Extract prefix and date value
+        string prefix = "eq"; // default is equals
+        string dateValue = searchValue;
+        
+        if searchValue.startsWith("eq") {
+            prefix = "eq";
+            dateValue = searchValue.substring(2);
+        } else if searchValue.startsWith("ne") {
+            prefix = "ne";
+            dateValue = searchValue.substring(2);
+        } else if searchValue.startsWith("gt") {
+            prefix = "gt";
+            dateValue = searchValue.substring(2);
+        } else if searchValue.startsWith("ge") {
+            prefix = "ge";
+            dateValue = searchValue.substring(2);
+        } else if searchValue.startsWith("lt") {
+            prefix = "lt";
+            dateValue = searchValue.substring(2);
+        } else if searchValue.startsWith("le") {
+            prefix = "le";
+            dateValue = searchValue.substring(2);
+        } else if searchValue.startsWith("sa") {
+            prefix = "sa"; // starts after
+            dateValue = searchValue.substring(2);
+        } else if searchValue.startsWith("eb") {
+            prefix = "eb"; // ends before
+            dateValue = searchValue.substring(2);
+        } else if searchValue.startsWith("ap") {
+            prefix = "ap"; // approximately
+            dateValue = searchValue.substring(2);
+        }
+        
+        // Convert resource date to comparable string
+        decimal second = resourceDate.second ?: 0.0;
+        string resourceDateStr = string `${resourceDate.year}-${self.padZero(resourceDate.month)}-${self.padZero(resourceDate.day)}T${self.padZero(resourceDate.hour)}:${self.padZero(resourceDate.minute)}:${self.padZero(<int>second)}`;
+        
+        // Normalize search date to same format for comparison
+        string searchDateNormalized = dateValue.trim();
+        
+        // Perform comparison based on prefix
+        match prefix {
+            "eq" => {
+                // Equals - check if resource date starts with search date (supports partial dates)
+                return resourceDateStr.startsWith(searchDateNormalized);
+            }
+            "ne" => {
+                // Not equals
+                return !resourceDateStr.startsWith(searchDateNormalized);
+            }
+            "gt" => {
+                // Greater than
+                return resourceDateStr > searchDateNormalized;
+            }
+            "ge" => {
+                // Greater than or equal
+                return resourceDateStr >= searchDateNormalized;
+            }
+            "lt" => {
+                // Less than
+                return resourceDateStr < searchDateNormalized;
+            }
+            "le" => {
+                // Less than or equal
+                return resourceDateStr <= searchDateNormalized;
+            }
+            "sa" => {
+                // Starts after (greater than)
+                return resourceDateStr > searchDateNormalized;
+            }
+            "eb" => {
+                // Ends before (less than)
+                return resourceDateStr < searchDateNormalized;
+            }
+            "ap" => {
+                // Approximately - for simplicity, treat as equals
+                return resourceDateStr.startsWith(searchDateNormalized);
+            }
+            _ => {
+                return false;
+            }
+        }
     }
 
     // Convert AppointmentTable record to JSON

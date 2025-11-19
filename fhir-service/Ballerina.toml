@@ -35,7 +35,6 @@ groupId = "com.h2database"
 [[dependency]]
 org = "ballerinax"
 name = "health.fhir.r4utils.fhirpath"
-version = "3.1.1"
-repository="local"
+version = "4.0.0"
 
 
