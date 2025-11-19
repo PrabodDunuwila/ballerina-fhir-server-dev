@@ -108,56 +108,7 @@ public class ReadMapper {
                 }
             }
 
-            // Filter by _tag
-            if queryParams.hasKey("_tag") && matches {
-                string[] tagValues = queryParams.get("_tag");
-                // Parse RESOURCE_JSON to check for tags in meta.tag
-                json|error resourceJson = self.convertAppointmentToJson(appointment);
-                if resourceJson is json {
-                    boolean|error tagMatches = self.matchesTags(resourceJson, tagValues);
-                    if tagMatches is boolean && !tagMatches {
-                        matches = false;
-                    } else if tagMatches is error {
-                        matches = false;
-                    }
-                } else {
-                    matches = false;
-                }
-            }
-
-            // Filter by _profile
-            if queryParams.hasKey("_profile") && matches {
-                string[] profileValues = queryParams.get("_profile");
-                // Parse RESOURCE_JSON to check for profiles in meta.profile
-                json|error resourceJson = self.convertAppointmentToJson(appointment);
-                if resourceJson is json {
-                    boolean|error profileMatches = self.matchesProfiles(resourceJson, profileValues);
-                    if profileMatches is boolean && !profileMatches {
-                        matches = false;
-                    } else if profileMatches is error {
-                        matches = false;
-                    }
-                } else {
-                    matches = false;
-                }
-            }
-
-            // Filter by _security
-            if queryParams.hasKey("_security") && matches {
-                string[] securityValues = queryParams.get("_security");
-                // Parse RESOURCE_JSON to check for security labels in meta.security
-                json|error resourceJson = self.convertAppointmentToJson(appointment);
-                if resourceJson is json {
-                    boolean|error securityMatches = self.matchesSecurity(resourceJson, securityValues);
-                    if securityMatches is boolean && !securityMatches {
-                        matches = false;
-                    } else if securityMatches is error {
-                        matches = false;
-                    }
-                } else {
-                    matches = false;
-                }
-            }
+            // ToDo: Filter by _tag, _profile, _security, _text, _content, _list, _has, _type
 
             // Resource-specific search parameters
 
@@ -171,11 +122,32 @@ public class ReadMapper {
 
             // Filter by date
             if queryParams.hasKey("date") && matches {
-                // Date filtering logic can be enhanced based on FHIR search parameter prefixes
-                // For now, simple equality check
                 string[] dateValues = queryParams.get("date");
-                if appointment.DATE is () || dateValues.length() == 0 {
+                if appointment.DATE is () {
                     matches = false;
+                } else {
+                    // Convert time:Date to time:Civil for comparison
+                    time:Date dateOnly = <time:Date>appointment.DATE;
+                    time:Civil appointmentDate = {
+                        year: dateOnly.year,
+                        month: dateOnly.month,
+                        day: dateOnly.day,
+                        hour: 0,
+                        minute: 0,
+                        second: 0.0
+                    };
+                    
+                    boolean dateMatches = false;
+                    foreach string searchDate in dateValues {
+                        boolean|error comparison = self.compareDateWithPrefix(appointmentDate, searchDate);
+                        if comparison is boolean && comparison {
+                            dateMatches = true;
+                            break;
+                        }
+                    }
+                    if !dateMatches {
+                        matches = false;
+                    }
                 }
             }
 
@@ -190,16 +162,42 @@ public class ReadMapper {
             // Filter by service-category
             if queryParams.hasKey("service-category") && matches {
                 string[] serviceCategoryValues = queryParams.get("service-category");
-                if appointment.SERVICE_CATEGORY is string && serviceCategoryValues.indexOf(<string>appointment.SERVICE_CATEGORY) == () {
+                
+                if appointment.SERVICE_CATEGORY is () {
                     matches = false;
+                } else if appointment.SERVICE_CATEGORY is string {
+                    string serviceCategoryStr = <string>appointment.SERVICE_CATEGORY;
+                    json|error serviceCategoryJson = serviceCategoryStr.fromJsonString();
+                    
+                    if serviceCategoryJson is json {
+                        boolean tokenMatches = check self.matchesToken(serviceCategoryJson, serviceCategoryValues);
+                        if !tokenMatches {
+                            matches = false;
+                        }
+                    } else {
+                        matches = false;
+                    }
                 }
             }
 
-            // Filter by appointment-type
+            // Filter by appointment-type (token type)
             if queryParams.hasKey("appointment-type") && matches {
                 string[] appointmentTypeValues = queryParams.get("appointment-type");
-                if appointment.APPOINTMENT_TYPE is string && appointmentTypeValues.indexOf(<string>appointment.APPOINTMENT_TYPE) == () {
+                
+                if appointment.APPOINTMENT_TYPE is () {
                     matches = false;
+                } else if appointment.APPOINTMENT_TYPE is string {
+                    string appointmentTypeStr = <string>appointment.APPOINTMENT_TYPE;
+                    json|error appointmentTypeJson = appointmentTypeStr.fromJsonString();
+                    
+                    if appointmentTypeJson is json {
+                        boolean tokenMatches = check self.matchesToken(appointmentTypeJson, appointmentTypeValues);
+                        if !tokenMatches {
+                            matches = false;
+                        }
+                    } else {
+                        matches = false;
+                    }
                 }
             }
 
@@ -219,80 +217,51 @@ public class ReadMapper {
         return filtered;
     }
 
-    // Helper function to check if resource matches tag search criteria
-    private isolated function matchesTags(json resourceJson, string[] searchTags) returns boolean|error {
-        json|error metaTags = resourceJson.meta?.tag;
+    // ToDo: Improve filter by status, identifier, specialty
+    // ToDo: Filter by actor, based-on, location, part-status, patient, practitioner, reason-code,
+    // reason-reference, service-type, slot, supporting-info
+
+    // Helper function to match token search parameters
+    private isolated function matchesToken(json codeableConceptJson, string[] searchTokens) returns boolean|error {
+        json|error codingArray = codeableConceptJson.coding;
         
-        if metaTags is error || metaTags is () {
+        if codingArray is error || codingArray is () {
             return false;
         }
 
-        if metaTags is json[] {
-            foreach json tag in metaTags {
-                string? system = (check tag.system).toString();
-                string? code = (check tag.code).toString();
+        if codingArray is json[] {
+            foreach json coding in codingArray {
+                json systemJson = check coding.system;
+                json codeJson = check coding.code;
                 
-                foreach string searchTag in searchTags {
-                    // Support both "system|code" and just "code" formats
-                    if searchTag.includes("|") {
-                        string[] parts = re `\|`.split(searchTag);
-                        if parts.length() == 2 && system == parts[0] && code == parts[1] {
-                            return true;
-                        }
-                    } else {
-                        if code == searchTag {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    // Helper function to check if resource matches profile search criteria
-    private isolated function matchesProfiles(json resourceJson, string[] searchProfiles) returns boolean|error {
-        json|error metaProfiles = resourceJson.meta?.profile;
-        
-        if metaProfiles is error || metaProfiles is () {
-            return false;
-        }
-
-        if metaProfiles is json[] {
-            foreach json profile in metaProfiles {
-                string profileUrl = profile.toString();
-                if searchProfiles.indexOf(profileUrl) != () {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    // Helper function to check if resource matches security label search criteria
-    private isolated function matchesSecurity(json resourceJson, string[] searchSecurity) returns boolean|error {
-        json|error metaSecurity = resourceJson.meta?.security;
-        
-        if metaSecurity is error || metaSecurity is () {
-            return false;
-        }
-
-        if metaSecurity is json[] {
-            foreach json security in metaSecurity {
-                string? system = (check security.system).toString();
-                string? code = (check security.code).toString();
+                string? system = systemJson is () ? () : systemJson.toString();
+                string? code = codeJson is () ? () : codeJson.toString();
                 
-                foreach string searchSecurityLabel in searchSecurity {
-                    // Support both "system|code" and just "code" formats
-                    if searchSecurityLabel.includes("|") {
-                        string[] parts = re `\|`.split(searchSecurityLabel);
-                        if parts.length() == 2 && system == parts[0] && code == parts[1] {
-                            return true;
+                foreach string searchToken in searchTokens {
+                    // Format: [parameter]=[system]|[code]
+                    if searchToken.includes("|") {
+                        string[] parts = re `\|`.split(searchToken);
+                        if parts.length() == 2 {
+                            string searchSystem = parts[0];
+                            string searchCode = parts[1];
+                            
+                            // [parameter]=|[code]: match code with no system
+                            if searchSystem == "" && system is () && code == searchCode {
+                                return true;
+                            }
+                            // [parameter]=[system]|: match any code with this system
+                            else if searchCode == "" && system == searchSystem {
+                                return true;
+                            }
+                            // [parameter]=[system]|[code]: match both system and code
+                            else if system == searchSystem && code == searchCode {
+                                return true;
+                            }
                         }
-                    } else {
-                        if code == searchSecurityLabel {
+                    } 
+                    // Format: [parameter]=[code]: match code regardless of system
+                    else {
+                        if code == searchToken {
                             return true;
                         }
                     }
