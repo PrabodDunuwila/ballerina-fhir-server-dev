@@ -333,10 +333,20 @@ function init() returns error? {
 // 
 service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appointmentApiConfig) {
 
-    // Search for resources based on a set of criteria.
+    // Search for resources - handles both /Appointment?params and /Appointment/_search
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        log:printInfo("Appointment: GET (search) - Start Execution!");
+        return self.performSearch(fhirContext);
+    }
+
+    // Search for resources using _search endpoint
     isolated resource function get _search(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         log:printInfo("Appointment: GET _search - Start Execution!");
-        
+        return self.performSearch(fhirContext);
+    }
+
+    // Common search logic for both endpoints
+    private isolated function performSearch(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         do {
             // Access query parameters from FHIRContext
             map<r4:RequestSearchParameter[]> searchParams = fhirContext.getRequestSearchParameters();
@@ -356,7 +366,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
             json|error searchResult = readHandler.searchResources(persistClient, "Appointment", queryParams);
             
             if searchResult is json {
-                log:printInfo("Appointment: GET _search - Execution Success!");
+                log:printInfo("Appointment: Search - Execution Success!");
                 r4:Bundle bundle = check fhirParser:parse(searchResult).ensureType();
                 return bundle;
             } else {
