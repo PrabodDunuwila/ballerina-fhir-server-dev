@@ -329,9 +329,57 @@ function init() returns error? {
     }
 }
 
+// Utility function to handle search operations for resources
+isolated function performResourceSearch(string resourceType, r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Search - Start Execution!`);
+    do {
+        // Access query parameters from FHIRContext
+        map<r4:RequestSearchParameter[]> searchParams = fhirContext.getRequestSearchParameters();
+        
+        // Convert RequestSearchParameter[] to string[] for handler
+        map<string[]> queryParams = {};
+        foreach var [key, values] in searchParams.entries() {
+            string[] paramValues = [];
+            foreach var param in values {
+                paramValues.push(param.value);
+            }
+            queryParams[key] = paramValues;
+        }
+        
+        // Use ReadHandler to search resources
+        handlers:ReadHandler readHandler = new handlers:ReadHandler();
+        json|error searchResult = readHandler.searchResources(persistClient, resourceType, queryParams);
+        
+        if searchResult is json {
+            log:printInfo(string `${resourceType}: Search - Execution Success!`);
+            r4:Bundle bundle = check fhirParser:parse(searchResult).ensureType();
+            return bundle;
+        } else {
+            string errorMsg = searchResult.message();
+            log:printError("Search failed: " + errorMsg);
+            return r4:createFHIRError(string `Failed to search ${resourceType}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+        
+    } on fail error e {
+        log:printError("Error processing search: " + e.message());
+        return r4:createFHIRError(
+            "Search operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+}
+
 // // # Appointment API                                                                                                          #
 // 
 service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appointmentApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
+
+    // Search for resources using _search endpoint
+    isolated resource function get _search(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
+
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Appointment|r4:OperationOutcome|r4:FHIRError {
         do {
@@ -363,11 +411,6 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Appointment|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 

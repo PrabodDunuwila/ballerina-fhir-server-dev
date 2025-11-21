@@ -28,7 +28,7 @@ public class CreateMapper {
                     STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
                     APPOINTMENT_TYPE: extractedValues.hasKey("appointment-type") ? extractedValues.get("appointment-type").toString() : "",
                     REASON_CODE: extractedValues.hasKey("reason-code") ? extractedValues.get("reason-code").toString() : "",
-                    SPECIALTY: extractedValues.hasKey("speciality") ? extractedValues.get("speciality").toString() : "",
+                    SPECIALTY: extractedValues.hasKey("specialty") ? extractedValues.get("specialty").toString() : "",
                     IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
                     SERVICE_TYPE: extractedValues.hasKey("service-type") ? extractedValues.get("service-type").toString() : "",
                     VERSION_ID: 1,
