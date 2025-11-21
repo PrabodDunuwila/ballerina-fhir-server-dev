@@ -154,8 +154,21 @@ public class ReadMapper {
             // Filter by identifier
             if queryParams.hasKey("identifier") && matches {
                 string[] identifierValues = queryParams.get("identifier");
-                if appointment.IDENTIFIER is string && identifierValues.indexOf(<string>appointment.IDENTIFIER) == () {
+                
+                if appointment.IDENTIFIER is () {
                     matches = false;
+                } else if appointment.IDENTIFIER is string {
+                    string identifierStr = <string>appointment.IDENTIFIER;
+                    json|error identifierJson = identifierStr.fromJsonString();
+                    
+                    if identifierJson is json {
+                        boolean tokenMatches = check self.matchesIdentifierToken(identifierJson, identifierValues);
+                        if !tokenMatches {
+                            matches = false;
+                        }
+                    } else {
+                        matches = false;
+                    }
                 }
             }
 
@@ -204,8 +217,21 @@ public class ReadMapper {
             // Filter by specialty
             if queryParams.hasKey("specialty") && matches {
                 string[] specialtyValues = queryParams.get("specialty");
-                if appointment.SPECIALTY is string && specialtyValues.indexOf(<string>appointment.SPECIALTY) == () {
+                
+                if appointment.SPECIALTY is () {
                     matches = false;
+                } else if appointment.SPECIALTY is string {
+                    string specialtyStr = <string>appointment.SPECIALTY;
+                    json|error specialtyJson = specialtyStr.fromJsonString();
+                    
+                    if specialtyJson is json {
+                        boolean tokenMatches = check self.matchesToken(specialtyJson, specialtyValues);
+                        if !tokenMatches {
+                            matches = false;
+                        }
+                    } else {
+                        matches = false;
+                    }
                 }
             }
 
@@ -217,7 +243,7 @@ public class ReadMapper {
         return filtered;
     }
 
-    // ToDo: Improve filter by status, identifier, specialty
+    // ToDo: Improve filter by status, identifier
     // ToDo: Filter by actor, based-on, location, part-status, patient, practitioner, reason-code,
     // reason-reference, service-type, slot, supporting-info
 
@@ -269,6 +295,48 @@ public class ReadMapper {
             }
         }
 
+        return false;
+    }
+
+    // Helper function to match identifier token search parameters
+    // Identifier format: {"system": "http://...", "value": "123"}
+    private isolated function matchesIdentifierToken(json identifierJson, string[] searchTokens) returns boolean|error {
+        json systemJson = check identifierJson.system;
+        json valueJson = check identifierJson.value;
+        
+        string? system = systemJson is () ? () : systemJson.toString();
+        string? value = valueJson is () ? () : valueJson.toString();
+        
+        foreach string searchToken in searchTokens {
+            // Format: [parameter]=[system]|[value]
+            if searchToken.includes("|") {
+                string[] parts = re `\|`.split(searchToken);
+                if parts.length() == 2 {
+                    string searchSystem = parts[0];
+                    string searchValue = parts[1];
+                    
+                    // [parameter]=|[value]: match value with no system
+                    if searchSystem == "" && system is () && value == searchValue {
+                        return true;
+                    }
+                    // [parameter]=[system]|: match any value with this system
+                    else if searchValue == "" && system == searchSystem {
+                        return true;
+                    }
+                    // [parameter]=[system]|[value]: match both system and value
+                    else if system == searchSystem && value == searchValue {
+                        return true;
+                    }
+                }
+            } 
+            // Format: [parameter]=[value]: match value regardless of system
+            else {
+                if value == searchToken {
+                    return true;
+                }
+            }
+        }
+        
         return false;
     }
 
