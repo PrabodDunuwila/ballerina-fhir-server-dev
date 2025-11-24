@@ -476,9 +476,46 @@ public class CreateMapper {
 
                 return slotInsert;
             }
+            _ => {
+                // Generic handler for all other resources
+                return self.createGenericInsertModel(resourceType, resourceJson, extractedValues);
+            }
         }
+    }
 
-        return ();
+    // Generic insert model creator for all resources
+    private isolated function createGenericInsertModel(string resourceType, json resourceJson, map<json> extractedValues) returns record {|anydata...;|}|error {
+        
+        // Create base record with required fields
+        map<anydata> insertModel = {};
+        
+        // Add ID field (required for all resources)
+        string idFieldName = resourceType.toUpperAscii() + "TABLE_ID";
+        insertModel[idFieldName] = check resourceJson.id;
+        
+        // Add all extracted search parameter values
+        foreach var [key, value] in extractedValues.entries() {
+            string columnName = key.toUpperAscii();
+            // Replace hyphens with underscores
+            string[] parts = re `-`.split(columnName);
+            columnName = string:'join("_", ...parts);
+            
+            // Handle different value types
+            if value is string {
+                insertModel[columnName] = value;
+            } else if value is json {
+                insertModel[columnName] = value.toString();
+            }
+        }
+        
+        // Add standard fields (required for all tables)
+        insertModel["VERSION_ID"] = 1;
+        insertModel["CREATED_AT"] = time:utcToCivil(time:utcNow());
+        insertModel["UPDATED_AT"] = time:utcToCivil(time:utcNow());
+        insertModel["LAST_UPDATED"] = time:utcToCivil(time:utcNow());
+        insertModel["RESOURCE_JSON"] = resourceJson.toJsonString().toBytes();
+        
+        return insertModel;
     }
 
     public isolated function getReferences() returns json[] {

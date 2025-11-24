@@ -72,7 +72,8 @@ public class ReadMapper {
                 return slotJson;
             }
             _ => {
-                return error(string `Unsupported resource type: ${resourceType}`);
+                // Generic handler for all other resources
+                return self.readGenericResource(persistClient, resourceType, resourceId);
             }
         }
     }
@@ -124,7 +125,8 @@ public class ReadMapper {
                 return self.searchSlots(persistClient, queryParams);
             }
             _ => {
-                return error(string `Unsupported resource type: ${resourceType}`);
+                // Generic handler for all other resources
+                return self.searchGenericResources(persistClient, resourceType, queryParams);
             }
         }
     }
@@ -2064,5 +2066,72 @@ public class ReadMapper {
         }
         return result;
     }
+
+    // Generic resource reader for all unsupported resources
+    private isolated function readGenericResource(db_store:Client persistClient, string resourceType, string resourceId) returns json|error {
+        // Construct table name
+        string tableName = resourceType.toUpperAscii() + "Table";
+        string idColumn = resourceType.toUpperAscii() + "TABLE_ID";
+        
+        // Build and execute SQL query
+        sql:ParameterizedQuery query = `SELECT RESOURCE_JSON FROM ${tableName} WHERE ${idColumn} = ${resourceId}`;
+        
+        stream<record {| byte[] RESOURCE_JSON; |}, persist:Error?> resultStream = persistClient->queryNativeSQL(query);
+        
+        record {| byte[] RESOURCE_JSON; |}[] results = check from var row in resultStream select row;
+        
+        if results.length() == 0 {
+            return error(string `${resourceType}/${resourceId} not found`);
+        }
+        
+        // Convert bytes to JSON
+        string jsonStr = check string:fromBytes(results[0].RESOURCE_JSON);
+        json resourceJson = check jsonStr.fromJsonString();
+        
+        return resourceJson;
+    }
+
+    // Generic resource searcher for all unsupported resources  
+    private isolated function searchGenericResources(db_store:Client persistClient, string resourceType, map<string[]> queryParams) returns json|error {
+        string tableName = resourceType.toUpperAscii() + "Table";
+        
+        // Build and execute SQL query
+        sql:ParameterizedQuery query = `SELECT RESOURCE_JSON FROM ${tableName}`;
+        
+        stream<record {| byte[] RESOURCE_JSON; |}, persist:Error?> resultStream = persistClient->queryNativeSQL(query);
+        
+        record {| byte[] RESOURCE_JSON; |}[] results = check from var row in resultStream select row;
+        
+        // Convert results to FHIR Bundle
+        json[] entries = [];
+        foreach var row in results {
+            string jsonStr = check string:fromBytes(row.RESOURCE_JSON);
+            json resourceJson = check jsonStr.fromJsonString();
+            
+            string resourceIdStr = "";
+            json|error idValue = resourceJson.id;
+            if idValue is string {
+                resourceIdStr = idValue;
+            } else if idValue is json {
+                resourceIdStr = idValue.toString();
+            }
+            
+            json entry = {
+                "fullUrl": string `${resourceType}/${resourceIdStr}`,
+                "resource": resourceJson
+            };
+            entries.push(entry);
+        }
+        
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": entries.length(),
+            "entry": entries
+        };
+        
+        return bundle;
+    }
 }
+
 

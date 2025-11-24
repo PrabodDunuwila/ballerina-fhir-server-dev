@@ -39,9 +39,41 @@ public class UpdateMapper {
 
                 return appointmentUpdate;
             }
+            _ => {
+                // Generic handler for all other resources
+                return self.createGenericUpdateModel(resourceType, resourceJson, extractedValues);
+            }
         }
+    }
 
-        return ();
+    // Generic update model creator for all resources
+    private isolated function createGenericUpdateModel(string resourceType, json resourceJson, map<json> extractedValues) returns record {|anydata...;|}|error {
+        
+        // Create base record with required fields
+        map<anydata> updateModel = {};
+        
+        // Add all extracted search parameter values
+        foreach var [key, value] in extractedValues.entries() {
+            string columnName = key.toUpperAscii();
+            // Replace hyphens with underscores
+            string[] parts = re `-`.split(columnName);
+            columnName = string:'join("_", ...parts);
+            
+            // Handle different value types
+            if value is string {
+                updateModel[columnName] = value;
+            } else if value is json {
+                updateModel[columnName] = value.toString();
+            }
+        }
+        
+        // Add standard fields (required for all tables)
+        updateModel["VERSION_ID"] = 2;
+        updateModel["UPDATED_AT"] = time:utcToCivil(time:utcNow());
+        updateModel["LAST_UPDATED"] = time:utcToCivil(time:utcNow());
+        updateModel["RESOURCE_JSON"] = resourceJson.toString().toBytes();
+        
+        return updateModel;
     }
 
     public isolated function getReferences() returns json[] {
