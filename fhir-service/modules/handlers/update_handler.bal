@@ -64,6 +64,23 @@ public class UpdateHandler {
                 return updateModel is error ? updateModel : error("Failed to create update model");
             }
 
+            // Get extracted references after mapping
+            json[] references = self.updateMapper.getReferences();
+
+            // Validate all references BEFORE updating main resource
+            log:printInfo(string `Validating ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
+            error? validationResult = utils:validateReferences(persistClient, references);
+            if validationResult is error {
+                log:printError(string `Reference validation failed: ${validationResult.message()}`);
+                error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
+                    persistClient, 'transaction, resourceType
+                );
+                if (rollbackResult is error) {
+                    log:printError(rollbackResult.toString());
+                }
+                return validationResult;
+            }
+
             // Update main resource
             log:printInfo(string `Updating main ${resourceType}/${resourceId} record`);
             error? updateResult = self.updateMainResource(persistClient, resourceType, resourceId, updateModel);
@@ -81,7 +98,6 @@ public class UpdateHandler {
 
             // Save new references
             log:printInfo(string `Saving new references for ${resourceType}/${resourceId}`);
-            json[] references = self.updateMapper.getReferences();
             error? refResult = utils:saveReferences(persistClient, references, resourceType, resourceId, 'transaction);
 
             if refResult is error {
@@ -158,6 +174,23 @@ public class UpdateHandler {
                 return updateModel is error ? updateModel : error("Failed to create update model");
             }
 
+            // Get extracted references after mapping
+            json[] references = self.updateMapper.getReferences();
+
+            // Validate all references BEFORE updating main resource
+            log:printInfo(string `Validating ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
+            error? validationResult = utils:validateReferences(persistClient, references);
+            if validationResult is error {
+                log:printError(string `Reference validation failed: ${validationResult.message()}`);
+                error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
+                    persistClient, 'transaction, resourceType
+                );
+                if (rollbackResult is error) {
+                    log:printError(rollbackResult.toString());
+                }
+                return validationResult;
+            }
+
             // Update main resource
             log:printInfo(string `Updating main resource`);
             error? updateResult = self.updateMainResource(persistClient, resourceType, resourceId, updateModel);
@@ -174,7 +207,6 @@ public class UpdateHandler {
 
             // Save new references
             log:printInfo(string `Saving new references`);
-            json[] references = self.updateMapper.getReferences();
             error? refResult = utils:saveReferences(persistClient, references, resourceType, resourceId, 'transaction);
 
             if refResult is error {
@@ -190,7 +222,7 @@ public class UpdateHandler {
             self.transactionHandler.commitTransaction('transaction, resourceType, resourceId);
 
             log:printInfo(string `Successfully patched ${resourceType}/${resourceId}`);
-            return updateModel.toJson();
+            return mergedResource;
 
         } on fail error e {
             log:printError(string `Patch transaction failed: ${e.message()}`);

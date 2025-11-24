@@ -375,11 +375,6 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
         return performResourceSearch("Appointment", fhirContext);
     }
 
-    // Search for resources using _search endpoint
-    isolated resource function get _search(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
-    }
-
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Appointment|r4:OperationOutcome|r4:FHIRError {
         do {
@@ -460,6 +455,12 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                 string errorMsg = result.message();
                 log:printError(string `Update failed: ${errorMsg}`);
 
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
                 return r4:createFHIRError(string `Failed to update Appointment/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
@@ -478,11 +479,18 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
 
             if result is json {
                 log:printInfo("Appointment: PATCH - Execution Success!");
-                return <Appointment>result;
+                Appointment appointment = check fhirParser:parse(result).ensureType();
+                return appointment;
             } else {
                 string errorMsg = result.message();
                 log:printError(string `Patch failed: ${errorMsg}`);
 
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
                 return r4:createFHIRError(string `Failed to patch Appointment/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
