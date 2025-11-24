@@ -78,14 +78,69 @@ public class DeleteHandler {
 
         match resourceType {
             "Appointment" => {
-                stream<db_store:AppointmentTable, error?> appointmentStream =
-                    persistClient->/appointmenttables(targetType = db_store:AppointmentTable);
-
-                db_store:AppointmentTable[] appointments = check from var appointment in appointmentStream
-                    where appointment.APPOINTMENTTABLE_ID == resourceId
-                    select appointment;
-
+                stream<db_store:AppointmentTable, error?> appointmentStream = persistClient->/appointmenttables(targetType = db_store:AppointmentTable);
+                db_store:AppointmentTable[] appointments = check from var appointment in appointmentStream where appointment.APPOINTMENTTABLE_ID == resourceId select appointment;
                 return appointments.length() > 0;
+            }
+            "Practitioner" => {
+                stream<db_store:PractitionerTable, error?> practitionerStream = persistClient->/practitionertables(targetType = db_store:PractitionerTable);
+                db_store:PractitionerTable[] results = check from var item in practitionerStream where item.PRACTITIONERTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Device" => {
+                stream<db_store:DeviceTable, error?> deviceStream = persistClient->/devicetables(targetType = db_store:DeviceTable);
+                db_store:DeviceTable[] results = check from var item in deviceStream where item.DEVICETABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "HealthcareService" => {
+                stream<db_store:HealthcareServiceTable, error?> healthcareServiceStream = persistClient->/healthcareservicetables(targetType = db_store:HealthcareServiceTable);
+                db_store:HealthcareServiceTable[] results = check from var item in healthcareServiceStream where item.HEALTHCARESERVICETABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "PractitionerRole" => {
+                stream<db_store:PractitionerRoleTable, error?> practitionerRoleStream = persistClient->/practitionerroletables(targetType = db_store:PractitionerRoleTable);
+                db_store:PractitionerRoleTable[] results = check from var item in practitionerRoleStream where item.PRACTITIONERROLETABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "RelatedPerson" => {
+                stream<db_store:RelatedPersonTable, error?> relatedPersonStream = persistClient->/relatedpersontables(targetType = db_store:RelatedPersonTable);
+                db_store:RelatedPersonTable[] results = check from var item in relatedPersonStream where item.RELATEDPERSONTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Location" => {
+                stream<db_store:LocationTable, error?> locationStream = persistClient->/locationtables(targetType = db_store:LocationTable);
+                db_store:LocationTable[] results = check from var item in locationStream where item.LOCATIONTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "ServiceRequest" => {
+                stream<db_store:ServiceRequestTable, error?> serviceRequestStream = persistClient->/servicerequesttables(targetType = db_store:ServiceRequestTable);
+                db_store:ServiceRequestTable[] results = check from var item in serviceRequestStream where item.SERVICEREQUESTTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Condition" => {
+                stream<db_store:ConditionTable, error?> conditionStream = persistClient->/conditiontables(targetType = db_store:ConditionTable);
+                db_store:ConditionTable[] results = check from var item in conditionStream where item.CONDITIONTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Observation" => {
+                stream<db_store:ObservationTable, error?> observationStream = persistClient->/observationtables(targetType = db_store:ObservationTable);
+                db_store:ObservationTable[] results = check from var item in observationStream where item.OBSERVATIONTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Procedure" => {
+                stream<db_store:ProcedureTable, error?> procedureStream = persistClient->/proceduretables(targetType = db_store:ProcedureTable);
+                db_store:ProcedureTable[] results = check from var item in procedureStream where item.PROCEDURETABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "ImmunizationRecommendation" => {
+                stream<db_store:ImmunizationRecommendationTable, error?> immunizationStream = persistClient->/immunizationrecommendationtables(targetType = db_store:ImmunizationRecommendationTable);
+                db_store:ImmunizationRecommendationTable[] results = check from var item in immunizationStream where item.IMMUNIZATIONRECOMMENDATIONTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Slot" => {
+                stream<db_store:SlotTable, error?> slotStream = persistClient->/slottables(targetType = db_store:SlotTable);
+                db_store:SlotTable[] results = check from var item in slotStream where item.SLOTTABLE_ID == resourceId select item;
+                return results.length() > 0;
             }
             _ => {
                 return error(string `Unsupported resource type: ${resourceType}`);
@@ -133,11 +188,67 @@ public class DeleteHandler {
         match resourceType {
             "Appointment" => {
                 stream<db_store:AppointmentTable, error?> 'stream = persistClient->/appointmenttables(targetType = db_store:AppointmentTable);
-
-                db_store:AppointmentTable[] results = check from var item in 'stream
-                    where item.APPOINTMENTTABLE_ID == resourceId
-                    select item;
-
+                db_store:AppointmentTable[] results = check from var item in 'stream where item.APPOINTMENTTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Practitioner" => {
+                stream<db_store:PractitionerTable, error?> 'stream = persistClient->/practitionertables(targetType = db_store:PractitionerTable);
+                db_store:PractitionerTable[] results = check from var item in 'stream where item.PRACTITIONERTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Device" => {
+                stream<db_store:DeviceTable, error?> 'stream = persistClient->/devicetables(targetType = db_store:DeviceTable);
+                db_store:DeviceTable[] results = check from var item in 'stream where item.DEVICETABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "HealthcareService" => {
+                stream<db_store:HealthcareServiceTable, error?> 'stream = persistClient->/healthcareservicetables(targetType = db_store:HealthcareServiceTable);
+                db_store:HealthcareServiceTable[] results = check from var item in 'stream where item.HEALTHCARESERVICETABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "PractitionerRole" => {
+                stream<db_store:PractitionerRoleTable, error?> 'stream = persistClient->/practitionerroletables(targetType = db_store:PractitionerRoleTable);
+                db_store:PractitionerRoleTable[] results = check from var item in 'stream where item.PRACTITIONERROLETABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "RelatedPerson" => {
+                stream<db_store:RelatedPersonTable, error?> 'stream = persistClient->/relatedpersontables(targetType = db_store:RelatedPersonTable);
+                db_store:RelatedPersonTable[] results = check from var item in 'stream where item.RELATEDPERSONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Location" => {
+                stream<db_store:LocationTable, error?> 'stream = persistClient->/locationtables(targetType = db_store:LocationTable);
+                db_store:LocationTable[] results = check from var item in 'stream where item.LOCATIONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "ServiceRequest" => {
+                stream<db_store:ServiceRequestTable, error?> 'stream = persistClient->/servicerequesttables(targetType = db_store:ServiceRequestTable);
+                db_store:ServiceRequestTable[] results = check from var item in 'stream where item.SERVICEREQUESTTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Condition" => {
+                stream<db_store:ConditionTable, error?> 'stream = persistClient->/conditiontables(targetType = db_store:ConditionTable);
+                db_store:ConditionTable[] results = check from var item in 'stream where item.CONDITIONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Observation" => {
+                stream<db_store:ObservationTable, error?> 'stream = persistClient->/observationtables(targetType = db_store:ObservationTable);
+                db_store:ObservationTable[] results = check from var item in 'stream where item.OBSERVATIONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Procedure" => {
+                stream<db_store:ProcedureTable, error?> 'stream = persistClient->/proceduretables(targetType = db_store:ProcedureTable);
+                db_store:ProcedureTable[] results = check from var item in 'stream where item.PROCEDURETABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "ImmunizationRecommendation" => {
+                stream<db_store:ImmunizationRecommendationTable, error?> 'stream = persistClient->/immunizationrecommendationtables(targetType = db_store:ImmunizationRecommendationTable);
+                db_store:ImmunizationRecommendationTable[] results = check from var item in 'stream where item.IMMUNIZATIONRECOMMENDATIONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Slot" => {
+                stream<db_store:SlotTable, error?> 'stream = persistClient->/slottables(targetType = db_store:SlotTable);
+                db_store:SlotTable[] results = check from var item in 'stream where item.SLOTTABLE_ID == resourceId select item;
                 return results.length() > 0 ? results[0] : error("Resource not found");
             }
         }

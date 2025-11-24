@@ -1720,7 +1720,31 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "PractitionerRole", id);
+
+            if result is boolean && result {
+                log:printInfo(string `PractitionerRole: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `PractitionerRole/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete PractitionerRole/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting PractitionerRole/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -1819,7 +1843,31 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "RelatedPerson", id);
+
+            if result is boolean && result {
+                log:printInfo(string `RelatedPerson: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `RelatedPerson/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete RelatedPerson/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting RelatedPerson/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -1918,7 +1966,31 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "ServiceRequest", id);
+
+            if result is boolean && result {
+                log:printInfo(string `ServiceRequest: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `ServiceRequest/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete ServiceRequest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting ServiceRequest/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -2067,7 +2139,31 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "Practitioner", id);
+
+            if result is boolean && result {
+                log:printInfo(string `Practitioner: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `Practitioner/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete Practitioner/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Practitioner/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -2316,7 +2412,31 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "Slot", id);
+
+            if result is boolean && result {
+                log:printInfo(string `Slot: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `Slot/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete Slot/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Slot/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -3865,7 +3985,31 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "ImmunizationRecommendation", id);
+
+            if result is boolean && result {
+                log:printInfo(string `ImmunizationRecommendation: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `ImmunizationRecommendation/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete ImmunizationRecommendation/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting ImmunizationRecommendation/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -4564,7 +4708,31 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "Procedure", id);
+
+            if result is boolean && result {
+                log:printInfo(string `Procedure: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `Procedure/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete Procedure/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Procedure/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -5013,7 +5181,31 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "Device", id);
+
+            if result is boolean && result {
+                log:printInfo(string `Device: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `Device/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete Device/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Device/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -5812,7 +6004,31 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "Observation", id);
+
+            if result is boolean && result {
+                log:printInfo(string `Observation: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `Observation/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete Observation/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Observation/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -6661,7 +6877,31 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "HealthcareService", id);
+
+            if result is boolean && result {
+                log:printInfo(string `HealthcareService: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `HealthcareService/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete HealthcareService/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting HealthcareService/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -7060,7 +7300,31 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "Condition", id);
+
+            if result is boolean && result {
+                log:printInfo(string `Condition: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `Condition/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete Condition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Condition/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
@@ -8202,7 +8466,31 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler();
+            boolean|error result = deleteHandler.deleteResourceWithTransaction(persistClient, "Location", id);
+
+            if result is boolean && result {
+                log:printInfo(string `Location: DELETE - Execution Success!`);
+                return {
+                    resourceType: "OperationOutcome",
+                    issue: [
+                        {
+                            severity: "information",
+                            code: "informational",
+                            diagnostics: string `Location/${id} deleted successfully`
+                        }
+                    ]
+                };
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+                return r4:createFHIRError(string `Failed to delete Location/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Location/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.

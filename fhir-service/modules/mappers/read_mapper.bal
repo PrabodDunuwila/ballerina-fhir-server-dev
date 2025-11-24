@@ -149,8 +149,69 @@ public class ReadMapper {
 
     // Search Appointments with query parameters
     private isolated function searchAppointments(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
-        // Build SQL WHERE clause from query parameters
-        sql:ParameterizedQuery whereClause = self.buildWhereClause(queryParams);
+        // Check if any reference parameters are present
+        string[] referenceParams = ["actor", "patient", "practitioner", "location", "slot", "based-on", "supporting-info"];
+        string[]? matchingResourceIds = ();
+        boolean hasReferenceParams = false;
+        
+        foreach string refParam in referenceParams {
+            if queryParams.hasKey(refParam) {
+                hasReferenceParams = true;
+                // Get resource IDs from REFERENCES table
+                string[]? refIds = check self.getResourceIdsByReference(persistClient, "Appointment", refParam, queryParams.get(refParam));
+                
+                if refIds is string[] {
+                    if matchingResourceIds is () {
+                        matchingResourceIds = refIds;
+                    } else {
+                        // Intersect with existing IDs (AND logic)
+                        string[] intersected = self.intersectStringArrays(matchingResourceIds, refIds);
+                        // If intersection results in empty array, no appointments match all criteria
+                        if intersected.length() == 0 {
+                            json bundle = {
+                                "resourceType": "Bundle",
+                                "type": "searchset",
+                                "total": 0,
+                                "entry": []
+                            };
+                            return bundle;
+                        }
+                        matchingResourceIds = intersected;
+                    }
+                } else {
+                    // If any reference parameter has no matches, return empty result
+                    json bundle = {
+                        "resourceType": "Bundle",
+                        "type": "searchset",
+                        "total": 0,
+                        "entry": []
+                    };
+                    return bundle;
+                }
+            }
+        }
+        
+        // If reference parameters were provided but no matches found, return empty result
+        if hasReferenceParams && matchingResourceIds is () {
+            json bundle = {
+                "resourceType": "Bundle",
+                "type": "searchset",
+                "total": 0,
+                "entry": []
+            };
+            return bundle;
+        }
+        
+        // Create a copy of queryParams without reference parameters for WHERE clause
+        map<string[]> nonRefQueryParams = {};
+        foreach var [key, values] in queryParams.entries() {
+            if !self.arrayContains(referenceParams, key) {
+                nonRefQueryParams[key] = values;
+            }
+        }
+        
+        // Build SQL WHERE clause from non-reference query parameters
+        sql:ParameterizedQuery whereClause = self.buildWhereClause(nonRefQueryParams);
         
         stream<db_store:AppointmentTable, persist:Error?> appointmentStream = persistClient->/appointmenttables(
             targetType = db_store:AppointmentTable,
@@ -161,8 +222,19 @@ public class ReadMapper {
         db_store:AppointmentTable[] allAppointments = check from var appointment in appointmentStream
             select appointment;
 
+        // Filter by reference parameters if matches were found
+        db_store:AppointmentTable[] filteredAppointments = allAppointments;
+        if matchingResourceIds is string[] {
+            filteredAppointments = [];
+            foreach var appointment in allAppointments {
+                if self.arrayContains(matchingResourceIds, appointment.APPOINTMENTTABLE_ID) {
+                    filteredAppointments.push(appointment);
+                }
+            }
+        }
+
         // Convert filtered results to FHIR Bundle
-        json bundle = check self.createSearchBundle(allAppointments, queryParams);
+        json bundle = check self.createSearchBundle(filteredAppointments, queryParams);
 
         return bundle;
     }
@@ -1918,4 +1990,79 @@ public class ReadMapper {
 
         return resourceJson;
     }
+
+    // Helper function to get resource IDs by reference parameter
+    private isolated function getResourceIdsByReference(db_store:Client persistClient, string sourceResourceType, string searchParamName, string[] referenceValues) returns string[]?|error {
+        string[] matchingIds = [];
+        
+        foreach string refValue in referenceValues {
+            // Parse reference value - can be in formats:
+            // 1. [id] - just the ID
+            // 2. [type]/[id] - type and ID
+            // 3. [url] - absolute URL
+            
+            string? targetType = ();
+            string? targetId = ();
+            
+            // Check if it contains a slash (ResourceType/ID format)
+            int? slashIndex = refValue.indexOf("/");
+            if slashIndex is int {
+                targetType = refValue.substring(0, slashIndex);
+                targetId = refValue.substring(slashIndex + 1);
+            } else {
+                // Just an ID - we'll match any target type
+                targetId = refValue;
+            }
+            
+            // Query REFERENCES table
+            stream<db_store:REFERENCES, persist:Error?> referencesStream = persistClient->/references(targetType = db_store:REFERENCES);
+            
+            db_store:REFERENCES[] matchingRefs = [];
+            if targetType is string && targetId is string {
+                // Match both target type and ID
+                matchingRefs = check from var ref in referencesStream
+                    where ref.SOURCE_RESOURCE_TYPE == sourceResourceType &&
+                          ref.TARGET_RESOURCE_TYPE == targetType &&
+                          ref.TARGET_RESOURCE_ID == targetId
+                    select ref;
+            } else if targetId is string {
+                // Match only target ID (any type)
+                matchingRefs = check from var ref in referencesStream
+                    where ref.SOURCE_RESOURCE_TYPE == sourceResourceType &&
+                          ref.TARGET_RESOURCE_ID == targetId
+                    select ref;
+            }
+            
+            // Collect unique source resource IDs
+            foreach var ref in matchingRefs {
+                if !self.arrayContains(matchingIds, ref.SOURCE_RESOURCE_ID) {
+                    matchingIds.push(ref.SOURCE_RESOURCE_ID);
+                }
+            }
+        }
+        
+        return matchingIds.length() > 0 ? matchingIds : ();
+    }
+
+    // Helper function to check if array contains a value
+    private isolated function arrayContains(string[] arr, string value) returns boolean {
+        foreach string item in arr {
+            if item == value {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Helper function to intersect two string arrays (returns common elements)
+    private isolated function intersectStringArrays(string[] arr1, string[] arr2) returns string[] {
+        string[] result = [];
+        foreach string item in arr1 {
+            if self.arrayContains(arr2, item) && !self.arrayContains(result, item) {
+                result.push(item);
+            }
+        }
+        return result;
+    }
 }
+
