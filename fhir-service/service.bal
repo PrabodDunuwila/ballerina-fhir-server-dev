@@ -428,9 +428,15 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                 if (result is error) {
                     errorMsg = result.message();
                 }
-                log:printError("Database save failed: " + errorMsg);
+                log:printError("Resource save failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to save appointment: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -1635,7 +1641,29 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "PractitionerRole", id);
+
+            if result is json {
+                log:printInfo("PractitionerRole: READ - Execution Success!");
+                international401:PractitionerRole practitionerRole = check fhirParser:parse(result).ensureType();
+                return practitionerRole;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch practitioner role: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing practitioner role: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid practitioner role data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -1645,12 +1673,39 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("PractitionerRole", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PractitionerRole practitionerrole) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "PractitionerRole", practitionerrole.toJson());
+
+            if result is string {
+                log:printInfo("PractitionerRole: POST - Execution Success!");
+                return practitionerrole;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing practitioner role: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid practitioner role data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -1685,7 +1740,29 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "RelatedPerson", id);
+
+            if result is json {
+                log:printInfo("RelatedPerson: READ - Execution Success!");
+                international401:RelatedPerson relatedPerson = check fhirParser:parse(result).ensureType();
+                return relatedPerson;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch related person: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing related person: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid related person data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -1695,12 +1772,39 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("RelatedPerson", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RelatedPerson relatedperson) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "RelatedPerson", relatedperson.toJson());
+
+            if result is string {
+                log:printInfo("RelatedPerson: POST - Execution Success!");
+                return relatedperson;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing related person: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid related person data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -1735,7 +1839,29 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "ServiceRequest", id);
+
+            if result is json {
+                log:printInfo("ServiceRequest: READ - Execution Success!");
+                international401:ServiceRequest serviceRequest = check fhirParser:parse(result).ensureType();
+                return serviceRequest;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch service request: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing service request: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid service request data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -1745,12 +1871,39 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("ServiceRequest", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ServiceRequest servicerequest) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "ServiceRequest", servicerequest.toJson());
+
+            if result is string {
+                log:printInfo("ServiceRequest: POST - Execution Success!");
+                return servicerequest;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing service request: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid service request data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -1835,7 +1988,29 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "Practitioner", id);
+
+            if result is json {
+                log:printInfo("Practitioner: READ - Execution Success!");
+                international401:Practitioner practitioner = check fhirParser:parse(result).ensureType();
+                return practitioner;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch practitioner: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing practitioner: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid practitioner data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -1845,12 +2020,39 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Practitioner", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Practitioner practitioner) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Practitioner", practitioner.toJson());
+
+            if result is string {
+                log:printInfo("Practitioner: POST - Execution Success!");
+                return practitioner;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing practitioner: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid practitioner data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -2035,7 +2237,29 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Slot|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "Slot", id);
+
+            if result is json {
+                log:printInfo("Slot: READ - Execution Success!");
+                international401:Slot slot = check fhirParser:parse(result).ensureType();
+                return slot;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch slot: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing slot: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid slot data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -2045,12 +2269,39 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Slot", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Slot slot) returns Slot|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Slot", slot.toJson());
+
+            if result is string {
+                log:printInfo("Slot: POST - Execution Success!");
+                return slot;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing slot: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid slot data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -3535,7 +3786,29 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "ImmunizationRecommendation", id);
+
+            if result is json {
+                log:printInfo("ImmunizationRecommendation: READ - Execution Success!");
+                international401:ImmunizationRecommendation immunizationRecommendation = check fhirParser:parse(result).ensureType();
+                return immunizationRecommendation;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch immunization recommendation: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing immunization recommendation: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid immunization recommendation data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -3545,12 +3818,39 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("ImmunizationRecommendation", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImmunizationRecommendation immunizationrecommendation) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "ImmunizationRecommendation", immunizationrecommendation.toJson());
+
+            if result is string {
+                log:printInfo("ImmunizationRecommendation: POST - Execution Success!");
+                return immunizationrecommendation;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing immunization recommendation: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid immunization recommendation data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -4185,7 +4485,29 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Procedure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "Procedure", id);
+
+            if result is json {
+                log:printInfo("Procedure: READ - Execution Success!");
+                international401:Procedure procedure = check fhirParser:parse(result).ensureType();
+                return procedure;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch procedure: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing procedure: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid procedure data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -4195,12 +4517,39 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Procedure", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Procedure procedure) returns Procedure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Procedure", procedure.toJson());
+
+            if result is string {
+                log:printInfo("Procedure: POST - Execution Success!");
+                return procedure;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing procedure: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid procedure data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -4585,7 +4934,29 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Device|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "Device", id);
+
+            if result is json {
+                log:printInfo("Device: READ - Execution Success!");
+                international401:Device device = check fhirParser:parse(result).ensureType();
+                return device;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch device: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing device: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid device data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -4595,12 +4966,39 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Device", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Device device) returns Device|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Device", device.toJson());
+
+            if result is string {
+                log:printInfo("Device: POST - Execution Success!");
+                return device;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing device: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid device data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -5335,7 +5733,29 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Observation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "Observation", id);
+
+            if result is json {
+                log:printInfo("Observation: READ - Execution Success!");
+                international401:Observation observation = check fhirParser:parse(result).ensureType();
+                return observation;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch observation: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing observation: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid observation data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -5345,12 +5765,39 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Observation", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Observation observation) returns Observation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Observation", observation.toJson());
+
+            if result is string {
+                log:printInfo("Observation: POST - Execution Success!");
+                return observation;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing observation: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid observation data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -6135,7 +6582,29 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "HealthcareService", id);
+
+            if result is json {
+                log:printInfo("HealthcareService: READ - Execution Success!");
+                international401:HealthcareService healthcareService = check fhirParser:parse(result).ensureType();
+                return healthcareService;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch healthcare service: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing healthcare service: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid healthcare service data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -6145,12 +6614,39 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("HealthcareService", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, HealthcareService healthcareservice) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "HealthcareService", healthcareservice.toJson());
+
+            if result is string {
+                log:printInfo("HealthcareService: POST - Execution Success!");
+                return healthcareservice;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing healthcare service: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid healthcare service data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -6485,7 +6981,29 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Condition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "Condition", id);
+
+            if result is json {
+                log:printInfo("Condition: READ - Execution Success!");
+                international401:Condition condition = check fhirParser:parse(result).ensureType();
+                return condition;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch condition: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing condition: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid condition data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -6495,12 +7013,39 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Condition", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Condition condition) returns Condition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Condition", condition.toJson());
+
+            if result is string {
+                log:printInfo("Condition: POST - Execution Success!");
+                return condition;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing condition: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid condition data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -6835,7 +7380,29 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Patient|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "Patient", id);
+
+            if result is json {
+                log:printInfo("Patient: READ - Execution Success!");
+                international401:Patient patient = check fhirParser:parse(result).ensureType();
+                return patient;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch patient: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing patient: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid patient data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -6845,12 +7412,33 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Patient", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Patient patient) returns Patient|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Patient", patient.toJson());
+
+            if result is string {
+                log:printInfo("Patient: POST - Execution Success!");
+                return patient;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+            }
+
+        } on fail error e {
+            log:printError("Error processing patient: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid patient data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
@@ -7535,7 +8123,29 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Location|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(persistClient, "Location", id);
+
+            if result is json {
+                log:printInfo("Location: READ - Execution Success!");
+                international401:Location location = check fhirParser:parse(result).ensureType();
+                return location;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Database fetch failed: " + errorMsg);
+
+                return r4:createFHIRError("Failed to fetch location: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing location: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid location data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -7545,12 +8155,39 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Location", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Location location) returns Location|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Location", location.toJson());
+
+            if result is string {
+                log:printInfo("Location: POST - Execution Success!");
+                return location;
+            } else {
+                string errorMsg = "";
+                if (result is error) {
+                    errorMsg = result.message();
+                }
+                log:printError("Resource save failed: " + errorMsg);
+
+                // Check if error is related to invalid references (validation failure)
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                // Otherwise it's a server/database error
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+
+        } on fail error e {
+            log:printError("Error processing location: " + e.message());
+            return r4:createFHIRError(
+                    "Invalid location data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.

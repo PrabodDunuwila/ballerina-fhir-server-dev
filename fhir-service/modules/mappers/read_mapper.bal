@@ -19,6 +19,58 @@ public class ReadMapper {
                 json|error appointmentJson = (check self.readAppointment(persistClient, resourceId)).toJson();
                 return appointmentJson;
             }
+            "Patient" => {
+                json|error patientJson = (check self.readPatient(persistClient, resourceId)).toJson();
+                return patientJson;
+            }
+            "Practitioner" => {
+                json|error practitionerJson = (check self.readPractitioner(persistClient, resourceId)).toJson();
+                return practitionerJson;
+            }
+            "Device" => {
+                json|error deviceJson = (check self.readDevice(persistClient, resourceId)).toJson();
+                return deviceJson;
+            }
+            "HealthcareService" => {
+                json|error healthcareServiceJson = (check self.readHealthcareService(persistClient, resourceId)).toJson();
+                return healthcareServiceJson;
+            }
+            "PractitionerRole" => {
+                json|error practitionerRoleJson = (check self.readPractitionerRole(persistClient, resourceId)).toJson();
+                return practitionerRoleJson;
+            }
+            "RelatedPerson" => {
+                json|error relatedPersonJson = (check self.readRelatedPerson(persistClient, resourceId)).toJson();
+                return relatedPersonJson;
+            }
+            "Location" => {
+                json|error locationJson = (check self.readLocation(persistClient, resourceId)).toJson();
+                return locationJson;
+            }
+            "ServiceRequest" => {
+                json|error serviceRequestJson = (check self.readServiceRequest(persistClient, resourceId)).toJson();
+                return serviceRequestJson;
+            }
+            "Condition" => {
+                json|error conditionJson = (check self.readCondition(persistClient, resourceId)).toJson();
+                return conditionJson;
+            }
+            "Observation" => {
+                json|error observationJson = (check self.readObservation(persistClient, resourceId)).toJson();
+                return observationJson;
+            }
+            "Procedure" => {
+                json|error procedureJson = (check self.readProcedure(persistClient, resourceId)).toJson();
+                return procedureJson;
+            }
+            "ImmunizationRecommendation" => {
+                json|error immunizationRecommendationJson = (check self.readImmunizationRecommendation(persistClient, resourceId)).toJson();
+                return immunizationRecommendationJson;
+            }
+            "Slot" => {
+                json|error slotJson = (check self.readSlot(persistClient, resourceId)).toJson();
+                return slotJson;
+            }
             _ => {
                 return error(string `Unsupported resource type: ${resourceType}`);
             }
@@ -31,6 +83,45 @@ public class ReadMapper {
         match resourceType {
             "Appointment" => {
                 return self.searchAppointments(persistClient, queryParams);
+            }
+            "Patient" => {
+                return self.searchPatients(persistClient, queryParams);
+            }
+            "Practitioner" => {
+                return self.searchPractitioners(persistClient, queryParams);
+            }
+            "Device" => {
+                return self.searchDevices(persistClient, queryParams);
+            }
+            "HealthcareService" => {
+                return self.searchHealthcareServices(persistClient, queryParams);
+            }
+            "PractitionerRole" => {
+                return self.searchPractitionerRoles(persistClient, queryParams);
+            }
+            "RelatedPerson" => {
+                return self.searchRelatedPersons(persistClient, queryParams);
+            }
+            "Location" => {
+                return self.searchLocations(persistClient, queryParams);
+            }
+            "ServiceRequest" => {
+                return self.searchServiceRequests(persistClient, queryParams);
+            }
+            "Condition" => {
+                return self.searchConditions(persistClient, queryParams);
+            }
+            "Observation" => {
+                return self.searchObservations(persistClient, queryParams);
+            }
+            "Procedure" => {
+                return self.searchProcedures(persistClient, queryParams);
+            }
+            "ImmunizationRecommendation" => {
+                return self.searchImmunizationRecommendations(persistClient, queryParams);
+            }
+            "Slot" => {
+                return self.searchSlots(persistClient, queryParams);
             }
             _ => {
                 return error(string `Unsupported resource type: ${resourceType}`);
@@ -207,6 +298,758 @@ public class ReadMapper {
             }
             return combined;
         }
+    }
+
+    // Read a single Patient resource
+    private isolated function readPatient(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:PatientTable, persist:Error?> patientStream = persistClient->/patienttables(targetType = db_store:PatientTable);
+
+        db_store:PatientTable[] results = check from var patient in patientStream
+            where patient.PATIENTTABLE_ID == resourceId
+            select patient;
+
+        if results.length() == 0 {
+            return error(string `Patient/${resourceId} not found`);
+        }
+
+        db_store:PatientTable patient = results[0];
+        json|error resourceJson = check self.mapFromPatientTable(patient);
+
+        return resourceJson;
+    }
+
+    // Search Patients with query parameters
+    private isolated function searchPatients(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:PatientTable, persist:Error?> patientStream = persistClient->/patienttables(targetType = db_store:PatientTable);
+
+        // Convert stream to array
+        db_store:PatientTable[] allPatients = check from var patient in patientStream
+            select patient;
+
+        // Filter based on query parameters
+        db_store:PatientTable[] filteredPatients = [];
+        
+        foreach var patient in allPatients {
+            boolean matches = true;
+            
+            // _id filter
+            if queryParams.hasKey("_id") {
+                string[] idValues = queryParams.get("_id");
+                if idValues.length() > 0 && patient.PATIENTTABLE_ID != idValues[0] {
+                    matches = false;
+                }
+            }
+            
+            // family filter
+            if matches && queryParams.hasKey("family") {
+                string[] familyValues = queryParams.get("family");
+                if familyValues.length() > 0 && patient.FAMILY != familyValues[0] {
+                    matches = false;
+                }
+            }
+            
+            // given filter
+            if matches && queryParams.hasKey("given") {
+                string[] givenValues = queryParams.get("given");
+                if givenValues.length() > 0 && patient.GIVEN != givenValues[0] {
+                    matches = false;
+                }
+            }
+            
+            // gender filter
+            if matches && queryParams.hasKey("gender") {
+                string[] genderValues = queryParams.get("gender");
+                if genderValues.length() > 0 && patient.GENDER != genderValues[0] {
+                    matches = false;
+                }
+            }
+            
+            // birthdate filter
+            if matches && queryParams.hasKey("birthdate") {
+                string[] birthdateValues = queryParams.get("birthdate");
+                if birthdateValues.length() > 0 && patient.BIRTHDATE.toString() != birthdateValues[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredPatients.push(patient);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var patient in filteredPatients {
+            json|error resourceJson = check self.mapFromPatientTable(patient);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Patient/${patient.PATIENTTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredPatients.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Read a single Practitioner resource
+    private isolated function readPractitioner(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:PractitionerTable, persist:Error?> practitionerStream = persistClient->/practitionertables(targetType = db_store:PractitionerTable);
+
+        db_store:PractitionerTable[] results = check from var practitioner in practitionerStream
+            where practitioner.PRACTITIONERTABLE_ID == resourceId
+            select practitioner;
+
+        if results.length() == 0 {
+            return error(string `Practitioner/${resourceId} not found`);
+        }
+
+        db_store:PractitionerTable practitioner = results[0];
+        json|error resourceJson = check self.mapFromPractitionerTable(practitioner);
+
+        return resourceJson;
+    }
+
+    // Search Practitioners with query parameters
+    private isolated function searchPractitioners(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:PractitionerTable, persist:Error?> practitionerStream = persistClient->/practitionertables(targetType = db_store:PractitionerTable);
+
+        // Convert stream to array
+        db_store:PractitionerTable[] allPractitioners = check from var practitioner in practitionerStream
+            select practitioner;
+
+        // Filter based on query parameters
+        db_store:PractitionerTable[] filteredPractitioners = [];
+        
+        foreach var practitioner in allPractitioners {
+            boolean matches = true;
+            
+            // _id filter
+            if queryParams.hasKey("_id") {
+                string[] idValues = queryParams.get("_id");
+                if idValues.length() > 0 && practitioner.PRACTITIONERTABLE_ID != idValues[0] {
+                    matches = false;
+                }
+            }
+            
+            // family filter
+            if matches && queryParams.hasKey("family") {
+                string[] familyValues = queryParams.get("family");
+                if familyValues.length() > 0 && practitioner.FAMILY != familyValues[0] {
+                    matches = false;
+                }
+            }
+            
+            // given filter
+            if matches && queryParams.hasKey("given") {
+                string[] givenValues = queryParams.get("given");
+                if givenValues.length() > 0 && practitioner.GIVEN != givenValues[0] {
+                    matches = false;
+                }
+            }
+            
+            // gender filter
+            if matches && queryParams.hasKey("gender") {
+                string[] genderValues = queryParams.get("gender");
+                if genderValues.length() > 0 && practitioner.GENDER != genderValues[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredPractitioners.push(practitioner);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var practitioner in filteredPractitioners {
+            json|error resourceJson = check self.mapFromPractitionerTable(practitioner);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Practitioner/${practitioner.PRACTITIONERTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredPractitioners.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Read a single Device by ID
+    private isolated function readDevice(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:DeviceTable, persist:Error?> deviceStream = persistClient->/devicetables();
+
+        db_store:DeviceTable[] results = check from var device in deviceStream
+            where device.DEVICETABLE_ID == resourceId
+            select device;
+
+        if results.length() == 0 {
+            return error(string `Device/${resourceId} not found`);
+        }
+
+        return check self.mapFromDeviceTable(results[0]);
+    }
+
+    // Search Devices with optional filters
+    private isolated function searchDevices(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:DeviceTable, persist:Error?> deviceStream = persistClient->/devicetables();
+
+        db_store:DeviceTable[] allDevices = check from var device in deviceStream
+            select device;
+
+        // Apply filters manually
+        db_store:DeviceTable[] filteredDevices = [];
+        
+        foreach var device in allDevices {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && device.DEVICETABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // status filter
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && device.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // manufacturer filter
+            if matches && queryParams.hasKey("manufacturer") {
+                string[] manufacturers = queryParams.get("manufacturer");
+                if manufacturers.length() > 0 && device.MANUFACTURER != manufacturers[0] {
+                    matches = false;
+                }
+            }
+            
+            // model filter
+            if matches && queryParams.hasKey("model") {
+                string[] models = queryParams.get("model");
+                if models.length() > 0 && device.MODEL != models[0] {
+                    matches = false;
+                }
+            }
+            
+            // device-name filter
+            if matches && queryParams.hasKey("device-name") {
+                string[] names = queryParams.get("device-name");
+                if names.length() > 0 && device.DEVICE_NAME != names[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredDevices.push(device);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var device in filteredDevices {
+            json|error resourceJson = check self.mapFromDeviceTable(device);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Device/${device.DEVICETABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredDevices.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Read a single HealthcareService by ID
+    private isolated function readHealthcareService(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:HealthcareServiceTable, persist:Error?> healthcareServiceStream = persistClient->/healthcareservicetables();
+
+        db_store:HealthcareServiceTable[] results = check from var healthcareService in healthcareServiceStream
+            where healthcareService.HEALTHCARESERVICETABLE_ID == resourceId
+            select healthcareService;
+
+        if results.length() == 0 {
+            return error(string `HealthcareService/${resourceId} not found`);
+        }
+
+        return check self.mapFromHealthcareServiceTable(results[0]);
+    }
+
+    // Search HealthcareServices with optional filters
+    private isolated function searchHealthcareServices(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:HealthcareServiceTable, persist:Error?> healthcareServiceStream = persistClient->/healthcareservicetables();
+
+        db_store:HealthcareServiceTable[] allHealthcareServices = check from var healthcareService in healthcareServiceStream
+            select healthcareService;
+
+        // Apply filters manually
+        db_store:HealthcareServiceTable[] filteredHealthcareServices = [];
+        
+        foreach var healthcareService in allHealthcareServices {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && healthcareService.HEALTHCARESERVICETABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // name filter
+            if matches && queryParams.hasKey("name") {
+                string[] names = queryParams.get("name");
+                if names.length() > 0 && healthcareService.NAME != names[0] {
+                    matches = false;
+                }
+            }
+            
+            // active filter
+            if matches && queryParams.hasKey("active") {
+                string[] actives = queryParams.get("active");
+                if actives.length() > 0 && healthcareService.ACTIVE != actives[0] {
+                    matches = false;
+                }
+            }
+            
+            // service-category filter
+            if matches && queryParams.hasKey("service-category") {
+                string[] categories = queryParams.get("service-category");
+                if categories.length() > 0 && healthcareService.SERVICE_CATEGORY != categories[0] {
+                    matches = false;
+                }
+            }
+            
+            // service-type filter
+            if matches && queryParams.hasKey("service-type") {
+                string[] types = queryParams.get("service-type");
+                if types.length() > 0 && healthcareService.SERVICE_TYPE != types[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredHealthcareServices.push(healthcareService);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var healthcareService in filteredHealthcareServices {
+            json|error resourceJson = check self.mapFromHealthcareServiceTable(healthcareService);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/HealthcareService/${healthcareService.HEALTHCARESERVICETABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredHealthcareServices.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Read a single PractitionerRole by ID
+    private isolated function readPractitionerRole(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:PractitionerRoleTable, persist:Error?> practitionerRoleStream = persistClient->/practitionerroletables();
+
+        db_store:PractitionerRoleTable[] results = check from var practitionerRole in practitionerRoleStream
+            where practitionerRole.PRACTITIONERROLETABLE_ID == resourceId
+            select practitionerRole;
+
+        if results.length() == 0 {
+            return error(string `PractitionerRole/${resourceId} not found`);
+        }
+
+        return check self.mapFromPractitionerRoleTable(results[0]);
+    }
+
+    // Search PractitionerRoles with optional filters
+    private isolated function searchPractitionerRoles(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:PractitionerRoleTable, persist:Error?> practitionerRoleStream = persistClient->/practitionerroletables();
+
+        db_store:PractitionerRoleTable[] allPractitionerRoles = check from var practitionerRole in practitionerRoleStream
+            select practitionerRole;
+
+        // Apply filters manually
+        db_store:PractitionerRoleTable[] filteredPractitionerRoles = [];
+        
+        foreach var practitionerRole in allPractitionerRoles {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && practitionerRole.PRACTITIONERROLETABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // active filter
+            if matches && queryParams.hasKey("active") {
+                string[] actives = queryParams.get("active");
+                if actives.length() > 0 && practitionerRole.ACTIVE != actives[0] {
+                    matches = false;
+                }
+            }
+            
+            // role filter
+            if matches && queryParams.hasKey("role") {
+                string[] roles = queryParams.get("role");
+                if roles.length() > 0 && practitionerRole.ROLE != roles[0] {
+                    matches = false;
+                }
+            }
+            
+            // specialty filter
+            if matches && queryParams.hasKey("specialty") {
+                string[] specialties = queryParams.get("specialty");
+                if specialties.length() > 0 && practitionerRole.SPECIALTY != specialties[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredPractitionerRoles.push(practitionerRole);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var practitionerRole in filteredPractitionerRoles {
+            json|error resourceJson = check self.mapFromPractitionerRoleTable(practitionerRole);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/PractitionerRole/${practitionerRole.PRACTITIONERROLETABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredPractitionerRoles.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Read a single RelatedPerson by ID
+    private isolated function readRelatedPerson(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:RelatedPersonTable, persist:Error?> relatedPersonStream = persistClient->/relatedpersontables();
+
+        db_store:RelatedPersonTable[] results = check from var relatedPerson in relatedPersonStream
+            where relatedPerson.RELATEDPERSONTABLE_ID == resourceId
+            select relatedPerson;
+
+        if results.length() == 0 {
+            return error(string `RelatedPerson/${resourceId} not found`);
+        }
+
+        return check self.mapFromRelatedPersonTable(results[0]);
+    }
+
+    // Search RelatedPersons with optional filters
+    private isolated function searchRelatedPersons(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:RelatedPersonTable, persist:Error?> relatedPersonStream = persistClient->/relatedpersontables();
+
+        db_store:RelatedPersonTable[] allRelatedPersons = check from var relatedPerson in relatedPersonStream
+            select relatedPerson;
+
+        // Apply filters manually
+        db_store:RelatedPersonTable[] filteredRelatedPersons = [];
+        
+        foreach var relatedPerson in allRelatedPersons {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && relatedPerson.RELATEDPERSONTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // name filter
+            if matches && queryParams.hasKey("name") {
+                string[] names = queryParams.get("name");
+                if names.length() > 0 && relatedPerson.NAME != names[0] {
+                    matches = false;
+                }
+            }
+            
+            // gender filter
+            if matches && queryParams.hasKey("gender") {
+                string[] genders = queryParams.get("gender");
+                if genders.length() > 0 && relatedPerson.GENDER != genders[0] {
+                    matches = false;
+                }
+            }
+            
+            // active filter
+            if matches && queryParams.hasKey("active") {
+                string[] actives = queryParams.get("active");
+                if actives.length() > 0 && relatedPerson.ACTIVE != actives[0] {
+                    matches = false;
+                }
+            }
+            
+            // birthdate filter
+            if matches && queryParams.hasKey("birthdate") {
+                string[] birthdates = queryParams.get("birthdate");
+                if birthdates.length() > 0 && relatedPerson.BIRTHDATE.toString() != birthdates[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredRelatedPersons.push(relatedPerson);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var relatedPerson in filteredRelatedPersons {
+            json|error resourceJson = check self.mapFromRelatedPersonTable(relatedPerson);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/RelatedPerson/${relatedPerson.RELATEDPERSONTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredRelatedPersons.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Read a single Location by ID
+    private isolated function readLocation(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:LocationTable, persist:Error?> locationStream = persistClient->/locationtables();
+
+        db_store:LocationTable[] results = check from var location in locationStream
+            where location.LOCATIONTABLE_ID == resourceId
+            select location;
+
+        if results.length() == 0 {
+            return error(string `Location/${resourceId} not found`);
+        }
+
+        return check self.mapFromLocationTable(results[0]);
+    }
+
+    // Search Locations with optional filters
+    private isolated function searchLocations(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:LocationTable, persist:Error?> locationStream = persistClient->/locationtables();
+
+        db_store:LocationTable[] allLocations = check from var location in locationStream
+            select location;
+
+        // Apply filters manually
+        db_store:LocationTable[] filteredLocations = [];
+        
+        foreach var location in allLocations {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && location.LOCATIONTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // name filter
+            if matches && queryParams.hasKey("name") {
+                string[] names = queryParams.get("name");
+                if names.length() > 0 && location.NAME != names[0] {
+                    matches = false;
+                }
+            }
+            
+            // status filter
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && location.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // address-city filter
+            if matches && queryParams.hasKey("address-city") {
+                string[] cities = queryParams.get("address-city");
+                if cities.length() > 0 && location.ADDRESS_CITY != cities[0] {
+                    matches = false;
+                }
+            }
+            
+            // address-state filter
+            if matches && queryParams.hasKey("address-state") {
+                string[] states = queryParams.get("address-state");
+                if states.length() > 0 && location.ADDRESS_STATE != states[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredLocations.push(location);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var location in filteredLocations {
+            json|error resourceJson = check self.mapFromLocationTable(location);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Location/${location.LOCATIONTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredLocations.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Read a single ServiceRequest by ID
+    private isolated function readServiceRequest(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:ServiceRequestTable, persist:Error?> serviceRequestStream = persistClient->/servicerequesttables();
+
+        db_store:ServiceRequestTable[] results = check from var serviceRequest in serviceRequestStream
+            where serviceRequest.SERVICEREQUESTTABLE_ID == resourceId
+            select serviceRequest;
+
+        if results.length() == 0 {
+            return error(string `ServiceRequest/${resourceId} not found`);
+        }
+
+        return check self.mapFromServiceRequestTable(results[0]);
+    }
+
+    // Search ServiceRequests with optional filters
+    private isolated function searchServiceRequests(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:ServiceRequestTable, persist:Error?> serviceRequestStream = persistClient->/servicerequesttables();
+
+        db_store:ServiceRequestTable[] allServiceRequests = check from var serviceRequest in serviceRequestStream
+            select serviceRequest;
+
+        // Apply filters manually
+        db_store:ServiceRequestTable[] filteredServiceRequests = [];
+        
+        foreach var serviceRequest in allServiceRequests {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && serviceRequest.SERVICEREQUESTTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // status filter
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && serviceRequest.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // intent filter
+            if matches && queryParams.hasKey("intent") {
+                string[] intents = queryParams.get("intent");
+                if intents.length() > 0 && serviceRequest.INTENT != intents[0] {
+                    matches = false;
+                }
+            }
+            
+            // category filter
+            if matches && queryParams.hasKey("category") {
+                string[] categories = queryParams.get("category");
+                if categories.length() > 0 && serviceRequest.CATEGORY != categories[0] {
+                    matches = false;
+                }
+            }
+            
+            // priority filter
+            if matches && queryParams.hasKey("priority") {
+                string[] priorities = queryParams.get("priority");
+                if priorities.length() > 0 && serviceRequest.PRIORITY != priorities[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredServiceRequests.push(serviceRequest);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var serviceRequest in filteredServiceRequests {
+            json|error resourceJson = check self.mapFromServiceRequestTable(serviceRequest);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/ServiceRequest/${serviceRequest.SERVICEREQUESTTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredServiceRequests.length(),
+            "entry": entries
+        };
+
+        return bundle;
     }
 
     // Helper method to build token filter conditions for CodeableConcept fields
@@ -483,6 +1326,595 @@ public class ReadMapper {
 
         // Convert JSON to international401:Appointment record
         // international401:Appointment appointment = check fhirParser:parse(resourceJson, international401:Appointment).ensureType();
+
+        return resourceJson;
+    }
+
+    // Map from PatientTable to Patient JSON
+    public isolated function mapFromPatientTable(db_store:PatientTable patientTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = patientTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Map from PractitionerTable to Practitioner JSON
+    public isolated function mapFromPractitionerTable(db_store:PractitionerTable practitionerTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = practitionerTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Map from DeviceTable to Device JSON
+    public isolated function mapFromDeviceTable(db_store:DeviceTable deviceTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = deviceTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Map from HealthcareServiceTable to HealthcareService JSON
+    public isolated function mapFromHealthcareServiceTable(db_store:HealthcareServiceTable healthcareServiceTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = healthcareServiceTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Map from PractitionerRoleTable to PractitionerRole JSON
+    public isolated function mapFromPractitionerRoleTable(db_store:PractitionerRoleTable practitionerRoleTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = practitionerRoleTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Map from RelatedPersonTable to RelatedPerson JSON
+    public isolated function mapFromRelatedPersonTable(db_store:RelatedPersonTable relatedPersonTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = relatedPersonTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Map from LocationTable to Location JSON
+    public isolated function mapFromLocationTable(db_store:LocationTable locationTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = locationTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Map from ServiceRequestTable to ServiceRequest JSON
+    public isolated function mapFromServiceRequestTable(db_store:ServiceRequestTable serviceRequestTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = serviceRequestTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Read a single Condition by ID
+    private isolated function readCondition(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:ConditionTable, persist:Error?> conditionStream = persistClient->/conditiontables();
+
+        db_store:ConditionTable[] results = check from var condition in conditionStream
+            where condition.CONDITIONTABLE_ID == resourceId
+            select condition;
+
+        if results.length() == 0 {
+            return error(string `Condition/${resourceId} not found`);
+        }
+
+        return check self.mapFromConditionTable(results[0]);
+    }
+
+    // Search Conditions with optional filters
+    private isolated function searchConditions(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:ConditionTable, persist:Error?> conditionStream = persistClient->/conditiontables();
+
+        db_store:ConditionTable[] allConditions = check from var condition in conditionStream
+            select condition;
+
+        // Apply filters manually
+        db_store:ConditionTable[] filteredConditions = [];
+        
+        foreach var condition in allConditions {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && condition.CONDITIONTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // clinical-status filter
+            if matches && queryParams.hasKey("clinical-status") {
+                string[] statuses = queryParams.get("clinical-status");
+                if statuses.length() > 0 && condition.CLINICAL_STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // verification-status filter
+            if matches && queryParams.hasKey("verification-status") {
+                string[] verStatuses = queryParams.get("verification-status");
+                if verStatuses.length() > 0 && condition.VERIFICATION_STATUS != verStatuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // category filter
+            if matches && queryParams.hasKey("category") {
+                string[] categories = queryParams.get("category");
+                if categories.length() > 0 && condition.CATEGORY != categories[0] {
+                    matches = false;
+                }
+            }
+            
+            // severity filter
+            if matches && queryParams.hasKey("severity") {
+                string[] severities = queryParams.get("severity");
+                if severities.length() > 0 && condition.SEVERITY != severities[0] {
+                    matches = false;
+                }
+            }
+            
+            // code filter
+            if matches && queryParams.hasKey("code") {
+                string[] codes = queryParams.get("code");
+                if codes.length() > 0 && condition.CODE != codes[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredConditions.push(condition);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var condition in filteredConditions {
+            json|error resourceJson = check self.mapFromConditionTable(condition);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Condition/${condition.CONDITIONTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredConditions.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Map from ConditionTable to Condition JSON
+    public isolated function mapFromConditionTable(db_store:ConditionTable conditionTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = conditionTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Read a single Observation by ID
+    private isolated function readObservation(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:ObservationTable, persist:Error?> observationStream = persistClient->/observationtables();
+
+        db_store:ObservationTable[] results = check from var observation in observationStream
+            where observation.OBSERVATIONTABLE_ID == resourceId
+            select observation;
+
+        if results.length() == 0 {
+            return error(string `Observation/${resourceId} not found`);
+        }
+
+        return check self.mapFromObservationTable(results[0]);
+    }
+
+    // Search Observations with optional filters
+    private isolated function searchObservations(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:ObservationTable, persist:Error?> observationStream = persistClient->/observationtables();
+
+        db_store:ObservationTable[] allObservations = check from var observation in observationStream
+            select observation;
+
+        // Apply filters manually
+        db_store:ObservationTable[] filteredObservations = [];
+        
+        foreach var observation in allObservations {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && observation.OBSERVATIONTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // status filter
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && observation.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // category filter
+            if matches && queryParams.hasKey("category") {
+                string[] categories = queryParams.get("category");
+                if categories.length() > 0 && observation.CATEGORY != categories[0] {
+                    matches = false;
+                }
+            }
+            
+            // code filter
+            if matches && queryParams.hasKey("code") {
+                string[] codes = queryParams.get("code");
+                if codes.length() > 0 && observation.CODE != codes[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredObservations.push(observation);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var observation in filteredObservations {
+            json|error resourceJson = check self.mapFromObservationTable(observation);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Observation/${observation.OBSERVATIONTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredObservations.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Map from ObservationTable to Observation JSON
+    public isolated function mapFromObservationTable(db_store:ObservationTable observationTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = observationTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Read a single Procedure by ID
+    private isolated function readProcedure(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:ProcedureTable, persist:Error?> procedureStream = persistClient->/proceduretables();
+
+        db_store:ProcedureTable[] results = check from var procedure in procedureStream
+            where procedure.PROCEDURETABLE_ID == resourceId
+            select procedure;
+
+        if results.length() == 0 {
+            return error(string `Procedure/${resourceId} not found`);
+        }
+
+        return check self.mapFromProcedureTable(results[0]);
+    }
+
+    // Search Procedures with optional filters
+    private isolated function searchProcedures(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:ProcedureTable, persist:Error?> procedureStream = persistClient->/proceduretables();
+
+        db_store:ProcedureTable[] allProcedures = check from var procedure in procedureStream
+            select procedure;
+
+        // Apply filters manually
+        db_store:ProcedureTable[] filteredProcedures = [];
+        
+        foreach var procedure in allProcedures {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && procedure.PROCEDURETABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // status filter
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && procedure.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // category filter
+            if matches && queryParams.hasKey("category") {
+                string[] categories = queryParams.get("category");
+                if categories.length() > 0 && procedure.CATEGORY != categories[0] {
+                    matches = false;
+                }
+            }
+            
+            // code filter
+            if matches && queryParams.hasKey("code") {
+                string[] codes = queryParams.get("code");
+                if codes.length() > 0 && procedure.CODE != codes[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredProcedures.push(procedure);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var procedure in filteredProcedures {
+            json|error resourceJson = check self.mapFromProcedureTable(procedure);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Procedure/${procedure.PROCEDURETABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredProcedures.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Map from ProcedureTable to Procedure JSON
+    public isolated function mapFromProcedureTable(db_store:ProcedureTable procedureTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = procedureTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Read a single ImmunizationRecommendation by ID
+    private isolated function readImmunizationRecommendation(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:ImmunizationRecommendationTable, persist:Error?> immunizationRecommendationStream = persistClient->/immunizationrecommendationtables();
+
+        db_store:ImmunizationRecommendationTable[] results = check from var immunizationRecommendation in immunizationRecommendationStream
+            where immunizationRecommendation.IMMUNIZATIONRECOMMENDATIONTABLE_ID == resourceId
+            select immunizationRecommendation;
+
+        if results.length() == 0 {
+            return error(string `ImmunizationRecommendation/${resourceId} not found`);
+        }
+
+        return check self.mapFromImmunizationRecommendationTable(results[0]);
+    }
+
+    // Search ImmunizationRecommendations with optional filters
+    private isolated function searchImmunizationRecommendations(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:ImmunizationRecommendationTable, persist:Error?> immunizationRecommendationStream = persistClient->/immunizationrecommendationtables();
+
+        db_store:ImmunizationRecommendationTable[] allImmunizationRecommendations = check from var immunizationRecommendation in immunizationRecommendationStream
+            select immunizationRecommendation;
+
+        // Apply filters manually
+        db_store:ImmunizationRecommendationTable[] filteredImmunizationRecommendations = [];
+        
+        foreach var immunizationRecommendation in allImmunizationRecommendations {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && immunizationRecommendation.IMMUNIZATIONRECOMMENDATIONTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // status filter
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && immunizationRecommendation.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // target-disease filter
+            if matches && queryParams.hasKey("target-disease") {
+                string[] diseases = queryParams.get("target-disease");
+                if diseases.length() > 0 && immunizationRecommendation.TARGET_DISEASE != diseases[0] {
+                    matches = false;
+                }
+            }
+            
+            // vaccine-type filter
+            if matches && queryParams.hasKey("vaccine-type") {
+                string[] vaccineTypes = queryParams.get("vaccine-type");
+                if vaccineTypes.length() > 0 && immunizationRecommendation.VACCINE_TYPE != vaccineTypes[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredImmunizationRecommendations.push(immunizationRecommendation);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var immunizationRecommendation in filteredImmunizationRecommendations {
+            json|error resourceJson = check self.mapFromImmunizationRecommendationTable(immunizationRecommendation);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/ImmunizationRecommendation/${immunizationRecommendation.IMMUNIZATIONRECOMMENDATIONTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredImmunizationRecommendations.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Map from ImmunizationRecommendationTable to ImmunizationRecommendation JSON
+    public isolated function mapFromImmunizationRecommendationTable(db_store:ImmunizationRecommendationTable immunizationRecommendationTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = immunizationRecommendationTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
+    // Read a single Slot by ID
+    private isolated function readSlot(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:SlotTable, persist:Error?> slotStream = persistClient->/slottables();
+
+        db_store:SlotTable[] results = check from var slot in slotStream
+            where slot.SLOTTABLE_ID == resourceId
+            select slot;
+
+        if results.length() == 0 {
+            return error(string `Slot/${resourceId} not found`);
+        }
+
+        return check self.mapFromSlotTable(results[0]);
+    }
+
+    // Search Slots with optional filters
+    private isolated function searchSlots(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:SlotTable, persist:Error?> slotStream = persistClient->/slottables();
+
+        db_store:SlotTable[] allSlots = check from var slot in slotStream
+            select slot;
+
+        // Apply filters manually
+        db_store:SlotTable[] filteredSlots = [];
+        
+        foreach var slot in allSlots {
+            boolean matches = true;
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && slot.SLOTTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // status filter
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && slot.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // service-category filter
+            if matches && queryParams.hasKey("service-category") {
+                string[] categories = queryParams.get("service-category");
+                if categories.length() > 0 && slot.SERVICE_CATEGORY != categories[0] {
+                    matches = false;
+                }
+            }
+            
+            // service-type filter
+            if matches && queryParams.hasKey("service-type") {
+                string[] serviceTypes = queryParams.get("service-type");
+                if serviceTypes.length() > 0 && slot.SERVICE_TYPE != serviceTypes[0] {
+                    matches = false;
+                }
+            }
+            
+            // specialty filter
+            if matches && queryParams.hasKey("specialty") {
+                string[] specialties = queryParams.get("specialty");
+                if specialties.length() > 0 && slot.SPECIALTY != specialties[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredSlots.push(slot);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json[] entries = [];
+        foreach var slot in filteredSlots {
+            json|error resourceJson = check self.mapFromSlotTable(slot);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Slot/${slot.SLOTTABLE_ID}`,
+                    "resource": resourceJson
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredSlots.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Map from SlotTable to Slot JSON
+    public isolated function mapFromSlotTable(db_store:SlotTable slotTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = slotTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
 
         return resourceJson;
     }

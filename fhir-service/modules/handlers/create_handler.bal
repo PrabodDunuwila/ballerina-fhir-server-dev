@@ -17,7 +17,6 @@ public class CreateHandler {
 
         // Begin transaction
         utils:TransactionContext 'transaction = self.transactionHandler.beginTransaction();
-        json[] references = self.createMapper.getReferences();
 
         do {
             // Map resource to insert model
@@ -32,6 +31,17 @@ public class CreateHandler {
 
             if insertModel is error {
                 return insertModel;
+            }
+
+            // Get extracted references after mapping
+            json[] references = self.createMapper.getReferences();
+
+            // Validate all references BEFORE saving main resource
+            log:printInfo(string `Validating ${references.length()} reference(s) for ${resourceType}`);
+            error? validationResult = utils:validateReferences(persistClient, references);
+            if validationResult is error {
+                log:printError(string `Reference validation failed: ${validationResult.message()}`);
+                return validationResult;
             }
 
             // Save main resource
@@ -78,6 +88,71 @@ public class CreateHandler {
             "Appointment" => {
                 db_store:AppointmentTableInsert appointmentInsert = check insertModel.cloneWithType();
                 string[] recordIds = check persistClient->/appointmenttables.post([appointmentInsert]);
+                return recordIds[0];
+            }
+            "Patient" => {
+                db_store:PatientTableInsert patientInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/patienttables.post([patientInsert]);
+                return recordIds[0];
+            }
+            "Practitioner" => {
+                db_store:PractitionerTableInsert practitionerInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/practitionertables.post([practitionerInsert]);
+                return recordIds[0];
+            }
+            "Device" => {
+                db_store:DeviceTableInsert deviceInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/devicetables.post([deviceInsert]);
+                return recordIds[0];
+            }
+            "HealthcareService" => {
+                db_store:HealthcareServiceTableInsert healthcareServiceInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/healthcareservicetables.post([healthcareServiceInsert]);
+                return recordIds[0];
+            }
+            "PractitionerRole" => {
+                db_store:PractitionerRoleTableInsert practitionerRoleInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/practitionerroletables.post([practitionerRoleInsert]);
+                return recordIds[0];
+            }
+            "RelatedPerson" => {
+                db_store:RelatedPersonTableInsert relatedPersonInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/relatedpersontables.post([relatedPersonInsert]);
+                return recordIds[0];
+            }
+            "Location" => {
+                db_store:LocationTableInsert locationInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/locationtables.post([locationInsert]);
+                return recordIds[0];
+            }
+            "ServiceRequest" => {
+                db_store:ServiceRequestTableInsert serviceRequestInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/servicerequesttables.post([serviceRequestInsert]);
+                return recordIds[0];
+            }
+            "Condition" => {
+                db_store:ConditionTableInsert conditionInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/conditiontables.post([conditionInsert]);
+                return recordIds[0];
+            }
+            "Observation" => {
+                db_store:ObservationTableInsert observationInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/observationtables.post([observationInsert]);
+                return recordIds[0];
+            }
+            "Procedure" => {
+                db_store:ProcedureTableInsert procedureInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/proceduretables.post([procedureInsert]);
+                return recordIds[0];
+            }
+            "ImmunizationRecommendation" => {
+                db_store:ImmunizationRecommendationTableInsert immunizationRecommendationInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/immunizationrecommendationtables.post([immunizationRecommendationInsert]);
+                return recordIds[0];
+            }
+            "Slot" => {
+                db_store:SlotTableInsert slotInsert = check insertModel.cloneWithType();
+                string[] recordIds = check persistClient->/slottables.post([slotInsert]);
                 return recordIds[0];
             }
             _ => {
