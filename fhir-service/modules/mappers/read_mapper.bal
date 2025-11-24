@@ -150,48 +150,48 @@ public class ReadMapper {
             }
         }
 
-        // Date filter - simplified version (exact match for now)
-        if queryParams.hasKey("date") {
-            string[] dateValues = queryParams.get("date");
-            if dateValues.length() > 0 {
-                string dateValue = dateValues[0];
+        // _lastUpdated filter - FHIR standard parameter
+        if queryParams.hasKey("_lastUpdated") {
+            string[] lastUpdatedValues = queryParams.get("_lastUpdated");
+            if lastUpdatedValues.length() > 0 {
+                string lastUpdatedValue = lastUpdatedValues[0];
                 // Parse date prefix if present
                 string prefix = "eq";
-                string actualDate = dateValue;
-                if dateValue.length() > 2 {
-                    string possiblePrefix = dateValue.substring(0, 2);
+                string actualDateTime = lastUpdatedValue;
+                if lastUpdatedValue.length() > 2 {
+                    string possiblePrefix = lastUpdatedValue.substring(0, 2);
                     if possiblePrefix == "eq" || possiblePrefix == "ne" || possiblePrefix == "gt" || 
                         possiblePrefix == "ge" || possiblePrefix == "lt" || possiblePrefix == "le" {
                         prefix = possiblePrefix;
-                        actualDate = dateValue.substring(2);
+                        actualDateTime = lastUpdatedValue.substring(2);
                     }
                 }
 
-                sql:ParameterizedQuery dateCondition;
+                sql:ParameterizedQuery lastUpdatedCondition;
                 match prefix {
                     "eq" => {
-                        dateCondition = `DATE = ${actualDate}`;
+                        lastUpdatedCondition = `LAST_UPDATED = ${actualDateTime}`;
                     }
                     "ne" => {
-                        dateCondition = `DATE != ${actualDate}`;
+                        lastUpdatedCondition = `LAST_UPDATED != ${actualDateTime}`;
                     }
                     "gt" => {
-                        dateCondition = `DATE > ${actualDate}`;
+                        lastUpdatedCondition = `LAST_UPDATED > ${actualDateTime}`;
                     }
                     "ge" => {
-                        dateCondition = `DATE >= ${actualDate}`;
+                        lastUpdatedCondition = `LAST_UPDATED >= ${actualDateTime}`;
                     }
                     "lt" => {
-                        dateCondition = `DATE < ${actualDate}`;
+                        lastUpdatedCondition = `LAST_UPDATED < ${actualDateTime}`;
                     }
                     "le" => {
-                        dateCondition = `DATE <= ${actualDate}`;
+                        lastUpdatedCondition = `LAST_UPDATED <= ${actualDateTime}`;
                     }
                     _ => {
-                        dateCondition = `DATE = ${actualDate}`;
+                        lastUpdatedCondition = `LAST_UPDATED = ${actualDateTime}`;
                     }
                 }
-                conditions.push(dateCondition);
+                conditions.push(lastUpdatedCondition);
             }
         }
 
