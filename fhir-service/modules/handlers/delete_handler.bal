@@ -150,6 +150,11 @@ public class DeleteHandler {
                 db_store:ObservationTable[] results = check from var item in observationStream where item.OBSERVATIONTABLE_ID == resourceId select item;
                 return results.length() > 0;
             }
+            "Patient" => {
+                stream<db_store:PatientTable, error?> patientStream = persistClient->/patienttables(targetType = db_store:PatientTable);
+                db_store:PatientTable[] results = check from var item in patientStream where item.PATIENTTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
             "Procedure" => {
                 stream<db_store:ProcedureTable, error?> procedureStream = persistClient->/proceduretables(targetType = db_store:ProcedureTable);
                 db_store:ProcedureTable[] results = check from var item in procedureStream where item.PROCEDURETABLE_ID == resourceId select item;
@@ -307,6 +312,11 @@ public class DeleteHandler {
             "Observation" => {
                 stream<db_store:ObservationTable, error?> 'stream = persistClient->/observationtables(targetType = db_store:ObservationTable);
                 db_store:ObservationTable[] results = check from var item in 'stream where item.OBSERVATIONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Patient" => {
+                stream<db_store:PatientTable, error?> 'stream = persistClient->/patienttables(targetType = db_store:PatientTable);
+                db_store:PatientTable[] results = check from var item in 'stream where item.PATIENTTABLE_ID == resourceId select item;
                 return results.length() > 0 ? results[0] : error("Resource not found");
             }
             "Procedure" => {

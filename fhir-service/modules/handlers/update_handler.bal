@@ -304,6 +304,58 @@ public class UpdateHandler {
                 db_store:ConsentTable|persist:Error result = persistClient->/consenttables/[resourceId]();
                 return !(result is persist:Error);
             }
+            "Condition" => {
+                db_store:ConditionTable|persist:Error result = persistClient->/conditiontables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Device" => {
+                db_store:DeviceTable|persist:Error result = persistClient->/devicetables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "HealthcareService" => {
+                db_store:HealthcareServiceTable|persist:Error result = persistClient->/healthcareservicetables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "ImmunizationRecommendation" => {
+                db_store:ImmunizationRecommendationTable|persist:Error result = persistClient->/immunizationrecommendationtables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Location" => {
+                db_store:LocationTable|persist:Error result = persistClient->/locationtables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Observation" => {
+                db_store:ObservationTable|persist:Error result = persistClient->/observationtables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Patient" => {
+                db_store:PatientTable|persist:Error result = persistClient->/patienttables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Practitioner" => {
+                db_store:PractitionerTable|persist:Error result = persistClient->/practitionertables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "PractitionerRole" => {
+                db_store:PractitionerRoleTable|persist:Error result = persistClient->/practitionerroletables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Procedure" => {
+                db_store:ProcedureTable|persist:Error result = persistClient->/proceduretables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "RelatedPerson" => {
+                db_store:RelatedPersonTable|persist:Error result = persistClient->/relatedpersontables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "ServiceRequest" => {
+                db_store:ServiceRequestTable|persist:Error result = persistClient->/servicerequesttables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Slot" => {
+                db_store:SlotTable|persist:Error result = persistClient->/slottables/[resourceId]();
+                return !(result is persist:Error);
+            }
             _ => {
                 // Generic fallback - assumes resource exists if no specific handler
                 // This will be caught during actual operations if resource doesn't exist
@@ -360,6 +412,58 @@ public class UpdateHandler {
             }
             "Consent" => {
                 db_store:ConsentTable result = check persistClient->/consenttables/[resourceId]();
+                return result;
+            }
+            "Condition" => {
+                db_store:ConditionTable result = check persistClient->/conditiontables/[resourceId]();
+                return result;
+            }
+            "Device" => {
+                db_store:DeviceTable result = check persistClient->/devicetables/[resourceId]();
+                return result;
+            }
+            "HealthcareService" => {
+                db_store:HealthcareServiceTable result = check persistClient->/healthcareservicetables/[resourceId]();
+                return result;
+            }
+            "ImmunizationRecommendation" => {
+                db_store:ImmunizationRecommendationTable result = check persistClient->/immunizationrecommendationtables/[resourceId]();
+                return result;
+            }
+            "Location" => {
+                db_store:LocationTable result = check persistClient->/locationtables/[resourceId]();
+                return result;
+            }
+            "Observation" => {
+                db_store:ObservationTable result = check persistClient->/observationtables/[resourceId]();
+                return result;
+            }
+            "Patient" => {
+                db_store:PatientTable result = check persistClient->/patienttables/[resourceId]();
+                return result;
+            }
+            "Practitioner" => {
+                db_store:PractitionerTable result = check persistClient->/practitionertables/[resourceId]();
+                return result;
+            }
+            "PractitionerRole" => {
+                db_store:PractitionerRoleTable result = check persistClient->/practitionerroletables/[resourceId]();
+                return result;
+            }
+            "Procedure" => {
+                db_store:ProcedureTable result = check persistClient->/proceduretables/[resourceId]();
+                return result;
+            }
+            "RelatedPerson" => {
+                db_store:RelatedPersonTable result = check persistClient->/relatedpersontables/[resourceId]();
+                return result;
+            }
+            "ServiceRequest" => {
+                db_store:ServiceRequestTable result = check persistClient->/servicerequesttables/[resourceId]();
+                return result;
+            }
+            "Slot" => {
+                db_store:SlotTable result = check persistClient->/slottables/[resourceId]();
                 return result;
             }
             _ => {
@@ -420,6 +524,58 @@ public class UpdateHandler {
             "Consent" => {
                 db_store:ConsentTable consent = check backup.cloneWithType();
                 resourceBlob = consent.RESOURCE_JSON;
+            }
+            "Condition" => {
+                db_store:ConditionTable condition = check backup.cloneWithType();
+                resourceBlob = condition.RESOURCE_JSON;
+            }
+            "Device" => {
+                db_store:DeviceTable device = check backup.cloneWithType();
+                resourceBlob = device.RESOURCE_JSON;
+            }
+            "HealthcareService" => {
+                db_store:HealthcareServiceTable healthcareService = check backup.cloneWithType();
+                resourceBlob = healthcareService.RESOURCE_JSON;
+            }
+            "ImmunizationRecommendation" => {
+                db_store:ImmunizationRecommendationTable immunizationRecommendation = check backup.cloneWithType();
+                resourceBlob = immunizationRecommendation.RESOURCE_JSON;
+            }
+            "Location" => {
+                db_store:LocationTable location = check backup.cloneWithType();
+                resourceBlob = location.RESOURCE_JSON;
+            }
+            "Observation" => {
+                db_store:ObservationTable observation = check backup.cloneWithType();
+                resourceBlob = observation.RESOURCE_JSON;
+            }
+            "Patient" => {
+                db_store:PatientTable patient = check backup.cloneWithType();
+                resourceBlob = patient.RESOURCE_JSON;
+            }
+            "Practitioner" => {
+                db_store:PractitionerTable practitioner = check backup.cloneWithType();
+                resourceBlob = practitioner.RESOURCE_JSON;
+            }
+            "PractitionerRole" => {
+                db_store:PractitionerRoleTable practitionerRole = check backup.cloneWithType();
+                resourceBlob = practitionerRole.RESOURCE_JSON;
+            }
+            "Procedure" => {
+                db_store:ProcedureTable procedure = check backup.cloneWithType();
+                resourceBlob = procedure.RESOURCE_JSON;
+            }
+            "RelatedPerson" => {
+                db_store:RelatedPersonTable relatedPerson = check backup.cloneWithType();
+                resourceBlob = relatedPerson.RESOURCE_JSON;
+            }
+            "ServiceRequest" => {
+                db_store:ServiceRequestTable serviceRequest = check backup.cloneWithType();
+                resourceBlob = serviceRequest.RESOURCE_JSON;
+            }
+            "Slot" => {
+                db_store:SlotTable slot = check backup.cloneWithType();
+                resourceBlob = slot.RESOURCE_JSON;
             }
             _ => {
                 // Try to extract RESOURCE_JSON generically

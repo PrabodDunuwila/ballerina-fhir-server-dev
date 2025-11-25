@@ -134,6 +134,96 @@ public isolated function validateReferenceExists(db_store:Client persistClient, 
             
             return results.length() > 0;
         }
+        "Account" => {
+            stream<db_store:AccountTable, persist:Error?> accountStream = persistClient->/accounttables(targetType = db_store:AccountTable);
+            
+            db_store:AccountTable[] results = check from var account in accountStream
+                where account.ACCOUNTTABLE_ID == resourceId
+                select account;
+            
+            return results.length() > 0;
+        }
+        "Invoice" => {
+            stream<db_store:InvoiceTable, persist:Error?> invoiceStream = persistClient->/invoicetables(targetType = db_store:InvoiceTable);
+            
+            db_store:InvoiceTable[] results = check from var invoice in invoiceStream
+                where invoice.INVOICETABLE_ID == resourceId
+                select invoice;
+            
+            return results.length() > 0;
+        }
+        "DocumentManifest" => {
+            stream<db_store:DocumentManifestTable, persist:Error?> documentManifestStream = persistClient->/documentmanifesttables(targetType = db_store:DocumentManifestTable);
+            
+            db_store:DocumentManifestTable[] results = check from var documentManifest in documentManifestStream
+                where documentManifest.DOCUMENTMANIFESTTABLE_ID == resourceId
+                select documentManifest;
+            
+            return results.length() > 0;
+        }
+        "Consent" => {
+            stream<db_store:ConsentTable, persist:Error?> consentStream = persistClient->/consenttables(targetType = db_store:ConsentTable);
+            
+            db_store:ConsentTable[] results = check from var consent in consentStream
+                where consent.CONSENTTABLE_ID == resourceId
+                select consent;
+            
+            return results.length() > 0;
+        }
+        "Goal" => {
+            stream<db_store:GoalTable, persist:Error?> goalStream = persistClient->/goaltables(targetType = db_store:GoalTable);
+            
+            db_store:GoalTable[] results = check from var goal in goalStream
+                where goal.GOALTABLE_ID == resourceId
+                select goal;
+            
+            return results.length() > 0;
+        }
+        "MedicinalProductPackaged" => {
+            stream<db_store:MedicinalProductPackagedTable, persist:Error?> medicinalProductPackagedStream = persistClient->/medicinalproductpackagedtables(targetType = db_store:MedicinalProductPackagedTable);
+            
+            db_store:MedicinalProductPackagedTable[] results = check from var medicinalProductPackaged in medicinalProductPackagedStream
+                where medicinalProductPackaged.MEDICINALPRODUCTPACKAGEDTABLE_ID == resourceId
+                select medicinalProductPackaged;
+            
+            return results.length() > 0;
+        }
+        "MessageDefinition" => {
+            stream<db_store:MessageDefinitionTable, persist:Error?> messageDefinitionStream = persistClient->/messagedefinitiontables(targetType = db_store:MessageDefinitionTable);
+            
+            db_store:MessageDefinitionTable[] results = check from var messageDefinition in messageDefinitionStream
+                where messageDefinition.MESSAGEDEFINITIONTABLE_ID == resourceId
+                select messageDefinition;
+            
+            return results.length() > 0;
+        }
+        "Endpoint" => {
+            stream<db_store:EndpointTable, persist:Error?> endpointStream = persistClient->/endpointtables(targetType = db_store:EndpointTable);
+            
+            db_store:EndpointTable[] results = check from var endpoint in endpointStream
+                where endpoint.ENDPOINTTABLE_ID == resourceId
+                select endpoint;
+            
+            return results.length() > 0;
+        }
+        "EnrollmentRequest" => {
+            stream<db_store:EnrollmentRequestTable, persist:Error?> enrollmentRequestStream = persistClient->/enrollmentrequesttables(targetType = db_store:EnrollmentRequestTable);
+            
+            db_store:EnrollmentRequestTable[] results = check from var enrollmentRequest in enrollmentRequestStream
+                where enrollmentRequest.ENROLLMENTREQUESTTABLE_ID == resourceId
+                select enrollmentRequest;
+            
+            return results.length() > 0;
+        }
+        "EventDefinition" => {
+            stream<db_store:EventDefinitionTable, persist:Error?> eventDefinitionStream = persistClient->/eventdefinitiontables(targetType = db_store:EventDefinitionTable);
+            
+            db_store:EventDefinitionTable[] results = check from var eventDefinition in eventDefinitionStream
+                where eventDefinition.EVENTDEFINITIONTABLE_ID == resourceId
+                select eventDefinition;
+            
+            return results.length() > 0;
+        }
         _ => {
             // For unsupported resource types, log warning and allow (don't break existing functionality)
             log:printWarn(string `Reference validation not implemented for resource type: ${resourceType}`);
@@ -211,138 +301,29 @@ isolated function validateSingleReference(db_store:Client persistClient, json fh
 public isolated function deleteResource(db_store:Client persistClient, string resourceType, string resourceId) returns error? {
     match resourceType {
         "Account" => { _ = check persistClient->/accounttables/[resourceId].delete(); }
-        "ActivityDefinition" => { _ = check persistClient->/activitydefinitiontables/[resourceId].delete(); }
-        "AdverseEvent" => { _ = check persistClient->/adverseeventtables/[resourceId].delete(); }
-        "AllergyIntolerance" => { _ = check persistClient->/allergyintolerancetables/[resourceId].delete(); }
         "Appointment" => { _ = check persistClient->/appointmenttables/[resourceId].delete(); }
-        "AppointmentResponse" => { _ = check persistClient->/appointmentresponsetables/[resourceId].delete(); }
-        "AuditEvent" => { _ = check persistClient->/auditeventtables/[resourceId].delete(); }
-        "Basic" => { _ = check persistClient->/basictables/[resourceId].delete(); }
-        "BodyStructure" => { _ = check persistClient->/bodystructuretables/[resourceId].delete(); }
-        "Bundle" => { _ = check persistClient->/bundletables/[resourceId].delete(); }
-        "CapabilityStatement" => { _ = check persistClient->/capabilitystatementtables/[resourceId].delete(); }
-        "CarePlan" => { _ = check persistClient->/careplantables/[resourceId].delete(); }
-        "CareTeam" => { _ = check persistClient->/careteamtables/[resourceId].delete(); }
-        "ChargeItem" => { _ = check persistClient->/chargeitemtables/[resourceId].delete(); }
-        "ChargeItemDefinition" => { _ = check persistClient->/chargeitemdefinitiontables/[resourceId].delete(); }
-        "Claim" => { _ = check persistClient->/claimtables/[resourceId].delete(); }
-        "ClaimResponse" => { _ = check persistClient->/claimresponsetables/[resourceId].delete(); }
-        "ClinicalImpression" => { _ = check persistClient->/clinicalimpressiontables/[resourceId].delete(); }
-        "CodeSystem" => { _ = check persistClient->/codesystemtables/[resourceId].delete(); }
-        "Communication" => { _ = check persistClient->/communicationtables/[resourceId].delete(); }
-        "CommunicationRequest" => { _ = check persistClient->/communicationrequesttables/[resourceId].delete(); }
-        "CompartmentDefinition" => { _ = check persistClient->/compartmentdefinitiontables/[resourceId].delete(); }
-        "Composition" => { _ = check persistClient->/compositiontables/[resourceId].delete(); }
-        "ConceptMap" => { _ = check persistClient->/conceptmaptables/[resourceId].delete(); }
-        "Condition" => { _ = check persistClient->/conditiontables/[resourceId].delete(); }
-        "Consent" => { _ = check persistClient->/consenttables/[resourceId].delete(); }
-        "Contract" => { _ = check persistClient->/contracttables/[resourceId].delete(); }
-        "Coverage" => { _ = check persistClient->/coveragetables/[resourceId].delete(); }
-        "CoverageEligibilityRequest" => { _ = check persistClient->/coverageeligibilityrequesttables/[resourceId].delete(); }
-        "CoverageEligibilityResponse" => { _ = check persistClient->/coverageeligibilityresponsetables/[resourceId].delete(); }
-        "DetectedIssue" => { _ = check persistClient->/detectedissuetables/[resourceId].delete(); }
+        "Patient" => { _ = check persistClient->/patienttables/[resourceId].delete(); }
+        "Practitioner" => { _ = check persistClient->/practitionertables/[resourceId].delete(); }
         "Device" => { _ = check persistClient->/devicetables/[resourceId].delete(); }
-        "DeviceDefinition" => { _ = check persistClient->/devicedefinitiontables/[resourceId].delete(); }
-        "DeviceMetric" => { _ = check persistClient->/devicemetrictables/[resourceId].delete(); }
-        "DeviceRequest" => { _ = check persistClient->/devicerequesttables/[resourceId].delete(); }
-        "DeviceUseStatement" => { _ = check persistClient->/deviceusestatementtables/[resourceId].delete(); }
-        "DiagnosticReport" => { _ = check persistClient->/diagnosticreporttables/[resourceId].delete(); }
+        "HealthcareService" => { _ = check persistClient->/healthcareservicetables/[resourceId].delete(); }
+        "PractitionerRole" => { _ = check persistClient->/practitionerroletables/[resourceId].delete(); }
+        "RelatedPerson" => { _ = check persistClient->/relatedpersontables/[resourceId].delete(); }
+        "Location" => { _ = check persistClient->/locationtables/[resourceId].delete(); }
+        "ServiceRequest" => { _ = check persistClient->/servicerequesttables/[resourceId].delete(); }
+        "Condition" => { _ = check persistClient->/conditiontables/[resourceId].delete(); }
+        "Observation" => { _ = check persistClient->/observationtables/[resourceId].delete(); }
+        "Procedure" => { _ = check persistClient->/proceduretables/[resourceId].delete(); }
+        "ImmunizationRecommendation" => { _ = check persistClient->/immunizationrecommendationtables/[resourceId].delete(); }
+        "Slot" => { _ = check persistClient->/slottables/[resourceId].delete(); }
+        "Invoice" => { _ = check persistClient->/invoicetables/[resourceId].delete(); }
         "DocumentManifest" => { _ = check persistClient->/documentmanifesttables/[resourceId].delete(); }
-        "DocumentReference" => { _ = check persistClient->/documentreferencetables/[resourceId].delete(); }
-        "EffectEvidenceSynthesis" => { _ = check persistClient->/effectevidencesynthesistables/[resourceId].delete(); }
-        "Encounter" => { _ = check persistClient->/encountertables/[resourceId].delete(); }
+        "Consent" => { _ = check persistClient->/consenttables/[resourceId].delete(); }
+        "Goal" => { _ = check persistClient->/goaltables/[resourceId].delete(); }
+        "MedicinalProductPackaged" => { _ = check persistClient->/medicinalproductpackagedtables/[resourceId].delete(); }
+        "MessageDefinition" => { _ = check persistClient->/messagedefinitiontables/[resourceId].delete(); }
         "Endpoint" => { _ = check persistClient->/endpointtables/[resourceId].delete(); }
         "EnrollmentRequest" => { _ = check persistClient->/enrollmentrequesttables/[resourceId].delete(); }
-        "EnrollmentResponse" => { _ = check persistClient->/enrollmentresponsetables/[resourceId].delete(); }
-        "EpisodeOfCare" => { _ = check persistClient->/episodeofcaretables/[resourceId].delete(); }
         "EventDefinition" => { _ = check persistClient->/eventdefinitiontables/[resourceId].delete(); }
-        "Evidence" => { _ = check persistClient->/evidencetables/[resourceId].delete(); }
-        "EvidenceVariable" => { _ = check persistClient->/evidencevariabletables/[resourceId].delete(); }
-        "ExampleScenario" => { _ = check persistClient->/examplescenariotables/[resourceId].delete(); }
-        "ExplanationOfBenefit" => { _ = check persistClient->/explanationofbenefittables/[resourceId].delete(); }
-        "FamilyMemberHistory" => { _ = check persistClient->/familymemberhistorytables/[resourceId].delete(); }
-        "Flag" => { _ = check persistClient->/flagtables/[resourceId].delete(); }
-        "Goal" => { _ = check persistClient->/goaltables/[resourceId].delete(); }
-        "GraphDefinition" => { _ = check persistClient->/graphdefinitiontables/[resourceId].delete(); }
-        "Group" => { _ = check persistClient->/grouptables/[resourceId].delete(); }
-        "GuidanceResponse" => { _ = check persistClient->/guidanceresponsetables/[resourceId].delete(); }
-        "HealthcareService" => { _ = check persistClient->/healthcareservicetables/[resourceId].delete(); }
-        "ImagingStudy" => { _ = check persistClient->/imagingstudytables/[resourceId].delete(); }
-        "Immunization" => { _ = check persistClient->/immunizationtables/[resourceId].delete(); }
-        "ImmunizationEvaluation" => { _ = check persistClient->/immunizationevaluationtables/[resourceId].delete(); }
-        "ImmunizationRecommendation" => { _ = check persistClient->/immunizationrecommendationtables/[resourceId].delete(); }
-        "ImplementationGuide" => { _ = check persistClient->/implementationguidetables/[resourceId].delete(); }
-        "InsurancePlan" => { _ = check persistClient->/insuranceplantables/[resourceId].delete(); }
-        "Invoice" => { _ = check persistClient->/invoicetables/[resourceId].delete(); }
-        "Library" => { _ = check persistClient->/librarytables/[resourceId].delete(); }
-        "Linkage" => { _ = check persistClient->/linkagetables/[resourceId].delete(); }
-        "List" => { _ = check persistClient->/listtables/[resourceId].delete(); }
-        "Location" => { _ = check persistClient->/locationtables/[resourceId].delete(); }
-        "Measure" => { _ = check persistClient->/measuretables/[resourceId].delete(); }
-        "MeasureReport" => { _ = check persistClient->/measurereporttables/[resourceId].delete(); }
-        "Media" => { _ = check persistClient->/mediatables/[resourceId].delete(); }
-        "Medication" => { _ = check persistClient->/medicationtables/[resourceId].delete(); }
-        "MedicationAdministration" => { _ = check persistClient->/medicationadministrationtables/[resourceId].delete(); }
-        "MedicationDispense" => { _ = check persistClient->/medicationdispensetables/[resourceId].delete(); }
-        "MedicationKnowledge" => { _ = check persistClient->/medicationknowledgetables/[resourceId].delete(); }
-        "MedicationRequest" => { _ = check persistClient->/medicationrequesttables/[resourceId].delete(); }
-        "MedicationStatement" => { _ = check persistClient->/medicationstatementtables/[resourceId].delete(); }
-        "MedicinalProduct" => { _ = check persistClient->/medicinalproducttables/[resourceId].delete(); }
-        "MedicinalProductAuthorization" => { _ = check persistClient->/medicinalproductauthorizationtables/[resourceId].delete(); }
-        "MedicinalProductContraindication" => { _ = check persistClient->/medicinalproductcontraindicationtables/[resourceId].delete(); }
-        "MedicinalProductIndication" => { _ = check persistClient->/medicinalproductindicationtables/[resourceId].delete(); }
-        "MedicinalProductInteraction" => { _ = check persistClient->/medicinalproductinteractiontables/[resourceId].delete(); }
-        "MedicinalProductPackaged" => { _ = check persistClient->/medicinalproductpackagedtables/[resourceId].delete(); }
-        "MedicinalProductPharmaceutical" => { _ = check persistClient->/medicinalproductpharmaceuticaltables/[resourceId].delete(); }
-        "MedicinalProductUndesirableEffect" => { _ = check persistClient->/medicinalproductundesirableeffecttables/[resourceId].delete(); }
-        "MessageDefinition" => { _ = check persistClient->/messagedefinitiontables/[resourceId].delete(); }
-        "MessageHeader" => { _ = check persistClient->/messageheadertables/[resourceId].delete(); }
-        "MolecularSequence" => { _ = check persistClient->/molecularsequencetables/[resourceId].delete(); }
-        "NamingSystem" => { _ = check persistClient->/namingsystemtables/[resourceId].delete(); }
-        "NutritionOrder" => { _ = check persistClient->/nutritionordertables/[resourceId].delete(); }
-        "Observation" => { _ = check persistClient->/observationtables/[resourceId].delete(); }
-        "OperationDefinition" => { _ = check persistClient->/operationdefinitiontables/[resourceId].delete(); }
-        "Organization" => { _ = check persistClient->/organizationtables/[resourceId].delete(); }
-        "OrganizationAffiliation" => { _ = check persistClient->/organizationaffiliationtables/[resourceId].delete(); }
-        "Patient" => { _ = check persistClient->/patienttables/[resourceId].delete(); }
-        "PaymentNotice" => { _ = check persistClient->/paymentnoticetables/[resourceId].delete(); }
-        "PaymentReconciliation" => { _ = check persistClient->/paymentreconciliationtables/[resourceId].delete(); }
-        "Person" => { _ = check persistClient->/persontables/[resourceId].delete(); }
-        "PlanDefinition" => { _ = check persistClient->/plandefinitiontables/[resourceId].delete(); }
-        "Practitioner" => { _ = check persistClient->/practitionertables/[resourceId].delete(); }
-        "PractitionerRole" => { _ = check persistClient->/practitionerroletables/[resourceId].delete(); }
-        "Procedure" => { _ = check persistClient->/proceduretables/[resourceId].delete(); }
-        "Provenance" => { _ = check persistClient->/provenancetables/[resourceId].delete(); }
-        "Questionnaire" => { _ = check persistClient->/questionnairetables/[resourceId].delete(); }
-        "QuestionnaireResponse" => { _ = check persistClient->/questionnaireresponsetables/[resourceId].delete(); }
-        "RelatedPerson" => { _ = check persistClient->/relatedpersontables/[resourceId].delete(); }
-        "RequestGroup" => { _ = check persistClient->/requestgrouptables/[resourceId].delete(); }
-        "ResearchDefinition" => { _ = check persistClient->/researchdefinitiontables/[resourceId].delete(); }
-        "ResearchElementDefinition" => { _ = check persistClient->/researchelementdefinitiontables/[resourceId].delete(); }
-        "ResearchStudy" => { _ = check persistClient->/researchstudytables/[resourceId].delete(); }
-        "ResearchSubject" => { _ = check persistClient->/researchsubjecttables/[resourceId].delete(); }
-        "RiskAssessment" => { _ = check persistClient->/riskassessmenttables/[resourceId].delete(); }
-        "RiskEvidenceSynthesis" => { _ = check persistClient->/riskevidencesynthesistables/[resourceId].delete(); }
-        "Schedule" => { _ = check persistClient->/scheduletables/[resourceId].delete(); }
-        "SearchParameter" => { _ = check persistClient->/searchparametertables/[resourceId].delete(); }
-        "ServiceRequest" => { _ = check persistClient->/servicerequesttables/[resourceId].delete(); }
-        "Slot" => { _ = check persistClient->/slottables/[resourceId].delete(); }
-        "Specimen" => { _ = check persistClient->/specimentables/[resourceId].delete(); }
-        "SpecimenDefinition" => { _ = check persistClient->/specimendefinitiontables/[resourceId].delete(); }
-        "StructureDefinition" => { _ = check persistClient->/structuredefinitiontables/[resourceId].delete(); }
-        "StructureMap" => { _ = check persistClient->/structuremaptables/[resourceId].delete(); }
-        "Subscription" => { _ = check persistClient->/subscriptiontables/[resourceId].delete(); }
-        "Substance" => { _ = check persistClient->/substancetables/[resourceId].delete(); }
-        "SubstanceSpecification" => { _ = check persistClient->/substancespecificationtables/[resourceId].delete(); }
-        "SupplyDelivery" => { _ = check persistClient->/supplydeliverytables/[resourceId].delete(); }
-        "SupplyRequest" => { _ = check persistClient->/supplyrequesttables/[resourceId].delete(); }
-        "Task" => { _ = check persistClient->/tasktables/[resourceId].delete(); }
-        "TerminologyCapabilities" => { _ = check persistClient->/terminologycapabilitiestables/[resourceId].delete(); }
-        "TestReport" => { _ = check persistClient->/testreporttables/[resourceId].delete(); }
-        "TestScript" => { _ = check persistClient->/testscripttables/[resourceId].delete(); }
-        "ValueSet" => { _ = check persistClient->/valuesettables/[resourceId].delete(); }
-        "VerificationResult" => { _ = check persistClient->/verificationresulttables/[resourceId].delete(); }
-        "VisionPrescription" => { _ = check persistClient->/visionprescriptiontables/[resourceId].delete(); }
         _ => { return error(string `Unsupported resource type for deletion: ${resourceType}`); }
     }
 }

@@ -161,14 +161,30 @@ public class TransactionHandler {
         }
 
         match resourceType {
-            "Appointment" => {
-                db_store:AppointmentTableUpdate updateRecord = check backup.cloneWithType();
-                _ = check persistClient->/appointmenttables/[resourceId].put(updateRecord);
-            }
-            "Patient" => {
-                db_store:PatientTableUpdate updateRecord = check backup.cloneWithType();
-                _ = check persistClient->/patienttables/[resourceId].put(updateRecord);
-            }
+            "Account" => { _ = check persistClient->/accounttables/[resourceId].put(check backup.cloneWithType(db_store:AccountTableUpdate)); }
+            "Appointment" => { _ = check persistClient->/appointmenttables/[resourceId].put(check backup.cloneWithType(db_store:AppointmentTableUpdate)); }
+            "Patient" => { _ = check persistClient->/patienttables/[resourceId].put(check backup.cloneWithType(db_store:PatientTableUpdate)); }
+            "Practitioner" => { _ = check persistClient->/practitionertables/[resourceId].put(check backup.cloneWithType(db_store:PractitionerTableUpdate)); }
+            "Device" => { _ = check persistClient->/devicetables/[resourceId].put(check backup.cloneWithType(db_store:DeviceTableUpdate)); }
+            "HealthcareService" => { _ = check persistClient->/healthcareservicetables/[resourceId].put(check backup.cloneWithType(db_store:HealthcareServiceTableUpdate)); }
+            "PractitionerRole" => { _ = check persistClient->/practitionerroletables/[resourceId].put(check backup.cloneWithType(db_store:PractitionerRoleTableUpdate)); }
+            "RelatedPerson" => { _ = check persistClient->/relatedpersontables/[resourceId].put(check backup.cloneWithType(db_store:RelatedPersonTableUpdate)); }
+            "Location" => { _ = check persistClient->/locationtables/[resourceId].put(check backup.cloneWithType(db_store:LocationTableUpdate)); }
+            "ServiceRequest" => { _ = check persistClient->/servicerequesttables/[resourceId].put(check backup.cloneWithType(db_store:ServiceRequestTableUpdate)); }
+            "Condition" => { _ = check persistClient->/conditiontables/[resourceId].put(check backup.cloneWithType(db_store:ConditionTableUpdate)); }
+            "Observation" => { _ = check persistClient->/observationtables/[resourceId].put(check backup.cloneWithType(db_store:ObservationTableUpdate)); }
+            "Procedure" => { _ = check persistClient->/proceduretables/[resourceId].put(check backup.cloneWithType(db_store:ProcedureTableUpdate)); }
+            "ImmunizationRecommendation" => { _ = check persistClient->/immunizationrecommendationtables/[resourceId].put(check backup.cloneWithType(db_store:ImmunizationRecommendationTableUpdate)); }
+            "Slot" => { _ = check persistClient->/slottables/[resourceId].put(check backup.cloneWithType(db_store:SlotTableUpdate)); }
+            "Invoice" => { _ = check persistClient->/invoicetables/[resourceId].put(check backup.cloneWithType(db_store:InvoiceTableUpdate)); }
+            "DocumentManifest" => { _ = check persistClient->/documentmanifesttables/[resourceId].put(check backup.cloneWithType(db_store:DocumentManifestTableUpdate)); }
+            "Consent" => { _ = check persistClient->/consenttables/[resourceId].put(check backup.cloneWithType(db_store:ConsentTableUpdate)); }
+            "Goal" => { _ = check persistClient->/goaltables/[resourceId].put(check backup.cloneWithType(db_store:GoalTableUpdate)); }
+            "MedicinalProductPackaged" => { _ = check persistClient->/medicinalproductpackagedtables/[resourceId].put(check backup.cloneWithType(db_store:MedicinalProductPackagedTableUpdate)); }
+            "MessageDefinition" => { _ = check persistClient->/messagedefinitiontables/[resourceId].put(check backup.cloneWithType(db_store:MessageDefinitionTableUpdate)); }
+            "Endpoint" => { _ = check persistClient->/endpointtables/[resourceId].put(check backup.cloneWithType(db_store:EndpointTableUpdate)); }
+            "EnrollmentRequest" => { _ = check persistClient->/enrollmentrequesttables/[resourceId].put(check backup.cloneWithType(db_store:EnrollmentRequestTableUpdate)); }
+            "EventDefinition" => { _ = check persistClient->/eventdefinitiontables/[resourceId].put(check backup.cloneWithType(db_store:EventDefinitionTableUpdate)); }
             _ => {
                 return error(string `Unsupported resource type: ${resourceType}`);
             }
