@@ -78,6 +78,11 @@ public class DeleteHandler {
     private isolated function checkResourceExists(db_store:Client persistClient, string resourceType, string resourceId) returns boolean|error {
 
         match resourceType {
+            "Account" => {
+                stream<db_store:AccountTable, error?> accountStream = persistClient->/accounttables(targetType = db_store:AccountTable);
+                db_store:AccountTable[] accounts = check from var account in accountStream where account.ACCOUNTTABLE_ID == resourceId select account;
+                return accounts.length() > 0;
+            }
             "Appointment" => {
                 stream<db_store:AppointmentTable, error?> appointmentStream = persistClient->/appointmenttables(targetType = db_store:AppointmentTable);
                 db_store:AppointmentTable[] appointments = check from var appointment in appointmentStream where appointment.APPOINTMENTTABLE_ID == resourceId select appointment;
@@ -136,6 +141,51 @@ public class DeleteHandler {
             "ImmunizationRecommendation" => {
                 stream<db_store:ImmunizationRecommendationTable, error?> immunizationStream = persistClient->/immunizationrecommendationtables(targetType = db_store:ImmunizationRecommendationTable);
                 db_store:ImmunizationRecommendationTable[] results = check from var item in immunizationStream where item.IMMUNIZATIONRECOMMENDATIONTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Invoice" => {
+                stream<db_store:InvoiceTable, error?> invoiceStream = persistClient->/invoicetables(targetType = db_store:InvoiceTable);
+                db_store:InvoiceTable[] results = check from var item in invoiceStream where item.INVOICETABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "EventDefinition" => {
+                stream<db_store:EventDefinitionTable, error?> eventDefinitionStream = persistClient->/eventdefinitiontables(targetType = db_store:EventDefinitionTable);
+                db_store:EventDefinitionTable[] results = check from var item in eventDefinitionStream where item.EVENTDEFINITIONTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "DocumentManifest" => {
+                stream<db_store:DocumentManifestTable, error?> documentManifestStream = persistClient->/documentmanifesttables(targetType = db_store:DocumentManifestTable);
+                db_store:DocumentManifestTable[] results = check from var item in documentManifestStream where item.DOCUMENTMANIFESTTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "MessageDefinition" => {
+                stream<db_store:MessageDefinitionTable, error?> messageDefinitionStream = persistClient->/messagedefinitiontables(targetType = db_store:MessageDefinitionTable);
+                db_store:MessageDefinitionTable[] results = check from var item in messageDefinitionStream where item.MESSAGEDEFINITIONTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Goal" => {
+                stream<db_store:GoalTable, error?> goalStream = persistClient->/goaltables(targetType = db_store:GoalTable);
+                db_store:GoalTable[] results = check from var item in goalStream where item.GOALTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "MedicinalProductPackaged" => {
+                stream<db_store:MedicinalProductPackagedTable, error?> medicinalProductPackagedStream = persistClient->/medicinalproductpackagedtables(targetType = db_store:MedicinalProductPackagedTable);
+                db_store:MedicinalProductPackagedTable[] results = check from var item in medicinalProductPackagedStream where item.MEDICINALPRODUCTPACKAGEDTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Endpoint" => {
+                stream<db_store:EndpointTable, error?> endpointStream = persistClient->/endpointtables(targetType = db_store:EndpointTable);
+                db_store:EndpointTable[] results = check from var item in endpointStream where item.ENDPOINTTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "EnrollmentRequest" => {
+                stream<db_store:EnrollmentRequestTable, error?> enrollmentRequestStream = persistClient->/enrollmentrequesttables(targetType = db_store:EnrollmentRequestTable);
+                db_store:EnrollmentRequestTable[] results = check from var item in enrollmentRequestStream where item.ENROLLMENTREQUESTTABLE_ID == resourceId select item;
+                return results.length() > 0;
+            }
+            "Consent" => {
+                stream<db_store:ConsentTable, error?> consentStream = persistClient->/consenttables(targetType = db_store:ConsentTable);
+                db_store:ConsentTable[] results = check from var item in consentStream where item.CONSENTTABLE_ID == resourceId select item;
                 return results.length() > 0;
             }
             "Slot" => {
@@ -201,6 +251,11 @@ public class DeleteHandler {
     // Add backup methods to DeleteHandler
     private isolated function backupResource(db_store:Client persistClient, string resourceType, string resourceId) returns record {|anydata...;|}|error {
         match resourceType {
+            "Account" => {
+                stream<db_store:AccountTable, error?> 'stream = persistClient->/accounttables(targetType = db_store:AccountTable);
+                db_store:AccountTable[] results = check from var item in 'stream where item.ACCOUNTTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
             "Appointment" => {
                 stream<db_store:AppointmentTable, error?> 'stream = persistClient->/appointmenttables(targetType = db_store:AppointmentTable);
                 db_store:AppointmentTable[] results = check from var item in 'stream where item.APPOINTMENTTABLE_ID == resourceId select item;
@@ -259,6 +314,51 @@ public class DeleteHandler {
             "ImmunizationRecommendation" => {
                 stream<db_store:ImmunizationRecommendationTable, error?> 'stream = persistClient->/immunizationrecommendationtables(targetType = db_store:ImmunizationRecommendationTable);
                 db_store:ImmunizationRecommendationTable[] results = check from var item in 'stream where item.IMMUNIZATIONRECOMMENDATIONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Invoice" => {
+                stream<db_store:InvoiceTable, error?> 'stream = persistClient->/invoicetables(targetType = db_store:InvoiceTable);
+                db_store:InvoiceTable[] results = check from var item in 'stream where item.INVOICETABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "EventDefinition" => {
+                stream<db_store:EventDefinitionTable, error?> 'stream = persistClient->/eventdefinitiontables(targetType = db_store:EventDefinitionTable);
+                db_store:EventDefinitionTable[] results = check from var item in 'stream where item.EVENTDEFINITIONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "DocumentManifest" => {
+                stream<db_store:DocumentManifestTable, error?> 'stream = persistClient->/documentmanifesttables(targetType = db_store:DocumentManifestTable);
+                db_store:DocumentManifestTable[] results = check from var item in 'stream where item.DOCUMENTMANIFESTTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "MessageDefinition" => {
+                stream<db_store:MessageDefinitionTable, error?> 'stream = persistClient->/messagedefinitiontables(targetType = db_store:MessageDefinitionTable);
+                db_store:MessageDefinitionTable[] results = check from var item in 'stream where item.MESSAGEDEFINITIONTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Goal" => {
+                stream<db_store:GoalTable, error?> 'stream = persistClient->/goaltables(targetType = db_store:GoalTable);
+                db_store:GoalTable[] results = check from var item in 'stream where item.GOALTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "MedicinalProductPackaged" => {
+                stream<db_store:MedicinalProductPackagedTable, error?> 'stream = persistClient->/medicinalproductpackagedtables(targetType = db_store:MedicinalProductPackagedTable);
+                db_store:MedicinalProductPackagedTable[] results = check from var item in 'stream where item.MEDICINALPRODUCTPACKAGEDTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Endpoint" => {
+                stream<db_store:EndpointTable, error?> 'stream = persistClient->/endpointtables(targetType = db_store:EndpointTable);
+                db_store:EndpointTable[] results = check from var item in 'stream where item.ENDPOINTTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "EnrollmentRequest" => {
+                stream<db_store:EnrollmentRequestTable, error?> 'stream = persistClient->/enrollmentrequesttables(targetType = db_store:EnrollmentRequestTable);
+                db_store:EnrollmentRequestTable[] results = check from var item in 'stream where item.ENROLLMENTREQUESTTABLE_ID == resourceId select item;
+                return results.length() > 0 ? results[0] : error("Resource not found");
+            }
+            "Consent" => {
+                stream<db_store:ConsentTable, error?> 'stream = persistClient->/consenttables(targetType = db_store:ConsentTable);
+                db_store:ConsentTable[] results = check from var item in 'stream where item.CONSENTTABLE_ID == resourceId select item;
                 return results.length() > 0 ? results[0] : error("Resource not found");
             }
             "Slot" => {

@@ -43,6 +43,41 @@ public class CreateMapper {
         self.references = fhirMapper.getReferences();
 
         match resourceType {
+            "Account" => {
+                time:Date? periodValue = ();
+                if extractedValues.hasKey("period") {
+                    json periodJson = extractedValues.get("period");
+                    // Check if period is a JSON object with start/end dates
+                    if periodJson is map<json> && periodJson.hasKey("start") {
+                        string startDateStr = periodJson.get("start").toString();
+                        if startDateStr.trim().length() > 0 {
+                            periodValue = check parseDateString(startDateStr);
+                        }
+                    } else if periodJson is string {
+                        // Handle simple string date format
+                        string periodStr = periodJson;
+                        if periodStr.trim().length() > 0 {
+                            periodValue = check parseDateString(periodStr);
+                        }
+                    }
+                }
+                
+                db_store:AccountTableInsert accountInsert = {
+                    ACCOUNTTABLE_ID: check resourceJson.id,
+                    STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
+                    PERIOD: periodValue,
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
+                    TYPE: extractedValues.hasKey("type") ? extractedValues.get("type").toString() : "",
+                    NAME: extractedValues.hasKey("name") ? extractedValues.get("name").toString() : "",
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return accountInsert;
+            }
             "Appointment" => {
                 io:println(extractedValues);
 

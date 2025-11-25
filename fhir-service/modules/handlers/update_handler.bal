@@ -3,6 +3,7 @@ import ballerina_fhir_server.mappers;
 import ballerina_fhir_server.utils;
 
 import ballerina/log;
+import ballerina/persist;
 
 public class UpdateHandler {
     private mappers:UpdateMapper updateMapper;
@@ -238,19 +239,55 @@ public class UpdateHandler {
 
     // Check if resource exists
     private isolated function checkResourceExists(db_store:Client persistClient, string resourceType, string resourceId) returns boolean|error {
-
         match resourceType {
+            "Account" => {
+                db_store:AccountTable|persist:Error result = persistClient->/accounttables/[resourceId]();
+                return !(result is persist:Error);
+            }
             "Appointment" => {
-                stream<db_store:AppointmentTable, error?> 'stream = persistClient->/appointmenttables(targetType = db_store:AppointmentTable);
-
-                db_store:AppointmentTable[] results = check from var item in 'stream
-                    where item.APPOINTMENTTABLE_ID == resourceId
-                    select item;
-
-                return results.length() > 0;
+                db_store:AppointmentTable|persist:Error result = persistClient->/appointmenttables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Invoice" => {
+                db_store:InvoiceTable|persist:Error result = persistClient->/invoicetables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "EventDefinition" => {
+                db_store:EventDefinitionTable|persist:Error result = persistClient->/eventdefinitiontables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "DocumentManifest" => {
+                db_store:DocumentManifestTable|persist:Error result = persistClient->/documentmanifesttables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "MessageDefinition" => {
+                db_store:MessageDefinitionTable|persist:Error result = persistClient->/messagedefinitiontables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Goal" => {
+                db_store:GoalTable|persist:Error result = persistClient->/goaltables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "MedicinalProductPackaged" => {
+                db_store:MedicinalProductPackagedTable|persist:Error result = persistClient->/medicinalproductpackagedtables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Endpoint" => {
+                db_store:EndpointTable|persist:Error result = persistClient->/endpointtables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "EnrollmentRequest" => {
+                db_store:EnrollmentRequestTable|persist:Error result = persistClient->/enrollmentrequesttables/[resourceId]();
+                return !(result is persist:Error);
+            }
+            "Consent" => {
+                db_store:ConsentTable|persist:Error result = persistClient->/consenttables/[resourceId]();
+                return !(result is persist:Error);
             }
             _ => {
-                return error(string `Unsupported resource type: ${resourceType}`);
+                // Generic fallback - assumes resource exists if no specific handler
+                // This will be caught during actual operations if resource doesn't exist
+                return true;
             }
         }
     }
@@ -259,23 +296,54 @@ public class UpdateHandler {
     private isolated function backupResource(db_store:Client persistClient,
             string resourceType,
             string resourceId) returns record {|anydata...;|}|error {
-
+        
         match resourceType {
+            "Account" => {
+                db_store:AccountTable result = check persistClient->/accounttables/[resourceId]();
+                return result;
+            }
             "Appointment" => {
-                stream<db_store:AppointmentTable, error?> 'stream = persistClient->/appointmenttables(targetType = db_store:AppointmentTable);
-
-                db_store:AppointmentTable[] results = check from var item in 'stream
-                    where item.APPOINTMENTTABLE_ID == resourceId
-                    select item;
-
-                if results.length() == 0 {
-                    return error("Resource not found for backup");
-                }
-
-                return results[0];
+                db_store:AppointmentTable result = check persistClient->/appointmenttables/[resourceId]();
+                return result;
+            }
+            "Invoice" => {
+                db_store:InvoiceTable result = check persistClient->/invoicetables/[resourceId]();
+                return result;
+            }
+            "EventDefinition" => {
+                db_store:EventDefinitionTable result = check persistClient->/eventdefinitiontables/[resourceId]();
+                return result;
+            }
+            "DocumentManifest" => {
+                db_store:DocumentManifestTable result = check persistClient->/documentmanifesttables/[resourceId]();
+                return result;
+            }
+            "MessageDefinition" => {
+                db_store:MessageDefinitionTable result = check persistClient->/messagedefinitiontables/[resourceId]();
+                return result;
+            }
+            "Goal" => {
+                db_store:GoalTable result = check persistClient->/goaltables/[resourceId]();
+                return result;
+            }
+            "MedicinalProductPackaged" => {
+                db_store:MedicinalProductPackagedTable result = check persistClient->/medicinalproductpackagedtables/[resourceId]();
+                return result;
+            }
+            "Endpoint" => {
+                db_store:EndpointTable result = check persistClient->/endpointtables/[resourceId]();
+                return result;
+            }
+            "EnrollmentRequest" => {
+                db_store:EnrollmentRequestTable result = check persistClient->/enrollmentrequesttables/[resourceId]();
+                return result;
+            }
+            "Consent" => {
+                db_store:ConsentTable result = check persistClient->/consenttables/[resourceId]();
+                return result;
             }
             _ => {
-                return error(string `Unsupported resource type: ${resourceType}`);
+                return error(string `Unsupported resource type for backup: ${resourceType}`);
             }
         }
     }
@@ -289,9 +357,56 @@ public class UpdateHandler {
         byte[]? resourceBlob = ();
 
         match resourceType {
+            "Account" => {
+                db_store:AccountTable account = check backup.cloneWithType();
+                resourceBlob = account.RESOURCE_JSON;
+            }
             "Appointment" => {
                 db_store:AppointmentTable appointment = check backup.cloneWithType();
                 resourceBlob = appointment.RESOURCE_JSON;
+            }
+            "Invoice" => {
+                db_store:InvoiceTable invoice = check backup.cloneWithType();
+                resourceBlob = invoice.RESOURCE_JSON;
+            }
+            "EventDefinition" => {
+                db_store:EventDefinitionTable eventDefinition = check backup.cloneWithType();
+                resourceBlob = eventDefinition.RESOURCE_JSON;
+            }
+            "DocumentManifest" => {
+                db_store:DocumentManifestTable documentManifest = check backup.cloneWithType();
+                resourceBlob = documentManifest.RESOURCE_JSON;
+            }
+            "MessageDefinition" => {
+                db_store:MessageDefinitionTable messageDefinition = check backup.cloneWithType();
+                resourceBlob = messageDefinition.RESOURCE_JSON;
+            }
+            "Goal" => {
+                db_store:GoalTable goal = check backup.cloneWithType();
+                resourceBlob = goal.RESOURCE_JSON;
+            }
+            "MedicinalProductPackaged" => {
+                db_store:MedicinalProductPackagedTable medicinalProductPackaged = check backup.cloneWithType();
+                resourceBlob = medicinalProductPackaged.RESOURCE_JSON;
+            }
+            "Endpoint" => {
+                db_store:EndpointTable endpoint = check backup.cloneWithType();
+                resourceBlob = endpoint.RESOURCE_JSON;
+            }
+            "EnrollmentRequest" => {
+                db_store:EnrollmentRequestTable enrollmentRequest = check backup.cloneWithType();
+                resourceBlob = enrollmentRequest.RESOURCE_JSON;
+            }
+            "Consent" => {
+                db_store:ConsentTable consent = check backup.cloneWithType();
+                resourceBlob = consent.RESOURCE_JSON;
+            }
+            _ => {
+                // Try to extract RESOURCE_JSON generically
+                anydata resourceJsonField = backup["RESOURCE_JSON"];
+                if resourceJsonField is byte[] {
+                    resourceBlob = resourceJsonField;
+                }
             }
         }
 
@@ -348,9 +463,49 @@ public class UpdateHandler {
     private isolated function updateMainResource(db_store:Client persistClient, string resourceType, string resourceId, record {|anydata...;|} updateModel) returns error? {
 
         match resourceType {
+            "Account" => {
+                db_store:AccountTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/accounttables/[resourceId].put(updateRecord);
+            }
             "Appointment" => {
                 db_store:AppointmentTableUpdate updateRecord = check updateModel.cloneWithType();
                 _ = check persistClient->/appointmenttables/[resourceId].put(updateRecord);
+            }
+            "Invoice" => {
+                db_store:InvoiceTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/invoicetables/[resourceId].put(updateRecord);
+            }
+            "EventDefinition" => {
+                db_store:EventDefinitionTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/eventdefinitiontables/[resourceId].put(updateRecord);
+            }
+            "DocumentManifest" => {
+                db_store:DocumentManifestTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/documentmanifesttables/[resourceId].put(updateRecord);
+            }
+            "MessageDefinition" => {
+                db_store:MessageDefinitionTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/messagedefinitiontables/[resourceId].put(updateRecord);
+            }
+            "Goal" => {
+                db_store:GoalTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/goaltables/[resourceId].put(updateRecord);
+            }
+            "MedicinalProductPackaged" => {
+                db_store:MedicinalProductPackagedTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/medicinalproductpackagedtables/[resourceId].put(updateRecord);
+            }
+            "Endpoint" => {
+                db_store:EndpointTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/endpointtables/[resourceId].put(updateRecord);
+            }
+            "EnrollmentRequest" => {
+                db_store:EnrollmentRequestTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/enrollmentrequesttables/[resourceId].put(updateRecord);
+            }
+            "Consent" => {
+                db_store:ConsentTableUpdate updateRecord = check updateModel.cloneWithType();
+                _ = check persistClient->/consenttables/[resourceId].put(updateRecord);
             }
             _ => {
                 return error(string `Unsupported resource type: ${resourceType}`);

@@ -15,6 +15,10 @@ public class ReadMapper {
     // Main function to read a single resource by ID
     public isolated function readResourceById(db_store:Client persistClient, string resourceType, string resourceId) returns json|error {
         match resourceType {
+            "Account" => {
+                json|error accountJson = (check self.readAccount(persistClient, resourceId)).toJson();
+                return accountJson;
+            }
             "Appointment" => {
                 json|error appointmentJson = (check self.readAppointment(persistClient, resourceId)).toJson();
                 return appointmentJson;
@@ -82,6 +86,9 @@ public class ReadMapper {
     // Search resources with filters
     public isolated function searchResources(db_store:Client persistClient, string resourceType, map<string[]> queryParams) returns json|error {
         match resourceType {
+            "Account" => {
+                return self.searchAccounts(persistClient, queryParams);
+            }
             "Appointment" => {
                 return self.searchAppointments(persistClient, queryParams);
             }
@@ -147,6 +154,135 @@ public class ReadMapper {
         json|error resourceJson = check self.mapFromAppointmentTable(appointment);
 
         return resourceJson;
+    }
+
+    // Read a single Account resource
+    private isolated function readAccount(db_store:Client persistClient, string resourceId) returns json|error {
+        db_store:AccountTable account = check persistClient->/accounttables/[resourceId]();
+        json|error resourceJson = check self.mapFromAccountTable(account);
+        return resourceJson;
+    }
+
+    // Search Accounts with query parameters
+    private isolated function searchAccounts(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        // Check if any reference parameters are present
+        string[] referenceParams = ["patient", "subject", "owner"];
+        string[]? matchingResourceIds = ();
+        boolean hasReferenceParams = false;
+        
+        foreach string refParam in referenceParams {
+            if queryParams.hasKey(refParam) {
+                hasReferenceParams = true;
+                // Get resource IDs from REFERENCES table
+                string[]? refIds = check self.getResourceIdsByReference(persistClient, "Account", refParam, queryParams.get(refParam));
+                
+                if refIds is string[] {
+                    if matchingResourceIds is () {
+                        matchingResourceIds = refIds;
+                    } else {
+                        // Intersect with existing IDs (AND logic)
+                        string[] intersected = self.intersectStringArrays(matchingResourceIds, refIds);
+                        // If intersection results in empty array, no accounts match all criteria
+                        if intersected.length() == 0 {
+                            json bundle = {
+                                "resourceType": "Bundle",
+                                "type": "searchset",
+                                "total": 0,
+                                "entry": []
+                            };
+                            return bundle;
+                        }
+                        matchingResourceIds = intersected;
+                    }
+                } else {
+                    // If any reference parameter has no matches, return empty result
+                    json bundle = {
+                        "resourceType": "Bundle",
+                        "type": "searchset",
+                        "total": 0,
+                        "entry": []
+                    };
+                    return bundle;
+                }
+            }
+        }
+        
+        // If reference parameters were provided but no matches found, return empty result
+        if hasReferenceParams && matchingResourceIds is () {
+            json bundle = {
+                "resourceType": "Bundle",
+                "type": "searchset",
+                "total": 0,
+                "entry": []
+            };
+            return bundle;
+        }
+
+        stream<db_store:AccountTable, persist:Error?> accountStream = persistClient->/accounttables();
+
+        db_store:AccountTable[] allAccounts = check from var account in accountStream
+            select account;
+
+        // Apply filters manually
+        db_store:AccountTable[] filteredAccounts = [];
+        
+        foreach var account in allAccounts {
+            boolean matches = true;
+            
+            // If reference parameters were used, check if this account ID is in the matching list
+            if matchingResourceIds is string[] {
+                matches = self.arrayContains(matchingResourceIds, account.ACCOUNTTABLE_ID);
+            }
+            
+            // _id filter
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && account.ACCOUNTTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            // status filter
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && account.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            // name filter
+            if matches && queryParams.hasKey("name") {
+                string[] names = queryParams.get("name");
+                if names.length() > 0 && account.NAME != names[0] {
+                    matches = false;
+                }
+            }
+            
+            // type filter
+            if matches && queryParams.hasKey("type") {
+                string[] types = queryParams.get("type");
+                if types.length() > 0 && account.TYPE != types[0] {
+                    matches = false;
+                }
+            }
+            
+            // identifier filter
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && account.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredAccounts.push(account);
+            }
+        }
+
+        // Convert filtered results to FHIR Bundle
+        json bundle = check self.createAccountSearchBundle(filteredAccounts, queryParams);
+
+        return bundle;
     }
 
     // Search Appointments with query parameters
@@ -1184,6 +1320,15 @@ public class ReadMapper {
         return ();
     }
 
+    // Convert AccountTable record to JSON
+    private isolated function convertAccountToJson(db_store:AccountTable account) returns json|error {
+        byte[] resourceJsonBytes = account.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = check resourceJsonString.fromJsonString();
+
+        return resourceJson;
+    }
+
     // Convert AppointmentTable record to JSON
     private isolated function convertAppointmentToJson(db_store:AppointmentTable appointment) returns json|error {
         byte[] resourceJsonBytes = appointment.RESOURCE_JSON;
@@ -1193,7 +1338,36 @@ public class ReadMapper {
         return resourceJson;
     }
 
-    // Create FHIR Bundle for search results
+    // Create FHIR Bundle for Account search results
+    private isolated function createAccountSearchBundle(db_store:AccountTable[] accounts, map<string[]> queryParams) returns json|error {
+        json[] entries = [];
+
+        foreach db_store:AccountTable account in accounts {
+            json resourceJson = check self.convertAccountToJson(account);
+
+            json entry = {
+                "fullUrl": string `https://example.com/fhir/Account/${account.ACCOUNTTABLE_ID}`,
+                "resource": resourceJson,
+                "search": {
+                    "mode": "match"
+                }
+            };
+
+            entries.push(entry);
+        }
+
+        // Construct FHIR Bundle
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": entries.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    // Create FHIR Bundle for Appointment search results
     private isolated function createSearchBundle(db_store:AppointmentTable[] appointments, map<string[]> queryParams) returns json|error {
         json[] entries = [];
 
@@ -1392,6 +1566,16 @@ public class ReadMapper {
     }
 
     // Map from AppointmentTable to international401:Appointment record
+    // Map from AccountTable to Account JSON
+    public isolated function mapFromAccountTable(db_store:AccountTable accountTable) returns json|error {
+        // Extract the RESOURCE_JSON bytes and convert to JSON
+        byte[] resourceJsonBytes = accountTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+
+        return resourceJson;
+    }
+
     public isolated function mapFromAppointmentTable(db_store:AppointmentTable appointmentTable) returns json|error {
         // Extract the RESOURCE_JSON bytes and convert to JSON
         byte[] resourceJsonBytes = appointmentTable.RESOURCE_JSON;
