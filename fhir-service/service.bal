@@ -403,7 +403,24 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Appointment|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler();
+            int versionId = check int:fromString(vid);
+            json|error result = historyHandler.getResourceVersion(persistClient, "Appointment", id, versionId);
+
+            if result is json {
+                Appointment appointment = check fhirParser:parse(result).ensureType();
+                log:printInfo(string `Retrieved Appointment/${id}/_history/${vid}`);
+                return appointment;
+            } else {
+                string errorMsg = result.message();
+                log:printError(string `Failed to retrieve version: ${errorMsg}`);
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+            }
+        } on fail error e {
+            log:printError(string `Error retrieving Appointment/${id}/_history/${vid}: ${e.message()}`);
+            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Create a new resource.
@@ -531,12 +548,68 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler();
+            json[]|error result = historyHandler.getResourceHistory(persistClient, "Appointment", id);
+
+            if result is json[] {
+                r4:BundleEntry[] entries = [];
+                foreach json res in result {
+                    r4:BundleEntry entry = {'resource: res};
+                    entries.push(entry);
+                }
+
+                r4:Bundle bundle = {
+                    resourceType: "Bundle",
+                    'type: "history",
+                    total: entries.length(),
+                    entry: entries
+                };
+
+                log:printInfo(string `Retrieved ${entries.length()} versions for Appointment/${id}`);
+                return bundle;
+            } else {
+                string errorMsg = result.message();
+                log:printError(string `Failed to retrieve history: ${errorMsg}`);
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error retrieving Appointment/${id}/_history: ${e.message()}`);
+            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler();
+            json[]|error result = historyHandler.getAllHistory(persistClient, "Appointment");
+
+            if result is json[] {
+                r4:BundleEntry[] entries = [];
+                foreach json res in result {
+                    r4:BundleEntry entry = {'resource: res};
+                    entries.push(entry);
+                }
+
+                r4:Bundle bundle = {
+                    resourceType: "Bundle",
+                    'type: "history",
+                    total: entries.length(),
+                    entry: entries
+                };
+
+                log:printInfo(string `Retrieved ${entries.length()} total Appointment history entries`);
+                return bundle;
+            } else {
+                string errorMsg = result.message();
+                log:printError(string `Failed to retrieve all history: ${errorMsg}`);
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error retrieving Appointment/_history: ${e.message()}`);
+            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 }
 

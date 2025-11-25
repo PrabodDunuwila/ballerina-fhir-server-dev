@@ -2375,6 +2375,78 @@ public type AppointmentTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type AppointmentTableHistory record {|
+    readonly int ID;
+    string APPOINTMENTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? SERVICE_CATEGORY;
+    string? PART_STATUS;
+    string? STATUS;
+    string? APPOINTMENT_TYPE;
+    string? REASON_CODE;
+    string? SPECIALTY;
+    string? IDENTIFIER;
+    string? SERVICE_TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type AppointmentTableHistoryOptionalized record {|
+    int ID?;
+    string APPOINTMENTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? SERVICE_CATEGORY?;
+    string? PART_STATUS?;
+    string? STATUS?;
+    string? APPOINTMENT_TYPE?;
+    string? REASON_CODE?;
+    string? SPECIALTY?;
+    string? IDENTIFIER?;
+    string? SERVICE_TYPE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type AppointmentTableHistoryTargetType typedesc<AppointmentTableHistoryOptionalized>;
+
+public type AppointmentTableHistoryInsert record {|
+    string APPOINTMENTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? SERVICE_CATEGORY;
+    string? PART_STATUS;
+    string? STATUS;
+    string? APPOINTMENT_TYPE;
+    string? REASON_CODE;
+    string? SPECIALTY;
+    string? IDENTIFIER;
+    string? SERVICE_TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type AppointmentTableHistoryUpdate record {|
+    string APPOINTMENTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? SERVICE_CATEGORY?;
+    string? PART_STATUS?;
+    string? STATUS?;
+    string? APPOINTMENT_TYPE?;
+    string? REASON_CODE?;
+    string? SPECIALTY?;
+    string? IDENTIFIER?;
+    string? SERVICE_TYPE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type NamingSystemTable record {|
     readonly string NAMINGSYSTEMTABLE_ID;
     string? PUBLISHER;

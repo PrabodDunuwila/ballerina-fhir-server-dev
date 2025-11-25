@@ -8,10 +8,12 @@ import ballerina/persist;
 public class UpdateHandler {
     private mappers:UpdateMapper updateMapper;
     private utils:TransactionHandler transactionHandler;
+    private HistoryHandler historyHandler;
 
     public isolated function init() {
         self.updateMapper = new mappers:UpdateMapper();
         self.transactionHandler = new utils:TransactionHandler();
+        self.historyHandler = new HistoryHandler();
     }
 
     // Main function for PUT (full update)
@@ -32,7 +34,7 @@ public class UpdateHandler {
 
             // Backup existing resource (for rollback)
             log:printInfo(string `Backing up existing ${resourceType}/${resourceId}`);
-            record {|anydata...;|}? backup = check self.backupResource(persistClient, resourceType, resourceId);
+            record {|anydata...;|} backup = check self.backupResource(persistClient, resourceType, resourceId);
             'transaction.backupResource = backup;
 
             // Delete old references (they will be recreated)
@@ -51,9 +53,27 @@ public class UpdateHandler {
                 return deleteRefsResult;
             }
 
+            // Save current version to history before updating
+            log:printInfo(string `Saving current version of ${resourceType}/${resourceId} to history`);
+            error? historyResult = self.historyHandler.saveToHistory(persistClient, resourceType, resourceId, backup, "UPDATE");
+            if historyResult is error {
+                log:printError(string `Failed to save history: ${historyResult.message()}`);
+                error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
+                    persistClient, 'transaction, resourceType
+                );
+                if (rollbackResult is error) {
+                    log:printError(rollbackResult.toString());
+                }
+                return historyResult;
+            }
+
+            // Get current VERSION_ID and increment it
+            int currentVersion = check self.getCurrentVersionFromBackup(backup, resourceType);
+            int newVersion = currentVersion + 1;
+
             // Map updated resource to update model
-            log:printInfo(string `Mapping updated ${resourceType} to model`);
-            record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(persistClient, resourceType, resourceJson);
+            log:printInfo(string `Mapping updated ${resourceType} to model (version ${newVersion})`);
+            record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(persistClient, resourceType, resourceJson, newVersion);
 
             if updateModel is () || updateModel is error {
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
@@ -509,6 +529,28 @@ public class UpdateHandler {
             }
             _ => {
                 return error(string `Unsupported resource type: ${resourceType}`);
+            }
+        }
+    }
+
+    // Extract current VERSION_ID from backup
+    private isolated function getCurrentVersionFromBackup(record {|anydata...;|} backup, string resourceType) returns int|error {
+        match resourceType {
+            "Appointment" => {
+                db_store:AppointmentTable appointment = check backup.cloneWithType();
+                return appointment.VERSION_ID;
+            }
+            "Account" => {
+                db_store:AccountTable account = check backup.cloneWithType();
+                return account.VERSION_ID;
+            }
+            _ => {
+                // Try generic extraction
+                anydata versionField = backup["VERSION_ID"];
+                if versionField is int {
+                    return versionField;
+                }
+                return error(string `Could not extract VERSION_ID for ${resourceType}`);
             }
         }
     }

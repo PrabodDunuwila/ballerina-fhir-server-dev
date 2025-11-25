@@ -11,7 +11,7 @@ public class UpdateMapper {
     }
 
     // This function will map values to persist update models
-    public isolated function mapToUpdateModel(db_store:Client persistClient, string resourceType, json resourceJson) returns record {|anydata...;|}|error? {
+    public isolated function mapToUpdateModel(db_store:Client persistClient, string resourceType, json resourceJson, int newVersion = 2) returns record {|anydata...;|}|error? {
         FHIRMapper fhirMapper = new FHIRMapper();
         map<json> extractedValues = check fhirMapper.extractSearchParameters(persistClient, resourceType, resourceJson);
         self.references = fhirMapper.getReferences();
@@ -63,7 +63,7 @@ public class UpdateMapper {
                     SPECIALTY: extractedValues.hasKey("speciality") ? extractedValues.get("speciality").toString() : "",
                     IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
                     SERVICE_TYPE: extractedValues.hasKey("service-type") ? extractedValues.get("service-type").toString() : "",
-                    VERSION_ID: 2,
+                    VERSION_ID: newVersion,
                     CREATED_AT: time:utcToCivil(time:utcNow()),
                     UPDATED_AT: time:utcToCivil(time:utcNow()),
                     LAST_UPDATED: time:utcToCivil(time:utcNow()),
@@ -74,13 +74,13 @@ public class UpdateMapper {
             }
             _ => {
                 // Generic handler for all other resources
-                return self.createGenericUpdateModel(resourceType, resourceJson, extractedValues);
+                return self.createGenericUpdateModel(resourceType, resourceJson, extractedValues, newVersion);
             }
         }
     }
 
     // Generic update model creator for all resources
-    private isolated function createGenericUpdateModel(string resourceType, json resourceJson, map<json> extractedValues) returns record {|anydata...;|}|error {
+    private isolated function createGenericUpdateModel(string resourceType, json resourceJson, map<json> extractedValues, int newVersion) returns record {|anydata...;|}|error {
         
         // Create base record with required fields
         map<anydata> updateModel = {};
@@ -101,7 +101,7 @@ public class UpdateMapper {
         }
         
         // Add standard fields (required for all tables)
-        updateModel["VERSION_ID"] = 2;
+        updateModel["VERSION_ID"] = newVersion;
         updateModel["UPDATED_AT"] = time:utcToCivil(time:utcNow());
         updateModel["LAST_UPDATED"] = time:utcToCivil(time:utcNow());
         updateModel["RESOURCE_JSON"] = resourceJson.toString().toBytes();

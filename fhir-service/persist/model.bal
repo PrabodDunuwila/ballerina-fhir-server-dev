@@ -1059,6 +1059,34 @@ public type AppointmentTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type AppointmentTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string APPOINTMENTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION; // CREATE, UPDATE, DELETE
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? SERVICE_CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? PART_STATUS;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? APPOINTMENT_TYPE;
+    @sql:Varchar {length: 2048}
+	string? REASON_CODE;
+    @sql:Varchar {length: 2048}
+	string? SPECIALTY;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? SERVICE_TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type NamingSystemTable record {|
     readonly string NAMINGSYSTEMTABLE_ID;
     @sql:Varchar {length: 512}

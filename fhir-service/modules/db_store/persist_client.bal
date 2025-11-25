@@ -53,6 +53,7 @@ const SUBSCRIPTION_TABLE = "subscriptiontables";
 const ENROLLMENT_RESPONSE_TABLE = "enrollmentresponsetables";
 const DEVICE_REQUEST_TABLE = "devicerequesttables";
 const APPOINTMENT_TABLE = "appointmenttables";
+const APPOINTMENT_TABLE_HISTORY = "appointmenttablehistories";
 const NAMING_SYSTEM_TABLE = "namingsystemtables";
 const STRUCTURE_DEFINITION_TABLE = "structuredefinitiontables";
 const CLINICAL_IMPRESSION_TABLE = "clinicalimpressiontables";
@@ -1067,6 +1068,28 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["APPOINTMENTTABLE_ID"]
+        },
+        [APPOINTMENT_TABLE_HISTORY]: {
+            entityName: "AppointmentTableHistory",
+            tableName: "AppointmentTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                APPOINTMENTTABLE_ID: {columnName: "APPOINTMENTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                DATE: {columnName: "DATE"},
+                SERVICE_CATEGORY: {columnName: "SERVICE_CATEGORY"},
+                PART_STATUS: {columnName: "PART_STATUS"},
+                STATUS: {columnName: "STATUS"},
+                APPOINTMENT_TYPE: {columnName: "APPOINTMENT_TYPE"},
+                REASON_CODE: {columnName: "REASON_CODE"},
+                SPECIALTY: {columnName: "SPECIALTY"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                SERVICE_TYPE: {columnName: "SERVICE_TYPE"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [NAMING_SYSTEM_TABLE]: {
             entityName: "NamingSystemTable",
@@ -3028,151 +3051,152 @@ public isolated client class Client {
         }
         self.dbClient = dbClient;
         self.persistClients = {
-            [S_E_A_R_C_H__P_A_R_A_M__R_E_S__E_X_P_R_E_S_S_I_O_N_S]: check new (dbClient, self.metadata.get(S_E_A_R_C_H__P_A_R_A_M__R_E_S__E_X_P_R_E_S_S_I_O_N_S), psql:MYSQL_SPECIFICS),
-            [R_E_F_E_R_E_N_C_E_S]: check new (dbClient, self.metadata.get(R_E_F_E_R_E_N_C_E_S), psql:MYSQL_SPECIFICS),
-            [TEST_SCRIPT_TABLE]: check new (dbClient, self.metadata.get(TEST_SCRIPT_TABLE), psql:MYSQL_SPECIFICS),
-            [TEST_REPORT_TABLE]: check new (dbClient, self.metadata.get(TEST_REPORT_TABLE), psql:MYSQL_SPECIFICS),
-            [RELATED_PERSON_TABLE]: check new (dbClient, self.metadata.get(RELATED_PERSON_TABLE), psql:MYSQL_SPECIFICS),
-            [EVIDENCE_VARIABLE_TABLE]: check new (dbClient, self.metadata.get(EVIDENCE_VARIABLE_TABLE), psql:MYSQL_SPECIFICS),
-            [VALUE_SET_TABLE]: check new (dbClient, self.metadata.get(VALUE_SET_TABLE), psql:MYSQL_SPECIFICS),
-            [DOCUMENT_MANIFEST_TABLE]: check new (dbClient, self.metadata.get(DOCUMENT_MANIFEST_TABLE), psql:MYSQL_SPECIFICS),
-            [IMMUNIZATION_RECOMMENDATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_RECOMMENDATION_TABLE), psql:MYSQL_SPECIFICS),
-            [DEVICE_METRIC_TABLE]: check new (dbClient, self.metadata.get(DEVICE_METRIC_TABLE), psql:MYSQL_SPECIFICS),
-            [LOCATION_TABLE]: check new (dbClient, self.metadata.get(LOCATION_TABLE), psql:MYSQL_SPECIFICS),
-            [EXPLANATION_OF_BENEFIT_TABLE]: check new (dbClient, self.metadata.get(EXPLANATION_OF_BENEFIT_TABLE), psql:MYSQL_SPECIFICS),
-            [FLAG_TABLE]: check new (dbClient, self.metadata.get(FLAG_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICATION_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_STATEMENT_TABLE), psql:MYSQL_SPECIFICS),
-            [INSURANCE_PLAN_TABLE]: check new (dbClient, self.metadata.get(INSURANCE_PLAN_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICINAL_PRODUCT_CONTRAINDICATION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_CONTRAINDICATION_TABLE), psql:MYSQL_SPECIFICS),
-            [CLAIM_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(CLAIM_RESPONSE_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICINAL_PRODUCT_AUTHORIZATION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_AUTHORIZATION_TABLE), psql:MYSQL_SPECIFICS),
-            [IMAGING_STUDY_TABLE]: check new (dbClient, self.metadata.get(IMAGING_STUDY_TABLE), psql:MYSQL_SPECIFICS),
-            [PRACTITIONER_ROLE_TABLE]: check new (dbClient, self.metadata.get(PRACTITIONER_ROLE_TABLE), psql:MYSQL_SPECIFICS),
-            [GROUP_TABLE]: check new (dbClient, self.metadata.get(GROUP_TABLE), psql:MYSQL_SPECIFICS),
-            [PERSON_TABLE]: check new (dbClient, self.metadata.get(PERSON_TABLE), psql:MYSQL_SPECIFICS),
-            [PRACTITIONER_TABLE]: check new (dbClient, self.metadata.get(PRACTITIONER_TABLE), psql:MYSQL_SPECIFICS),
-            [ACTIVITY_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(ACTIVITY_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [EVIDENCE_TABLE]: check new (dbClient, self.metadata.get(EVIDENCE_TABLE), psql:MYSQL_SPECIFICS),
-            [DEVICE_TABLE]: check new (dbClient, self.metadata.get(DEVICE_TABLE), psql:MYSQL_SPECIFICS),
-            [FAMILY_MEMBER_HISTORY_TABLE]: check new (dbClient, self.metadata.get(FAMILY_MEMBER_HISTORY_TABLE), psql:MYSQL_SPECIFICS),
-            [ADVERSE_EVENT_TABLE]: check new (dbClient, self.metadata.get(ADVERSE_EVENT_TABLE), psql:MYSQL_SPECIFICS),
-            [SUPPLY_REQUEST_TABLE]: check new (dbClient, self.metadata.get(SUPPLY_REQUEST_TABLE), psql:MYSQL_SPECIFICS),
-            [EXAMPLE_SCENARIO_TABLE]: check new (dbClient, self.metadata.get(EXAMPLE_SCENARIO_TABLE), psql:MYSQL_SPECIFICS),
-            [INVOICE_TABLE]: check new (dbClient, self.metadata.get(INVOICE_TABLE), psql:MYSQL_SPECIFICS),
-            [QUESTIONNAIRE_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(QUESTIONNAIRE_RESPONSE_TABLE), psql:MYSQL_SPECIFICS),
-            [OBSERVATION_TABLE]: check new (dbClient, self.metadata.get(OBSERVATION_TABLE), psql:MYSQL_SPECIFICS),
-            [EFFECT_EVIDENCE_SYNTHESIS_TABLE]: check new (dbClient, self.metadata.get(EFFECT_EVIDENCE_SYNTHESIS_TABLE), psql:MYSQL_SPECIFICS),
-            [OPERATION_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(OPERATION_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [MEASURE_REPORT_TABLE]: check new (dbClient, self.metadata.get(MEASURE_REPORT_TABLE), psql:MYSQL_SPECIFICS),
-            [SUPPLY_DELIVERY_TABLE]: check new (dbClient, self.metadata.get(SUPPLY_DELIVERY_TABLE), psql:MYSQL_SPECIFICS),
-            [SERVICE_REQUEST_TABLE]: check new (dbClient, self.metadata.get(SERVICE_REQUEST_TABLE), psql:MYSQL_SPECIFICS),
-            [BASIC_TABLE]: check new (dbClient, self.metadata.get(BASIC_TABLE), psql:MYSQL_SPECIFICS),
-            [SUBSCRIPTION_TABLE]: check new (dbClient, self.metadata.get(SUBSCRIPTION_TABLE), psql:MYSQL_SPECIFICS),
-            [ENROLLMENT_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(ENROLLMENT_RESPONSE_TABLE), psql:MYSQL_SPECIFICS),
-            [DEVICE_REQUEST_TABLE]: check new (dbClient, self.metadata.get(DEVICE_REQUEST_TABLE), psql:MYSQL_SPECIFICS),
-            [APPOINTMENT_TABLE]: check new (dbClient, self.metadata.get(APPOINTMENT_TABLE), psql:MYSQL_SPECIFICS),
-            [NAMING_SYSTEM_TABLE]: check new (dbClient, self.metadata.get(NAMING_SYSTEM_TABLE), psql:MYSQL_SPECIFICS),
-            [STRUCTURE_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(STRUCTURE_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [CLINICAL_IMPRESSION_TABLE]: check new (dbClient, self.metadata.get(CLINICAL_IMPRESSION_TABLE), psql:MYSQL_SPECIFICS),
-            [COMMUNICATION_TABLE]: check new (dbClient, self.metadata.get(COMMUNICATION_TABLE), psql:MYSQL_SPECIFICS),
-            [ORGANIZATION_TABLE]: check new (dbClient, self.metadata.get(ORGANIZATION_TABLE), psql:MYSQL_SPECIFICS),
-            [COVERAGE_ELIGIBILITY_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(COVERAGE_ELIGIBILITY_RESPONSE_TABLE), psql:MYSQL_SPECIFICS),
-            [RESEARCH_STUDY_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_STUDY_TABLE), psql:MYSQL_SPECIFICS),
-            [BUNDLE_TABLE]: check new (dbClient, self.metadata.get(BUNDLE_TABLE), psql:MYSQL_SPECIFICS),
-            [ENCOUNTER_TABLE]: check new (dbClient, self.metadata.get(ENCOUNTER_TABLE), psql:MYSQL_SPECIFICS),
-            [RISK_ASSESSMENT_TABLE]: check new (dbClient, self.metadata.get(RISK_ASSESSMENT_TABLE), psql:MYSQL_SPECIFICS),
-            [LIST_TABLE]: check new (dbClient, self.metadata.get(LIST_TABLE), psql:MYSQL_SPECIFICS),
-            [ORGANIZATION_AFFILIATION_TABLE]: check new (dbClient, self.metadata.get(ORGANIZATION_AFFILIATION_TABLE), psql:MYSQL_SPECIFICS),
-            [CHARGE_ITEM_TABLE]: check new (dbClient, self.metadata.get(CHARGE_ITEM_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICATION_KNOWLEDGE_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_KNOWLEDGE_TABLE), psql:MYSQL_SPECIFICS),
-            [PLAN_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(PLAN_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [CARE_PLAN_TABLE]: check new (dbClient, self.metadata.get(CARE_PLAN_TABLE), psql:MYSQL_SPECIFICS),
-            [VISION_PRESCRIPTION_TABLE]: check new (dbClient, self.metadata.get(VISION_PRESCRIPTION_TABLE), psql:MYSQL_SPECIFICS),
-            [EPISODE_OF_CARE_TABLE]: check new (dbClient, self.metadata.get(EPISODE_OF_CARE_TABLE), psql:MYSQL_SPECIFICS),
-            [CARE_TEAM_TABLE]: check new (dbClient, self.metadata.get(CARE_TEAM_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICATION_ADMINISTRATION_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_ADMINISTRATION_TABLE), psql:MYSQL_SPECIFICS),
-            [CONSENT_TABLE]: check new (dbClient, self.metadata.get(CONSENT_TABLE), psql:MYSQL_SPECIFICS),
-            [DETECTED_ISSUE_TABLE]: check new (dbClient, self.metadata.get(DETECTED_ISSUE_TABLE), psql:MYSQL_SPECIFICS),
-            [SUBSTANCE_SPECIFICATION_TABLE]: check new (dbClient, self.metadata.get(SUBSTANCE_SPECIFICATION_TABLE), psql:MYSQL_SPECIFICS),
-            [ALLERGY_INTOLERANCE_TABLE]: check new (dbClient, self.metadata.get(ALLERGY_INTOLERANCE_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICINAL_PRODUCT_INDICATION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_INDICATION_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICINAL_PRODUCT_PHARMACEUTICAL_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_PHARMACEUTICAL_TABLE), psql:MYSQL_SPECIFICS),
-            [SLOT_TABLE]: check new (dbClient, self.metadata.get(SLOT_TABLE), psql:MYSQL_SPECIFICS),
-            [VERIFICATION_RESULT_TABLE]: check new (dbClient, self.metadata.get(VERIFICATION_RESULT_TABLE), psql:MYSQL_SPECIFICS),
-            [SPECIMEN_TABLE]: check new (dbClient, self.metadata.get(SPECIMEN_TABLE), psql:MYSQL_SPECIFICS),
-            [RESEARCH_SUBJECT_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_SUBJECT_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICATION_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_TABLE), psql:MYSQL_SPECIFICS),
-            [RESEARCH_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [HEALTHCARE_SERVICE_TABLE]: check new (dbClient, self.metadata.get(HEALTHCARE_SERVICE_TABLE), psql:MYSQL_SPECIFICS),
-            [PAYMENT_NOTICE_TABLE]: check new (dbClient, self.metadata.get(PAYMENT_NOTICE_TABLE), psql:MYSQL_SPECIFICS),
-            [PROVENANCE_TABLE]: check new (dbClient, self.metadata.get(PROVENANCE_TABLE), psql:MYSQL_SPECIFICS),
-            [GRAPH_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(GRAPH_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDIA_TABLE]: check new (dbClient, self.metadata.get(MEDIA_TABLE), psql:MYSQL_SPECIFICS),
-            [BODY_STRUCTURE_TABLE]: check new (dbClient, self.metadata.get(BODY_STRUCTURE_TABLE), psql:MYSQL_SPECIFICS),
-            [DIAGNOSTIC_REPORT_TABLE]: check new (dbClient, self.metadata.get(DIAGNOSTIC_REPORT_TABLE), psql:MYSQL_SPECIFICS),
-            [GOAL_TABLE]: check new (dbClient, self.metadata.get(GOAL_TABLE), psql:MYSQL_SPECIFICS),
-            [CAPABILITY_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(CAPABILITY_STATEMENT_TABLE), psql:MYSQL_SPECIFICS),
-            [DEVICE_USE_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(DEVICE_USE_STATEMENT_TABLE), psql:MYSQL_SPECIFICS),
-            [SCHEDULE_TABLE]: check new (dbClient, self.metadata.get(SCHEDULE_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICINAL_PRODUCT_PACKAGED_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_PACKAGED_TABLE), psql:MYSQL_SPECIFICS),
-            [PROCEDURE_TABLE]: check new (dbClient, self.metadata.get(PROCEDURE_TABLE), psql:MYSQL_SPECIFICS),
-            [LIBRARY_TABLE]: check new (dbClient, self.metadata.get(LIBRARY_TABLE), psql:MYSQL_SPECIFICS),
-            [CODE_SYSTEM_TABLE]: check new (dbClient, self.metadata.get(CODE_SYSTEM_TABLE), psql:MYSQL_SPECIFICS),
-            [COMMUNICATION_REQUEST_TABLE]: check new (dbClient, self.metadata.get(COMMUNICATION_REQUEST_TABLE), psql:MYSQL_SPECIFICS),
-            [DOCUMENT_REFERENCE_TABLE]: check new (dbClient, self.metadata.get(DOCUMENT_REFERENCE_TABLE), psql:MYSQL_SPECIFICS),
-            [REQUEST_GROUP_TABLE]: check new (dbClient, self.metadata.get(REQUEST_GROUP_TABLE), psql:MYSQL_SPECIFICS),
-            [CLAIM_TABLE]: check new (dbClient, self.metadata.get(CLAIM_TABLE), psql:MYSQL_SPECIFICS),
-            [MESSAGE_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(MESSAGE_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [RISK_EVIDENCE_SYNTHESIS_TABLE]: check new (dbClient, self.metadata.get(RISK_EVIDENCE_SYNTHESIS_TABLE), psql:MYSQL_SPECIFICS),
-            [TASK_TABLE]: check new (dbClient, self.metadata.get(TASK_TABLE), psql:MYSQL_SPECIFICS),
-            [IMPLEMENTATION_GUIDE_TABLE]: check new (dbClient, self.metadata.get(IMPLEMENTATION_GUIDE_TABLE), psql:MYSQL_SPECIFICS),
-            [STRUCTURE_MAP_TABLE]: check new (dbClient, self.metadata.get(STRUCTURE_MAP_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICINAL_PRODUCT_UNDESIRABLE_EFFECT_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_UNDESIRABLE_EFFECT_TABLE), psql:MYSQL_SPECIFICS),
-            [COMPARTMENT_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(COMPARTMENT_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [ENDPOINT_TABLE]: check new (dbClient, self.metadata.get(ENDPOINT_TABLE), psql:MYSQL_SPECIFICS),
-            [TERMINOLOGY_CAPABILITIES_TABLE]: check new (dbClient, self.metadata.get(TERMINOLOGY_CAPABILITIES_TABLE), psql:MYSQL_SPECIFICS),
-            [CONDITION_TABLE]: check new (dbClient, self.metadata.get(CONDITION_TABLE), psql:MYSQL_SPECIFICS),
-            [COMPOSITION_TABLE]: check new (dbClient, self.metadata.get(COMPOSITION_TABLE), psql:MYSQL_SPECIFICS),
-            [CONTRACT_TABLE]: check new (dbClient, self.metadata.get(CONTRACT_TABLE), psql:MYSQL_SPECIFICS),
-            [IMMUNIZATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICATION_DISPENSE_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_DISPENSE_TABLE), psql:MYSQL_SPECIFICS),
-            [MOLECULAR_SEQUENCE_TABLE]: check new (dbClient, self.metadata.get(MOLECULAR_SEQUENCE_TABLE), psql:MYSQL_SPECIFICS),
-            [SEARCH_PARAMETER_TABLE]: check new (dbClient, self.metadata.get(SEARCH_PARAMETER_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICATION_REQUEST_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_REQUEST_TABLE), psql:MYSQL_SPECIFICS),
-            [ENROLLMENT_REQUEST_TABLE]: check new (dbClient, self.metadata.get(ENROLLMENT_REQUEST_TABLE), psql:MYSQL_SPECIFICS),
-            [SPECIMEN_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(SPECIMEN_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [EVENT_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(EVENT_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [IMMUNIZATION_EVALUATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_EVALUATION_TABLE), psql:MYSQL_SPECIFICS),
-            [PAYMENT_RECONCILIATION_TABLE]: check new (dbClient, self.metadata.get(PAYMENT_RECONCILIATION_TABLE), psql:MYSQL_SPECIFICS),
-            [MEASURE_TABLE]: check new (dbClient, self.metadata.get(MEASURE_TABLE), psql:MYSQL_SPECIFICS),
-            [CONCEPT_MAP_TABLE]: check new (dbClient, self.metadata.get(CONCEPT_MAP_TABLE), psql:MYSQL_SPECIFICS),
-            [RESEARCH_ELEMENT_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_ELEMENT_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [GUIDANCE_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(GUIDANCE_RESPONSE_TABLE), psql:MYSQL_SPECIFICS),
-            [LINKAGE_TABLE]: check new (dbClient, self.metadata.get(LINKAGE_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICINAL_PRODUCT_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_TABLE), psql:MYSQL_SPECIFICS),
-            [DEVICE_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(DEVICE_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [COVERAGE_ELIGIBILITY_REQUEST_TABLE]: check new (dbClient, self.metadata.get(COVERAGE_ELIGIBILITY_REQUEST_TABLE), psql:MYSQL_SPECIFICS),
-            [PATIENT_TABLE]: check new (dbClient, self.metadata.get(PATIENT_TABLE), psql:MYSQL_SPECIFICS),
-            [COVERAGE_TABLE]: check new (dbClient, self.metadata.get(COVERAGE_TABLE), psql:MYSQL_SPECIFICS),
-            [SUBSTANCE_TABLE]: check new (dbClient, self.metadata.get(SUBSTANCE_TABLE), psql:MYSQL_SPECIFICS),
-            [CHARGE_ITEM_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(CHARGE_ITEM_DEFINITION_TABLE), psql:MYSQL_SPECIFICS),
-            [MEDICINAL_PRODUCT_INTERACTION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_INTERACTION_TABLE), psql:MYSQL_SPECIFICS),
-            [ACCOUNT_TABLE]: check new (dbClient, self.metadata.get(ACCOUNT_TABLE), psql:MYSQL_SPECIFICS),
-            [MESSAGE_HEADER_TABLE]: check new (dbClient, self.metadata.get(MESSAGE_HEADER_TABLE), psql:MYSQL_SPECIFICS),
-            [AUDIT_EVENT_TABLE]: check new (dbClient, self.metadata.get(AUDIT_EVENT_TABLE), psql:MYSQL_SPECIFICS),
-            [NUTRITION_ORDER_TABLE]: check new (dbClient, self.metadata.get(NUTRITION_ORDER_TABLE), psql:MYSQL_SPECIFICS),
-            [QUESTIONNAIRE_TABLE]: check new (dbClient, self.metadata.get(QUESTIONNAIRE_TABLE), psql:MYSQL_SPECIFICS),
-            [APPOINTMENT_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(APPOINTMENT_RESPONSE_TABLE), psql:MYSQL_SPECIFICS)
+            [S_E_A_R_C_H__P_A_R_A_M__R_E_S__E_X_P_R_E_S_S_I_O_N_S]: check new (dbClient, self.metadata.get(S_E_A_R_C_H__P_A_R_A_M__R_E_S__E_X_P_R_E_S_S_I_O_N_S), psql:H2_SPECIFICS),
+            [R_E_F_E_R_E_N_C_E_S]: check new (dbClient, self.metadata.get(R_E_F_E_R_E_N_C_E_S), psql:H2_SPECIFICS),
+            [TEST_SCRIPT_TABLE]: check new (dbClient, self.metadata.get(TEST_SCRIPT_TABLE), psql:H2_SPECIFICS),
+            [TEST_REPORT_TABLE]: check new (dbClient, self.metadata.get(TEST_REPORT_TABLE), psql:H2_SPECIFICS),
+            [RELATED_PERSON_TABLE]: check new (dbClient, self.metadata.get(RELATED_PERSON_TABLE), psql:H2_SPECIFICS),
+            [EVIDENCE_VARIABLE_TABLE]: check new (dbClient, self.metadata.get(EVIDENCE_VARIABLE_TABLE), psql:H2_SPECIFICS),
+            [VALUE_SET_TABLE]: check new (dbClient, self.metadata.get(VALUE_SET_TABLE), psql:H2_SPECIFICS),
+            [DOCUMENT_MANIFEST_TABLE]: check new (dbClient, self.metadata.get(DOCUMENT_MANIFEST_TABLE), psql:H2_SPECIFICS),
+            [IMMUNIZATION_RECOMMENDATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_RECOMMENDATION_TABLE), psql:H2_SPECIFICS),
+            [DEVICE_METRIC_TABLE]: check new (dbClient, self.metadata.get(DEVICE_METRIC_TABLE), psql:H2_SPECIFICS),
+            [LOCATION_TABLE]: check new (dbClient, self.metadata.get(LOCATION_TABLE), psql:H2_SPECIFICS),
+            [EXPLANATION_OF_BENEFIT_TABLE]: check new (dbClient, self.metadata.get(EXPLANATION_OF_BENEFIT_TABLE), psql:H2_SPECIFICS),
+            [FLAG_TABLE]: check new (dbClient, self.metadata.get(FLAG_TABLE), psql:H2_SPECIFICS),
+            [MEDICATION_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_STATEMENT_TABLE), psql:H2_SPECIFICS),
+            [INSURANCE_PLAN_TABLE]: check new (dbClient, self.metadata.get(INSURANCE_PLAN_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_CONTRAINDICATION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_CONTRAINDICATION_TABLE), psql:H2_SPECIFICS),
+            [CLAIM_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(CLAIM_RESPONSE_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_AUTHORIZATION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_AUTHORIZATION_TABLE), psql:H2_SPECIFICS),
+            [IMAGING_STUDY_TABLE]: check new (dbClient, self.metadata.get(IMAGING_STUDY_TABLE), psql:H2_SPECIFICS),
+            [PRACTITIONER_ROLE_TABLE]: check new (dbClient, self.metadata.get(PRACTITIONER_ROLE_TABLE), psql:H2_SPECIFICS),
+            [GROUP_TABLE]: check new (dbClient, self.metadata.get(GROUP_TABLE), psql:H2_SPECIFICS),
+            [PERSON_TABLE]: check new (dbClient, self.metadata.get(PERSON_TABLE), psql:H2_SPECIFICS),
+            [PRACTITIONER_TABLE]: check new (dbClient, self.metadata.get(PRACTITIONER_TABLE), psql:H2_SPECIFICS),
+            [ACTIVITY_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(ACTIVITY_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [EVIDENCE_TABLE]: check new (dbClient, self.metadata.get(EVIDENCE_TABLE), psql:H2_SPECIFICS),
+            [DEVICE_TABLE]: check new (dbClient, self.metadata.get(DEVICE_TABLE), psql:H2_SPECIFICS),
+            [FAMILY_MEMBER_HISTORY_TABLE]: check new (dbClient, self.metadata.get(FAMILY_MEMBER_HISTORY_TABLE), psql:H2_SPECIFICS),
+            [ADVERSE_EVENT_TABLE]: check new (dbClient, self.metadata.get(ADVERSE_EVENT_TABLE), psql:H2_SPECIFICS),
+            [SUPPLY_REQUEST_TABLE]: check new (dbClient, self.metadata.get(SUPPLY_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [EXAMPLE_SCENARIO_TABLE]: check new (dbClient, self.metadata.get(EXAMPLE_SCENARIO_TABLE), psql:H2_SPECIFICS),
+            [INVOICE_TABLE]: check new (dbClient, self.metadata.get(INVOICE_TABLE), psql:H2_SPECIFICS),
+            [QUESTIONNAIRE_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(QUESTIONNAIRE_RESPONSE_TABLE), psql:H2_SPECIFICS),
+            [OBSERVATION_TABLE]: check new (dbClient, self.metadata.get(OBSERVATION_TABLE), psql:H2_SPECIFICS),
+            [EFFECT_EVIDENCE_SYNTHESIS_TABLE]: check new (dbClient, self.metadata.get(EFFECT_EVIDENCE_SYNTHESIS_TABLE), psql:H2_SPECIFICS),
+            [OPERATION_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(OPERATION_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [MEASURE_REPORT_TABLE]: check new (dbClient, self.metadata.get(MEASURE_REPORT_TABLE), psql:H2_SPECIFICS),
+            [SUPPLY_DELIVERY_TABLE]: check new (dbClient, self.metadata.get(SUPPLY_DELIVERY_TABLE), psql:H2_SPECIFICS),
+            [SERVICE_REQUEST_TABLE]: check new (dbClient, self.metadata.get(SERVICE_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [BASIC_TABLE]: check new (dbClient, self.metadata.get(BASIC_TABLE), psql:H2_SPECIFICS),
+            [SUBSCRIPTION_TABLE]: check new (dbClient, self.metadata.get(SUBSCRIPTION_TABLE), psql:H2_SPECIFICS),
+            [ENROLLMENT_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(ENROLLMENT_RESPONSE_TABLE), psql:H2_SPECIFICS),
+            [DEVICE_REQUEST_TABLE]: check new (dbClient, self.metadata.get(DEVICE_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [APPOINTMENT_TABLE]: check new (dbClient, self.metadata.get(APPOINTMENT_TABLE), psql:H2_SPECIFICS),
+            [APPOINTMENT_TABLE_HISTORY]: check new (dbClient, self.metadata.get(APPOINTMENT_TABLE_HISTORY), psql:H2_SPECIFICS),
+            [NAMING_SYSTEM_TABLE]: check new (dbClient, self.metadata.get(NAMING_SYSTEM_TABLE), psql:H2_SPECIFICS),
+            [STRUCTURE_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(STRUCTURE_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [CLINICAL_IMPRESSION_TABLE]: check new (dbClient, self.metadata.get(CLINICAL_IMPRESSION_TABLE), psql:H2_SPECIFICS),
+            [COMMUNICATION_TABLE]: check new (dbClient, self.metadata.get(COMMUNICATION_TABLE), psql:H2_SPECIFICS),
+            [ORGANIZATION_TABLE]: check new (dbClient, self.metadata.get(ORGANIZATION_TABLE), psql:H2_SPECIFICS),
+            [COVERAGE_ELIGIBILITY_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(COVERAGE_ELIGIBILITY_RESPONSE_TABLE), psql:H2_SPECIFICS),
+            [RESEARCH_STUDY_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_STUDY_TABLE), psql:H2_SPECIFICS),
+            [BUNDLE_TABLE]: check new (dbClient, self.metadata.get(BUNDLE_TABLE), psql:H2_SPECIFICS),
+            [ENCOUNTER_TABLE]: check new (dbClient, self.metadata.get(ENCOUNTER_TABLE), psql:H2_SPECIFICS),
+            [RISK_ASSESSMENT_TABLE]: check new (dbClient, self.metadata.get(RISK_ASSESSMENT_TABLE), psql:H2_SPECIFICS),
+            [LIST_TABLE]: check new (dbClient, self.metadata.get(LIST_TABLE), psql:H2_SPECIFICS),
+            [ORGANIZATION_AFFILIATION_TABLE]: check new (dbClient, self.metadata.get(ORGANIZATION_AFFILIATION_TABLE), psql:H2_SPECIFICS),
+            [CHARGE_ITEM_TABLE]: check new (dbClient, self.metadata.get(CHARGE_ITEM_TABLE), psql:H2_SPECIFICS),
+            [MEDICATION_KNOWLEDGE_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_KNOWLEDGE_TABLE), psql:H2_SPECIFICS),
+            [PLAN_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(PLAN_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [CARE_PLAN_TABLE]: check new (dbClient, self.metadata.get(CARE_PLAN_TABLE), psql:H2_SPECIFICS),
+            [VISION_PRESCRIPTION_TABLE]: check new (dbClient, self.metadata.get(VISION_PRESCRIPTION_TABLE), psql:H2_SPECIFICS),
+            [EPISODE_OF_CARE_TABLE]: check new (dbClient, self.metadata.get(EPISODE_OF_CARE_TABLE), psql:H2_SPECIFICS),
+            [CARE_TEAM_TABLE]: check new (dbClient, self.metadata.get(CARE_TEAM_TABLE), psql:H2_SPECIFICS),
+            [MEDICATION_ADMINISTRATION_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_ADMINISTRATION_TABLE), psql:H2_SPECIFICS),
+            [CONSENT_TABLE]: check new (dbClient, self.metadata.get(CONSENT_TABLE), psql:H2_SPECIFICS),
+            [DETECTED_ISSUE_TABLE]: check new (dbClient, self.metadata.get(DETECTED_ISSUE_TABLE), psql:H2_SPECIFICS),
+            [SUBSTANCE_SPECIFICATION_TABLE]: check new (dbClient, self.metadata.get(SUBSTANCE_SPECIFICATION_TABLE), psql:H2_SPECIFICS),
+            [ALLERGY_INTOLERANCE_TABLE]: check new (dbClient, self.metadata.get(ALLERGY_INTOLERANCE_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_INDICATION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_INDICATION_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_PHARMACEUTICAL_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_PHARMACEUTICAL_TABLE), psql:H2_SPECIFICS),
+            [SLOT_TABLE]: check new (dbClient, self.metadata.get(SLOT_TABLE), psql:H2_SPECIFICS),
+            [VERIFICATION_RESULT_TABLE]: check new (dbClient, self.metadata.get(VERIFICATION_RESULT_TABLE), psql:H2_SPECIFICS),
+            [SPECIMEN_TABLE]: check new (dbClient, self.metadata.get(SPECIMEN_TABLE), psql:H2_SPECIFICS),
+            [RESEARCH_SUBJECT_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_SUBJECT_TABLE), psql:H2_SPECIFICS),
+            [MEDICATION_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_TABLE), psql:H2_SPECIFICS),
+            [RESEARCH_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [HEALTHCARE_SERVICE_TABLE]: check new (dbClient, self.metadata.get(HEALTHCARE_SERVICE_TABLE), psql:H2_SPECIFICS),
+            [PAYMENT_NOTICE_TABLE]: check new (dbClient, self.metadata.get(PAYMENT_NOTICE_TABLE), psql:H2_SPECIFICS),
+            [PROVENANCE_TABLE]: check new (dbClient, self.metadata.get(PROVENANCE_TABLE), psql:H2_SPECIFICS),
+            [GRAPH_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(GRAPH_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [MEDIA_TABLE]: check new (dbClient, self.metadata.get(MEDIA_TABLE), psql:H2_SPECIFICS),
+            [BODY_STRUCTURE_TABLE]: check new (dbClient, self.metadata.get(BODY_STRUCTURE_TABLE), psql:H2_SPECIFICS),
+            [DIAGNOSTIC_REPORT_TABLE]: check new (dbClient, self.metadata.get(DIAGNOSTIC_REPORT_TABLE), psql:H2_SPECIFICS),
+            [GOAL_TABLE]: check new (dbClient, self.metadata.get(GOAL_TABLE), psql:H2_SPECIFICS),
+            [CAPABILITY_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(CAPABILITY_STATEMENT_TABLE), psql:H2_SPECIFICS),
+            [DEVICE_USE_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(DEVICE_USE_STATEMENT_TABLE), psql:H2_SPECIFICS),
+            [SCHEDULE_TABLE]: check new (dbClient, self.metadata.get(SCHEDULE_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_PACKAGED_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_PACKAGED_TABLE), psql:H2_SPECIFICS),
+            [PROCEDURE_TABLE]: check new (dbClient, self.metadata.get(PROCEDURE_TABLE), psql:H2_SPECIFICS),
+            [LIBRARY_TABLE]: check new (dbClient, self.metadata.get(LIBRARY_TABLE), psql:H2_SPECIFICS),
+            [CODE_SYSTEM_TABLE]: check new (dbClient, self.metadata.get(CODE_SYSTEM_TABLE), psql:H2_SPECIFICS),
+            [COMMUNICATION_REQUEST_TABLE]: check new (dbClient, self.metadata.get(COMMUNICATION_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [DOCUMENT_REFERENCE_TABLE]: check new (dbClient, self.metadata.get(DOCUMENT_REFERENCE_TABLE), psql:H2_SPECIFICS),
+            [REQUEST_GROUP_TABLE]: check new (dbClient, self.metadata.get(REQUEST_GROUP_TABLE), psql:H2_SPECIFICS),
+            [CLAIM_TABLE]: check new (dbClient, self.metadata.get(CLAIM_TABLE), psql:H2_SPECIFICS),
+            [MESSAGE_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(MESSAGE_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [RISK_EVIDENCE_SYNTHESIS_TABLE]: check new (dbClient, self.metadata.get(RISK_EVIDENCE_SYNTHESIS_TABLE), psql:H2_SPECIFICS),
+            [TASK_TABLE]: check new (dbClient, self.metadata.get(TASK_TABLE), psql:H2_SPECIFICS),
+            [IMPLEMENTATION_GUIDE_TABLE]: check new (dbClient, self.metadata.get(IMPLEMENTATION_GUIDE_TABLE), psql:H2_SPECIFICS),
+            [STRUCTURE_MAP_TABLE]: check new (dbClient, self.metadata.get(STRUCTURE_MAP_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_UNDESIRABLE_EFFECT_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_UNDESIRABLE_EFFECT_TABLE), psql:H2_SPECIFICS),
+            [COMPARTMENT_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(COMPARTMENT_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [ENDPOINT_TABLE]: check new (dbClient, self.metadata.get(ENDPOINT_TABLE), psql:H2_SPECIFICS),
+            [TERMINOLOGY_CAPABILITIES_TABLE]: check new (dbClient, self.metadata.get(TERMINOLOGY_CAPABILITIES_TABLE), psql:H2_SPECIFICS),
+            [CONDITION_TABLE]: check new (dbClient, self.metadata.get(CONDITION_TABLE), psql:H2_SPECIFICS),
+            [COMPOSITION_TABLE]: check new (dbClient, self.metadata.get(COMPOSITION_TABLE), psql:H2_SPECIFICS),
+            [CONTRACT_TABLE]: check new (dbClient, self.metadata.get(CONTRACT_TABLE), psql:H2_SPECIFICS),
+            [IMMUNIZATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_TABLE), psql:H2_SPECIFICS),
+            [MEDICATION_DISPENSE_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_DISPENSE_TABLE), psql:H2_SPECIFICS),
+            [MOLECULAR_SEQUENCE_TABLE]: check new (dbClient, self.metadata.get(MOLECULAR_SEQUENCE_TABLE), psql:H2_SPECIFICS),
+            [SEARCH_PARAMETER_TABLE]: check new (dbClient, self.metadata.get(SEARCH_PARAMETER_TABLE), psql:H2_SPECIFICS),
+            [MEDICATION_REQUEST_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [ENROLLMENT_REQUEST_TABLE]: check new (dbClient, self.metadata.get(ENROLLMENT_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [SPECIMEN_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(SPECIMEN_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [EVENT_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(EVENT_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [IMMUNIZATION_EVALUATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_EVALUATION_TABLE), psql:H2_SPECIFICS),
+            [PAYMENT_RECONCILIATION_TABLE]: check new (dbClient, self.metadata.get(PAYMENT_RECONCILIATION_TABLE), psql:H2_SPECIFICS),
+            [MEASURE_TABLE]: check new (dbClient, self.metadata.get(MEASURE_TABLE), psql:H2_SPECIFICS),
+            [CONCEPT_MAP_TABLE]: check new (dbClient, self.metadata.get(CONCEPT_MAP_TABLE), psql:H2_SPECIFICS),
+            [RESEARCH_ELEMENT_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_ELEMENT_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [GUIDANCE_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(GUIDANCE_RESPONSE_TABLE), psql:H2_SPECIFICS),
+            [LINKAGE_TABLE]: check new (dbClient, self.metadata.get(LINKAGE_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_TABLE), psql:H2_SPECIFICS),
+            [DEVICE_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(DEVICE_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [COVERAGE_ELIGIBILITY_REQUEST_TABLE]: check new (dbClient, self.metadata.get(COVERAGE_ELIGIBILITY_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [PATIENT_TABLE]: check new (dbClient, self.metadata.get(PATIENT_TABLE), psql:H2_SPECIFICS),
+            [COVERAGE_TABLE]: check new (dbClient, self.metadata.get(COVERAGE_TABLE), psql:H2_SPECIFICS),
+            [SUBSTANCE_TABLE]: check new (dbClient, self.metadata.get(SUBSTANCE_TABLE), psql:H2_SPECIFICS),
+            [CHARGE_ITEM_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(CHARGE_ITEM_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_INTERACTION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_INTERACTION_TABLE), psql:H2_SPECIFICS),
+            [ACCOUNT_TABLE]: check new (dbClient, self.metadata.get(ACCOUNT_TABLE), psql:H2_SPECIFICS),
+            [MESSAGE_HEADER_TABLE]: check new (dbClient, self.metadata.get(MESSAGE_HEADER_TABLE), psql:H2_SPECIFICS),
+            [AUDIT_EVENT_TABLE]: check new (dbClient, self.metadata.get(AUDIT_EVENT_TABLE), psql:H2_SPECIFICS),
+            [NUTRITION_ORDER_TABLE]: check new (dbClient, self.metadata.get(NUTRITION_ORDER_TABLE), psql:H2_SPECIFICS),
+            [QUESTIONNAIRE_TABLE]: check new (dbClient, self.metadata.get(QUESTIONNAIRE_TABLE), psql:H2_SPECIFICS),
+            [APPOINTMENT_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(APPOINTMENT_RESPONSE_TABLE), psql:H2_SPECIFICS)
         };
     }
 
     isolated resource function get search_param_res_expressions(SEARCH_PARAM_RES_EXPRESSIONSTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get search_param_res_expressions/[int ID](SEARCH_PARAM_RES_EXPRESSIONSTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3207,12 +3231,12 @@ public isolated client class Client {
     }
 
     isolated resource function get references(REFERENCESTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get references/[int ID](REFERENCESTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3247,12 +3271,12 @@ public isolated client class Client {
     }
 
     isolated resource function get testscripttables(TestScriptTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get testscripttables/[string TESTSCRIPTTABLE_ID](TestScriptTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3286,12 +3310,12 @@ public isolated client class Client {
     }
 
     isolated resource function get testreporttables(TestReportTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get testreporttables/[string TESTREPORTTABLE_ID](TestReportTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3325,12 +3349,12 @@ public isolated client class Client {
     }
 
     isolated resource function get relatedpersontables(RelatedPersonTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get relatedpersontables/[string RELATEDPERSONTABLE_ID](RelatedPersonTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3364,12 +3388,12 @@ public isolated client class Client {
     }
 
     isolated resource function get evidencevariabletables(EvidenceVariableTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get evidencevariabletables/[string EVIDENCEVARIABLETABLE_ID](EvidenceVariableTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3403,12 +3427,12 @@ public isolated client class Client {
     }
 
     isolated resource function get valuesettables(ValueSetTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get valuesettables/[string VALUESETTABLE_ID](ValueSetTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3442,12 +3466,12 @@ public isolated client class Client {
     }
 
     isolated resource function get documentmanifesttables(DocumentManifestTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get documentmanifesttables/[string DOCUMENTMANIFESTTABLE_ID](DocumentManifestTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3481,12 +3505,12 @@ public isolated client class Client {
     }
 
     isolated resource function get immunizationrecommendationtables(ImmunizationRecommendationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get immunizationrecommendationtables/[string IMMUNIZATIONRECOMMENDATIONTABLE_ID](ImmunizationRecommendationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3520,12 +3544,12 @@ public isolated client class Client {
     }
 
     isolated resource function get devicemetrictables(DeviceMetricTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get devicemetrictables/[string DEVICEMETRICTABLE_ID](DeviceMetricTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3559,12 +3583,12 @@ public isolated client class Client {
     }
 
     isolated resource function get locationtables(LocationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get locationtables/[string LOCATIONTABLE_ID](LocationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3598,12 +3622,12 @@ public isolated client class Client {
     }
 
     isolated resource function get explanationofbenefittables(ExplanationOfBenefitTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get explanationofbenefittables/[string EXPLANATIONOFBENEFITTABLE_ID](ExplanationOfBenefitTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3637,12 +3661,12 @@ public isolated client class Client {
     }
 
     isolated resource function get flagtables(FlagTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get flagtables/[string FLAGTABLE_ID](FlagTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3676,12 +3700,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicationstatementtables(MedicationStatementTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicationstatementtables/[string MEDICATIONSTATEMENTTABLE_ID](MedicationStatementTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3715,12 +3739,12 @@ public isolated client class Client {
     }
 
     isolated resource function get insuranceplantables(InsurancePlanTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get insuranceplantables/[string INSURANCEPLANTABLE_ID](InsurancePlanTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3754,12 +3778,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicinalproductcontraindicationtables(MedicinalProductContraindicationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicinalproductcontraindicationtables/[string MEDICINALPRODUCTCONTRAINDICATIONTABLE_ID](MedicinalProductContraindicationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3793,12 +3817,12 @@ public isolated client class Client {
     }
 
     isolated resource function get claimresponsetables(ClaimResponseTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get claimresponsetables/[string CLAIMRESPONSETABLE_ID](ClaimResponseTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3832,12 +3856,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicinalproductauthorizationtables(MedicinalProductAuthorizationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicinalproductauthorizationtables/[string MEDICINALPRODUCTAUTHORIZATIONTABLE_ID](MedicinalProductAuthorizationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3871,12 +3895,12 @@ public isolated client class Client {
     }
 
     isolated resource function get imagingstudytables(ImagingStudyTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get imagingstudytables/[string IMAGINGSTUDYTABLE_ID](ImagingStudyTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3910,12 +3934,12 @@ public isolated client class Client {
     }
 
     isolated resource function get practitionerroletables(PractitionerRoleTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get practitionerroletables/[string PRACTITIONERROLETABLE_ID](PractitionerRoleTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3949,12 +3973,12 @@ public isolated client class Client {
     }
 
     isolated resource function get grouptables(GroupTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get grouptables/[string GROUPTABLE_ID](GroupTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -3988,12 +4012,12 @@ public isolated client class Client {
     }
 
     isolated resource function get persontables(PersonTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get persontables/[string PERSONTABLE_ID](PersonTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4027,12 +4051,12 @@ public isolated client class Client {
     }
 
     isolated resource function get practitionertables(PractitionerTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get practitionertables/[string PRACTITIONERTABLE_ID](PractitionerTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4066,12 +4090,12 @@ public isolated client class Client {
     }
 
     isolated resource function get activitydefinitiontables(ActivityDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get activitydefinitiontables/[string ACTIVITYDEFINITIONTABLE_ID](ActivityDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4105,12 +4129,12 @@ public isolated client class Client {
     }
 
     isolated resource function get evidencetables(EvidenceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get evidencetables/[string EVIDENCETABLE_ID](EvidenceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4144,12 +4168,12 @@ public isolated client class Client {
     }
 
     isolated resource function get devicetables(DeviceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get devicetables/[string DEVICETABLE_ID](DeviceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4183,12 +4207,12 @@ public isolated client class Client {
     }
 
     isolated resource function get familymemberhistorytables(FamilyMemberHistoryTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get familymemberhistorytables/[string FAMILYMEMBERHISTORYTABLE_ID](FamilyMemberHistoryTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4222,12 +4246,12 @@ public isolated client class Client {
     }
 
     isolated resource function get adverseeventtables(AdverseEventTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get adverseeventtables/[string ADVERSEEVENTTABLE_ID](AdverseEventTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4261,12 +4285,12 @@ public isolated client class Client {
     }
 
     isolated resource function get supplyrequesttables(SupplyRequestTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get supplyrequesttables/[string SUPPLYREQUESTTABLE_ID](SupplyRequestTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4300,12 +4324,12 @@ public isolated client class Client {
     }
 
     isolated resource function get examplescenariotables(ExampleScenarioTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get examplescenariotables/[string EXAMPLESCENARIOTABLE_ID](ExampleScenarioTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4339,12 +4363,12 @@ public isolated client class Client {
     }
 
     isolated resource function get invoicetables(InvoiceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get invoicetables/[string INVOICETABLE_ID](InvoiceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4378,12 +4402,12 @@ public isolated client class Client {
     }
 
     isolated resource function get questionnaireresponsetables(QuestionnaireResponseTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get questionnaireresponsetables/[string QUESTIONNAIRERESPONSETABLE_ID](QuestionnaireResponseTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4417,12 +4441,12 @@ public isolated client class Client {
     }
 
     isolated resource function get observationtables(ObservationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get observationtables/[string OBSERVATIONTABLE_ID](ObservationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4456,12 +4480,12 @@ public isolated client class Client {
     }
 
     isolated resource function get effectevidencesynthesistables(EffectEvidenceSynthesisTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get effectevidencesynthesistables/[string EFFECTEVIDENCESYNTHESISTABLE_ID](EffectEvidenceSynthesisTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4495,12 +4519,12 @@ public isolated client class Client {
     }
 
     isolated resource function get operationdefinitiontables(OperationDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get operationdefinitiontables/[string OPERATIONDEFINITIONTABLE_ID](OperationDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4534,12 +4558,12 @@ public isolated client class Client {
     }
 
     isolated resource function get measurereporttables(MeasureReportTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get measurereporttables/[string MEASUREREPORTTABLE_ID](MeasureReportTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4573,12 +4597,12 @@ public isolated client class Client {
     }
 
     isolated resource function get supplydeliverytables(SupplyDeliveryTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get supplydeliverytables/[string SUPPLYDELIVERYTABLE_ID](SupplyDeliveryTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4612,12 +4636,12 @@ public isolated client class Client {
     }
 
     isolated resource function get servicerequesttables(ServiceRequestTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get servicerequesttables/[string SERVICEREQUESTTABLE_ID](ServiceRequestTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4651,12 +4675,12 @@ public isolated client class Client {
     }
 
     isolated resource function get basictables(BasicTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get basictables/[string BASICTABLE_ID](BasicTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4690,12 +4714,12 @@ public isolated client class Client {
     }
 
     isolated resource function get subscriptiontables(SubscriptionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get subscriptiontables/[string SUBSCRIPTIONTABLE_ID](SubscriptionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4729,12 +4753,12 @@ public isolated client class Client {
     }
 
     isolated resource function get enrollmentresponsetables(EnrollmentResponseTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get enrollmentresponsetables/[string ENROLLMENTRESPONSETABLE_ID](EnrollmentResponseTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4768,12 +4792,12 @@ public isolated client class Client {
     }
 
     isolated resource function get devicerequesttables(DeviceRequestTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get devicerequesttables/[string DEVICEREQUESTTABLE_ID](DeviceRequestTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4807,12 +4831,12 @@ public isolated client class Client {
     }
 
     isolated resource function get appointmenttables(AppointmentTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get appointmenttables/[string APPOINTMENTTABLE_ID](AppointmentTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4845,13 +4869,53 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get appointmenttablehistories(AppointmentTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get appointmenttablehistories/[int ID](AppointmentTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post appointmenttablehistories(AppointmentTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(APPOINTMENT_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put appointmenttablehistories/[int ID](AppointmentTableHistoryUpdate value) returns AppointmentTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(APPOINTMENT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/appointmenttablehistories/[ID].get();
+    }
+
+    isolated resource function delete appointmenttablehistories/[int ID]() returns AppointmentTableHistory|persist:Error {
+        AppointmentTableHistory result = check self->/appointmenttablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(APPOINTMENT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get namingsystemtables(NamingSystemTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get namingsystemtables/[string NAMINGSYSTEMTABLE_ID](NamingSystemTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4885,12 +4949,12 @@ public isolated client class Client {
     }
 
     isolated resource function get structuredefinitiontables(StructureDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get structuredefinitiontables/[string STRUCTUREDEFINITIONTABLE_ID](StructureDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4924,12 +4988,12 @@ public isolated client class Client {
     }
 
     isolated resource function get clinicalimpressiontables(ClinicalImpressionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get clinicalimpressiontables/[string CLINICALIMPRESSIONTABLE_ID](ClinicalImpressionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -4963,12 +5027,12 @@ public isolated client class Client {
     }
 
     isolated resource function get communicationtables(CommunicationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get communicationtables/[string COMMUNICATIONTABLE_ID](CommunicationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5002,12 +5066,12 @@ public isolated client class Client {
     }
 
     isolated resource function get organizationtables(OrganizationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get organizationtables/[string ORGANIZATIONTABLE_ID](OrganizationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5041,12 +5105,12 @@ public isolated client class Client {
     }
 
     isolated resource function get coverageeligibilityresponsetables(CoverageEligibilityResponseTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get coverageeligibilityresponsetables/[string COVERAGEELIGIBILITYRESPONSETABLE_ID](CoverageEligibilityResponseTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5080,12 +5144,12 @@ public isolated client class Client {
     }
 
     isolated resource function get researchstudytables(ResearchStudyTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get researchstudytables/[string RESEARCHSTUDYTABLE_ID](ResearchStudyTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5119,12 +5183,12 @@ public isolated client class Client {
     }
 
     isolated resource function get bundletables(BundleTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get bundletables/[string BUNDLETABLE_ID](BundleTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5158,12 +5222,12 @@ public isolated client class Client {
     }
 
     isolated resource function get encountertables(EncounterTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get encountertables/[string ENCOUNTERTABLE_ID](EncounterTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5197,12 +5261,12 @@ public isolated client class Client {
     }
 
     isolated resource function get riskassessmenttables(RiskAssessmentTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get riskassessmenttables/[string RISKASSESSMENTTABLE_ID](RiskAssessmentTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5236,12 +5300,12 @@ public isolated client class Client {
     }
 
     isolated resource function get listtables(ListTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get listtables/[string LISTTABLE_ID](ListTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5275,12 +5339,12 @@ public isolated client class Client {
     }
 
     isolated resource function get organizationaffiliationtables(OrganizationAffiliationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get organizationaffiliationtables/[string ORGANIZATIONAFFILIATIONTABLE_ID](OrganizationAffiliationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5314,12 +5378,12 @@ public isolated client class Client {
     }
 
     isolated resource function get chargeitemtables(ChargeItemTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get chargeitemtables/[string CHARGEITEMTABLE_ID](ChargeItemTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5353,12 +5417,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicationknowledgetables(MedicationKnowledgeTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicationknowledgetables/[string MEDICATIONKNOWLEDGETABLE_ID](MedicationKnowledgeTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5392,12 +5456,12 @@ public isolated client class Client {
     }
 
     isolated resource function get plandefinitiontables(PlanDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get plandefinitiontables/[string PLANDEFINITIONTABLE_ID](PlanDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5431,12 +5495,12 @@ public isolated client class Client {
     }
 
     isolated resource function get careplantables(CarePlanTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get careplantables/[string CAREPLANTABLE_ID](CarePlanTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5470,12 +5534,12 @@ public isolated client class Client {
     }
 
     isolated resource function get visionprescriptiontables(VisionPrescriptionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get visionprescriptiontables/[string VISIONPRESCRIPTIONTABLE_ID](VisionPrescriptionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5509,12 +5573,12 @@ public isolated client class Client {
     }
 
     isolated resource function get episodeofcaretables(EpisodeOfCareTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get episodeofcaretables/[string EPISODEOFCARETABLE_ID](EpisodeOfCareTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5548,12 +5612,12 @@ public isolated client class Client {
     }
 
     isolated resource function get careteamtables(CareTeamTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get careteamtables/[string CARETEAMTABLE_ID](CareTeamTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5587,12 +5651,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicationadministrationtables(MedicationAdministrationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicationadministrationtables/[string MEDICATIONADMINISTRATIONTABLE_ID](MedicationAdministrationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5626,12 +5690,12 @@ public isolated client class Client {
     }
 
     isolated resource function get consenttables(ConsentTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get consenttables/[string CONSENTTABLE_ID](ConsentTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5665,12 +5729,12 @@ public isolated client class Client {
     }
 
     isolated resource function get detectedissuetables(DetectedIssueTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get detectedissuetables/[string DETECTEDISSUETABLE_ID](DetectedIssueTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5704,12 +5768,12 @@ public isolated client class Client {
     }
 
     isolated resource function get substancespecificationtables(SubstanceSpecificationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get substancespecificationtables/[string SUBSTANCESPECIFICATIONTABLE_ID](SubstanceSpecificationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5743,12 +5807,12 @@ public isolated client class Client {
     }
 
     isolated resource function get allergyintolerancetables(AllergyIntoleranceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get allergyintolerancetables/[string ALLERGYINTOLERANCETABLE_ID](AllergyIntoleranceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5782,12 +5846,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicinalproductindicationtables(MedicinalProductIndicationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicinalproductindicationtables/[string MEDICINALPRODUCTINDICATIONTABLE_ID](MedicinalProductIndicationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5821,12 +5885,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicinalproductpharmaceuticaltables(MedicinalProductPharmaceuticalTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicinalproductpharmaceuticaltables/[string MEDICINALPRODUCTPHARMACEUTICALTABLE_ID](MedicinalProductPharmaceuticalTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5860,12 +5924,12 @@ public isolated client class Client {
     }
 
     isolated resource function get slottables(SlotTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get slottables/[string SLOTTABLE_ID](SlotTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5899,12 +5963,12 @@ public isolated client class Client {
     }
 
     isolated resource function get verificationresulttables(VerificationResultTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get verificationresulttables/[string VERIFICATIONRESULTTABLE_ID](VerificationResultTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5938,12 +6002,12 @@ public isolated client class Client {
     }
 
     isolated resource function get specimentables(SpecimenTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get specimentables/[string SPECIMENTABLE_ID](SpecimenTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -5977,12 +6041,12 @@ public isolated client class Client {
     }
 
     isolated resource function get researchsubjecttables(ResearchSubjectTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get researchsubjecttables/[string RESEARCHSUBJECTTABLE_ID](ResearchSubjectTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6016,12 +6080,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicationtables(MedicationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicationtables/[string MEDICATIONTABLE_ID](MedicationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6055,12 +6119,12 @@ public isolated client class Client {
     }
 
     isolated resource function get researchdefinitiontables(ResearchDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get researchdefinitiontables/[string RESEARCHDEFINITIONTABLE_ID](ResearchDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6094,12 +6158,12 @@ public isolated client class Client {
     }
 
     isolated resource function get healthcareservicetables(HealthcareServiceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get healthcareservicetables/[string HEALTHCARESERVICETABLE_ID](HealthcareServiceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6133,12 +6197,12 @@ public isolated client class Client {
     }
 
     isolated resource function get paymentnoticetables(PaymentNoticeTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get paymentnoticetables/[string PAYMENTNOTICETABLE_ID](PaymentNoticeTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6172,12 +6236,12 @@ public isolated client class Client {
     }
 
     isolated resource function get provenancetables(ProvenanceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get provenancetables/[string PROVENANCETABLE_ID](ProvenanceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6211,12 +6275,12 @@ public isolated client class Client {
     }
 
     isolated resource function get graphdefinitiontables(GraphDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get graphdefinitiontables/[string GRAPHDEFINITIONTABLE_ID](GraphDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6250,12 +6314,12 @@ public isolated client class Client {
     }
 
     isolated resource function get mediatables(MediaTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get mediatables/[string MEDIATABLE_ID](MediaTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6289,12 +6353,12 @@ public isolated client class Client {
     }
 
     isolated resource function get bodystructuretables(BodyStructureTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get bodystructuretables/[string BODYSTRUCTURETABLE_ID](BodyStructureTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6328,12 +6392,12 @@ public isolated client class Client {
     }
 
     isolated resource function get diagnosticreporttables(DiagnosticReportTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get diagnosticreporttables/[string DIAGNOSTICREPORTTABLE_ID](DiagnosticReportTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6367,12 +6431,12 @@ public isolated client class Client {
     }
 
     isolated resource function get goaltables(GoalTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get goaltables/[string GOALTABLE_ID](GoalTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6406,12 +6470,12 @@ public isolated client class Client {
     }
 
     isolated resource function get capabilitystatementtables(CapabilityStatementTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get capabilitystatementtables/[string CAPABILITYSTATEMENTTABLE_ID](CapabilityStatementTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6445,12 +6509,12 @@ public isolated client class Client {
     }
 
     isolated resource function get deviceusestatementtables(DeviceUseStatementTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get deviceusestatementtables/[string DEVICEUSESTATEMENTTABLE_ID](DeviceUseStatementTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6484,12 +6548,12 @@ public isolated client class Client {
     }
 
     isolated resource function get scheduletables(ScheduleTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get scheduletables/[string SCHEDULETABLE_ID](ScheduleTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6523,12 +6587,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicinalproductpackagedtables(MedicinalProductPackagedTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicinalproductpackagedtables/[string MEDICINALPRODUCTPACKAGEDTABLE_ID](MedicinalProductPackagedTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6562,12 +6626,12 @@ public isolated client class Client {
     }
 
     isolated resource function get proceduretables(ProcedureTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get proceduretables/[string PROCEDURETABLE_ID](ProcedureTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6601,12 +6665,12 @@ public isolated client class Client {
     }
 
     isolated resource function get librarytables(LibraryTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get librarytables/[string LIBRARYTABLE_ID](LibraryTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6640,12 +6704,12 @@ public isolated client class Client {
     }
 
     isolated resource function get codesystemtables(CodeSystemTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get codesystemtables/[string CODESYSTEMTABLE_ID](CodeSystemTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6679,12 +6743,12 @@ public isolated client class Client {
     }
 
     isolated resource function get communicationrequesttables(CommunicationRequestTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get communicationrequesttables/[string COMMUNICATIONREQUESTTABLE_ID](CommunicationRequestTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6718,12 +6782,12 @@ public isolated client class Client {
     }
 
     isolated resource function get documentreferencetables(DocumentReferenceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get documentreferencetables/[string DOCUMENTREFERENCETABLE_ID](DocumentReferenceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6757,12 +6821,12 @@ public isolated client class Client {
     }
 
     isolated resource function get requestgrouptables(RequestGroupTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get requestgrouptables/[string REQUESTGROUPTABLE_ID](RequestGroupTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6796,12 +6860,12 @@ public isolated client class Client {
     }
 
     isolated resource function get claimtables(ClaimTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get claimtables/[string CLAIMTABLE_ID](ClaimTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6835,12 +6899,12 @@ public isolated client class Client {
     }
 
     isolated resource function get messagedefinitiontables(MessageDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get messagedefinitiontables/[string MESSAGEDEFINITIONTABLE_ID](MessageDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6874,12 +6938,12 @@ public isolated client class Client {
     }
 
     isolated resource function get riskevidencesynthesistables(RiskEvidenceSynthesisTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get riskevidencesynthesistables/[string RISKEVIDENCESYNTHESISTABLE_ID](RiskEvidenceSynthesisTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6913,12 +6977,12 @@ public isolated client class Client {
     }
 
     isolated resource function get tasktables(TaskTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get tasktables/[string TASKTABLE_ID](TaskTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6952,12 +7016,12 @@ public isolated client class Client {
     }
 
     isolated resource function get implementationguidetables(ImplementationGuideTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get implementationguidetables/[string IMPLEMENTATIONGUIDETABLE_ID](ImplementationGuideTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -6991,12 +7055,12 @@ public isolated client class Client {
     }
 
     isolated resource function get structuremaptables(StructureMapTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get structuremaptables/[string STRUCTUREMAPTABLE_ID](StructureMapTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7030,12 +7094,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicinalproductundesirableeffecttables(MedicinalProductUndesirableEffectTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicinalproductundesirableeffecttables/[string MEDICINALPRODUCTUNDESIRABLEEFFECTTABLE_ID](MedicinalProductUndesirableEffectTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7069,12 +7133,12 @@ public isolated client class Client {
     }
 
     isolated resource function get compartmentdefinitiontables(CompartmentDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get compartmentdefinitiontables/[string COMPARTMENTDEFINITIONTABLE_ID](CompartmentDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7108,12 +7172,12 @@ public isolated client class Client {
     }
 
     isolated resource function get endpointtables(EndpointTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get endpointtables/[string ENDPOINTTABLE_ID](EndpointTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7147,12 +7211,12 @@ public isolated client class Client {
     }
 
     isolated resource function get terminologycapabilitiestables(TerminologyCapabilitiesTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get terminologycapabilitiestables/[string TERMINOLOGYCAPABILITIESTABLE_ID](TerminologyCapabilitiesTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7186,12 +7250,12 @@ public isolated client class Client {
     }
 
     isolated resource function get conditiontables(ConditionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get conditiontables/[string CONDITIONTABLE_ID](ConditionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7225,12 +7289,12 @@ public isolated client class Client {
     }
 
     isolated resource function get compositiontables(CompositionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get compositiontables/[string COMPOSITIONTABLE_ID](CompositionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7264,12 +7328,12 @@ public isolated client class Client {
     }
 
     isolated resource function get contracttables(ContractTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get contracttables/[string CONTRACTTABLE_ID](ContractTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7303,12 +7367,12 @@ public isolated client class Client {
     }
 
     isolated resource function get immunizationtables(ImmunizationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get immunizationtables/[string IMMUNIZATIONTABLE_ID](ImmunizationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7342,12 +7406,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicationdispensetables(MedicationDispenseTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicationdispensetables/[string MEDICATIONDISPENSETABLE_ID](MedicationDispenseTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7381,12 +7445,12 @@ public isolated client class Client {
     }
 
     isolated resource function get molecularsequencetables(MolecularSequenceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get molecularsequencetables/[string MOLECULARSEQUENCETABLE_ID](MolecularSequenceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7420,12 +7484,12 @@ public isolated client class Client {
     }
 
     isolated resource function get searchparametertables(SearchParameterTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get searchparametertables/[string SEARCHPARAMETERTABLE_ID](SearchParameterTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7459,12 +7523,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicationrequesttables(MedicationRequestTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicationrequesttables/[string MEDICATIONREQUESTTABLE_ID](MedicationRequestTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7498,12 +7562,12 @@ public isolated client class Client {
     }
 
     isolated resource function get enrollmentrequesttables(EnrollmentRequestTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get enrollmentrequesttables/[string ENROLLMENTREQUESTTABLE_ID](EnrollmentRequestTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7537,12 +7601,12 @@ public isolated client class Client {
     }
 
     isolated resource function get specimendefinitiontables(SpecimenDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get specimendefinitiontables/[string SPECIMENDEFINITIONTABLE_ID](SpecimenDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7576,12 +7640,12 @@ public isolated client class Client {
     }
 
     isolated resource function get eventdefinitiontables(EventDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get eventdefinitiontables/[string EVENTDEFINITIONTABLE_ID](EventDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7615,12 +7679,12 @@ public isolated client class Client {
     }
 
     isolated resource function get immunizationevaluationtables(ImmunizationEvaluationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get immunizationevaluationtables/[string IMMUNIZATIONEVALUATIONTABLE_ID](ImmunizationEvaluationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7654,12 +7718,12 @@ public isolated client class Client {
     }
 
     isolated resource function get paymentreconciliationtables(PaymentReconciliationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get paymentreconciliationtables/[string PAYMENTRECONCILIATIONTABLE_ID](PaymentReconciliationTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7693,12 +7757,12 @@ public isolated client class Client {
     }
 
     isolated resource function get measuretables(MeasureTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get measuretables/[string MEASURETABLE_ID](MeasureTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7732,12 +7796,12 @@ public isolated client class Client {
     }
 
     isolated resource function get conceptmaptables(ConceptMapTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get conceptmaptables/[string CONCEPTMAPTABLE_ID](ConceptMapTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7771,12 +7835,12 @@ public isolated client class Client {
     }
 
     isolated resource function get researchelementdefinitiontables(ResearchElementDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get researchelementdefinitiontables/[string RESEARCHELEMENTDEFINITIONTABLE_ID](ResearchElementDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7810,12 +7874,12 @@ public isolated client class Client {
     }
 
     isolated resource function get guidanceresponsetables(GuidanceResponseTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get guidanceresponsetables/[string GUIDANCERESPONSETABLE_ID](GuidanceResponseTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7849,12 +7913,12 @@ public isolated client class Client {
     }
 
     isolated resource function get linkagetables(LinkageTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get linkagetables/[string LINKAGETABLE_ID](LinkageTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7888,12 +7952,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicinalproducttables(MedicinalProductTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicinalproducttables/[string MEDICINALPRODUCTTABLE_ID](MedicinalProductTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7927,12 +7991,12 @@ public isolated client class Client {
     }
 
     isolated resource function get devicedefinitiontables(DeviceDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get devicedefinitiontables/[string DEVICEDEFINITIONTABLE_ID](DeviceDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -7966,12 +8030,12 @@ public isolated client class Client {
     }
 
     isolated resource function get coverageeligibilityrequesttables(CoverageEligibilityRequestTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get coverageeligibilityrequesttables/[string COVERAGEELIGIBILITYREQUESTTABLE_ID](CoverageEligibilityRequestTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8005,12 +8069,12 @@ public isolated client class Client {
     }
 
     isolated resource function get patienttables(PatientTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get patienttables/[string PATIENTTABLE_ID](PatientTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8044,12 +8108,12 @@ public isolated client class Client {
     }
 
     isolated resource function get coveragetables(CoverageTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get coveragetables/[string COVERAGETABLE_ID](CoverageTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8083,12 +8147,12 @@ public isolated client class Client {
     }
 
     isolated resource function get substancetables(SubstanceTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get substancetables/[string SUBSTANCETABLE_ID](SubstanceTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8122,12 +8186,12 @@ public isolated client class Client {
     }
 
     isolated resource function get chargeitemdefinitiontables(ChargeItemDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get chargeitemdefinitiontables/[string CHARGEITEMDEFINITIONTABLE_ID](ChargeItemDefinitionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8161,12 +8225,12 @@ public isolated client class Client {
     }
 
     isolated resource function get medicinalproductinteractiontables(MedicinalProductInteractionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get medicinalproductinteractiontables/[string MEDICINALPRODUCTINTERACTIONTABLE_ID](MedicinalProductInteractionTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8200,12 +8264,12 @@ public isolated client class Client {
     }
 
     isolated resource function get accounttables(AccountTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get accounttables/[string ACCOUNTTABLE_ID](AccountTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8239,12 +8303,12 @@ public isolated client class Client {
     }
 
     isolated resource function get messageheadertables(MessageHeaderTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get messageheadertables/[string MESSAGEHEADERTABLE_ID](MessageHeaderTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8278,12 +8342,12 @@ public isolated client class Client {
     }
 
     isolated resource function get auditeventtables(AuditEventTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get auditeventtables/[string AUDITEVENTTABLE_ID](AuditEventTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8317,12 +8381,12 @@ public isolated client class Client {
     }
 
     isolated resource function get nutritionordertables(NutritionOrderTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get nutritionordertables/[string NUTRITIONORDERTABLE_ID](NutritionOrderTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8356,12 +8420,12 @@ public isolated client class Client {
     }
 
     isolated resource function get questionnairetables(QuestionnaireTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get questionnairetables/[string QUESTIONNAIRETABLE_ID](QuestionnaireTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8395,12 +8459,12 @@ public isolated client class Client {
     }
 
     isolated resource function get appointmentresponsetables(AppointmentResponseTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
     } external;
 
     isolated resource function get appointmentresponsetables/[string APPOINTMENTRESPONSETABLE_ID](AppointmentResponseTableTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor",
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "queryOne"
     } external;
 
@@ -8434,11 +8498,11 @@ public isolated client class Client {
     }
 
     remote isolated function queryNativeSQL(sql:ParameterizedQuery sqlQuery, typedesc<record {}> rowType = <>) returns stream<rowType, persist:Error?> = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor"
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor"
     } external;
 
     remote isolated function executeNativeSQL(sql:ParameterizedQuery sqlQuery) returns psql:ExecutionResult|persist:Error = @java:Method {
-        'class: "io.ballerina.stdlib.persist.sql.datastore.MySQLProcessor"
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor"
     } external;
 
     public isolated function close() returns persist:Error? {

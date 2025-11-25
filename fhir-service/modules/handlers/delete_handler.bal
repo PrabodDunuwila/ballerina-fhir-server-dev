@@ -6,9 +6,11 @@ import ballerina/sql;
 
 public class DeleteHandler {
     private utils:TransactionHandler transactionHandler;
+    private HistoryHandler historyHandler;
 
     public isolated function init() {
         self.transactionHandler = new utils:TransactionHandler();
+        self.historyHandler = new HistoryHandler();
     }
 
     // Main function to delete resource with full transaction support
@@ -31,6 +33,22 @@ public class DeleteHandler {
             record {|anydata...;|}? backup = check self.backupResource(persistClient, resourceType, resourceId);
             'transaction.backupResource = backup;
             'transaction.backupReferences = check self.backupReferences(persistClient, resourceType, resourceId);
+
+            // Save to history before deletion
+            if backup is record {|anydata...;|} {
+                log:printInfo(string `Saving current version of ${resourceType}/${resourceId} to history before deletion`);
+                error? historyResult = self.historyHandler.saveToHistory(persistClient, resourceType, resourceId, backup, "DELETE");
+                if historyResult is error {
+                    log:printError(string `Failed to save history: ${historyResult.message()}`);
+                    error? rollbackResult = self.transactionHandler.rollbackDeleteTransaction(
+                        persistClient, 'transaction, resourceType
+                    );
+                    if (rollbackResult is error) {
+                        log:printError(rollbackResult.toString());
+                    }
+                    return historyResult;
+                }
+            }
 
             // Find references
             log:printInfo(string `Finding references for ${resourceType}/${resourceId}`);
