@@ -15,12 +15,16 @@ const R_E_F_E_R_E_N_C_E_S = "references";
 const TEST_SCRIPT_TABLE = "testscripttables";
 const TEST_REPORT_TABLE = "testreporttables";
 const RELATED_PERSON_TABLE = "relatedpersontables";
+const RELATED_PERSON_TABLE_HISTORY = "relatedpersontablehistories";
 const EVIDENCE_VARIABLE_TABLE = "evidencevariabletables";
 const VALUE_SET_TABLE = "valuesettables";
 const DOCUMENT_MANIFEST_TABLE = "documentmanifesttables";
+const DOCUMENT_MANIFEST_TABLE_HISTORY = "documentmanifesttablehistories";
 const IMMUNIZATION_RECOMMENDATION_TABLE = "immunizationrecommendationtables";
+const IMMUNIZATION_RECOMMENDATION_TABLE_HISTORY = "immunizationrecommendationtablehistories";
 const DEVICE_METRIC_TABLE = "devicemetrictables";
 const LOCATION_TABLE = "locationtables";
+const LOCATION_TABLE_HISTORY = "locationtablehistories";
 const EXPLANATION_OF_BENEFIT_TABLE = "explanationofbenefittables";
 const FLAG_TABLE = "flagtables";
 const MEDICATION_STATEMENT_TABLE = "medicationstatementtables";
@@ -30,24 +34,30 @@ const CLAIM_RESPONSE_TABLE = "claimresponsetables";
 const MEDICINAL_PRODUCT_AUTHORIZATION_TABLE = "medicinalproductauthorizationtables";
 const IMAGING_STUDY_TABLE = "imagingstudytables";
 const PRACTITIONER_ROLE_TABLE = "practitionerroletables";
+const PRACTITIONER_ROLE_TABLE_HISTORY = "practitionerroletablehistories";
 const GROUP_TABLE = "grouptables";
 const PERSON_TABLE = "persontables";
 const PRACTITIONER_TABLE = "practitionertables";
+const PRACTITIONER_TABLE_HISTORY = "practitionertablehistories";
 const ACTIVITY_DEFINITION_TABLE = "activitydefinitiontables";
 const EVIDENCE_TABLE = "evidencetables";
 const DEVICE_TABLE = "devicetables";
+const DEVICE_TABLE_HISTORY = "devicetablehistories";
 const FAMILY_MEMBER_HISTORY_TABLE = "familymemberhistorytables";
 const ADVERSE_EVENT_TABLE = "adverseeventtables";
 const SUPPLY_REQUEST_TABLE = "supplyrequesttables";
 const EXAMPLE_SCENARIO_TABLE = "examplescenariotables";
 const INVOICE_TABLE = "invoicetables";
+const INVOICE_TABLE_HISTORY = "invoicetablehistories";
 const QUESTIONNAIRE_RESPONSE_TABLE = "questionnaireresponsetables";
 const OBSERVATION_TABLE = "observationtables";
+const OBSERVATION_TABLE_HISTORY = "observationtablehistories";
 const EFFECT_EVIDENCE_SYNTHESIS_TABLE = "effectevidencesynthesistables";
 const OPERATION_DEFINITION_TABLE = "operationdefinitiontables";
 const MEASURE_REPORT_TABLE = "measurereporttables";
 const SUPPLY_DELIVERY_TABLE = "supplydeliverytables";
 const SERVICE_REQUEST_TABLE = "servicerequesttables";
+const SERVICE_REQUEST_TABLE_HISTORY = "servicerequesttablehistories";
 const BASIC_TABLE = "basictables";
 const SUBSCRIPTION_TABLE = "subscriptiontables";
 const ENROLLMENT_RESPONSE_TABLE = "enrollmentresponsetables";
@@ -75,18 +85,21 @@ const EPISODE_OF_CARE_TABLE = "episodeofcaretables";
 const CARE_TEAM_TABLE = "careteamtables";
 const MEDICATION_ADMINISTRATION_TABLE = "medicationadministrationtables";
 const CONSENT_TABLE = "consenttables";
+const CONSENT_TABLE_HISTORY = "consenttablehistories";
 const DETECTED_ISSUE_TABLE = "detectedissuetables";
 const SUBSTANCE_SPECIFICATION_TABLE = "substancespecificationtables";
 const ALLERGY_INTOLERANCE_TABLE = "allergyintolerancetables";
 const MEDICINAL_PRODUCT_INDICATION_TABLE = "medicinalproductindicationtables";
 const MEDICINAL_PRODUCT_PHARMACEUTICAL_TABLE = "medicinalproductpharmaceuticaltables";
 const SLOT_TABLE = "slottables";
+const SLOT_TABLE_HISTORY = "slottablehistories";
 const VERIFICATION_RESULT_TABLE = "verificationresulttables";
 const SPECIMEN_TABLE = "specimentables";
 const RESEARCH_SUBJECT_TABLE = "researchsubjecttables";
 const MEDICATION_TABLE = "medicationtables";
 const RESEARCH_DEFINITION_TABLE = "researchdefinitiontables";
 const HEALTHCARE_SERVICE_TABLE = "healthcareservicetables";
+const HEALTHCARE_SERVICE_TABLE_HISTORY = "healthcareservicetablehistories";
 const PAYMENT_NOTICE_TABLE = "paymentnoticetables";
 const PROVENANCE_TABLE = "provenancetables";
 const GRAPH_DEFINITION_TABLE = "graphdefinitiontables";
@@ -94,11 +107,14 @@ const MEDIA_TABLE = "mediatables";
 const BODY_STRUCTURE_TABLE = "bodystructuretables";
 const DIAGNOSTIC_REPORT_TABLE = "diagnosticreporttables";
 const GOAL_TABLE = "goaltables";
+const GOAL_TABLE_HISTORY = "goaltablehistories";
 const CAPABILITY_STATEMENT_TABLE = "capabilitystatementtables";
 const DEVICE_USE_STATEMENT_TABLE = "deviceusestatementtables";
 const SCHEDULE_TABLE = "scheduletables";
 const MEDICINAL_PRODUCT_PACKAGED_TABLE = "medicinalproductpackagedtables";
+const MEDICINAL_PRODUCT_PACKAGED_TABLE_HISTORY = "medicinalproductpackagedtablehistories";
 const PROCEDURE_TABLE = "proceduretables";
+const PROCEDURE_TABLE_HISTORY = "proceduretablehistories";
 const LIBRARY_TABLE = "librarytables";
 const CODE_SYSTEM_TABLE = "codesystemtables";
 const COMMUNICATION_REQUEST_TABLE = "communicationrequesttables";
@@ -106,6 +122,7 @@ const DOCUMENT_REFERENCE_TABLE = "documentreferencetables";
 const REQUEST_GROUP_TABLE = "requestgrouptables";
 const CLAIM_TABLE = "claimtables";
 const MESSAGE_DEFINITION_TABLE = "messagedefinitiontables";
+const MESSAGE_DEFINITION_TABLE_HISTORY = "messagedefinitiontablehistories";
 const RISK_EVIDENCE_SYNTHESIS_TABLE = "riskevidencesynthesistables";
 const TASK_TABLE = "tasktables";
 const IMPLEMENTATION_GUIDE_TABLE = "implementationguidetables";
@@ -113,8 +130,10 @@ const STRUCTURE_MAP_TABLE = "structuremaptables";
 const MEDICINAL_PRODUCT_UNDESIRABLE_EFFECT_TABLE = "medicinalproductundesirableeffecttables";
 const COMPARTMENT_DEFINITION_TABLE = "compartmentdefinitiontables";
 const ENDPOINT_TABLE = "endpointtables";
+const ENDPOINT_TABLE_HISTORY = "endpointtablehistories";
 const TERMINOLOGY_CAPABILITIES_TABLE = "terminologycapabilitiestables";
 const CONDITION_TABLE = "conditiontables";
+const CONDITION_TABLE_HISTORY = "conditiontablehistories";
 const COMPOSITION_TABLE = "compositiontables";
 const CONTRACT_TABLE = "contracttables";
 const IMMUNIZATION_TABLE = "immunizationtables";
@@ -123,8 +142,10 @@ const MOLECULAR_SEQUENCE_TABLE = "molecularsequencetables";
 const SEARCH_PARAMETER_TABLE = "searchparametertables";
 const MEDICATION_REQUEST_TABLE = "medicationrequesttables";
 const ENROLLMENT_REQUEST_TABLE = "enrollmentrequesttables";
+const ENROLLMENT_REQUEST_TABLE_HISTORY = "enrollmentrequesttablehistories";
 const SPECIMEN_DEFINITION_TABLE = "specimendefinitiontables";
 const EVENT_DEFINITION_TABLE = "eventdefinitiontables";
+const EVENT_DEFINITION_TABLE_HISTORY = "eventdefinitiontablehistories";
 const IMMUNIZATION_EVALUATION_TABLE = "immunizationevaluationtables";
 const PAYMENT_RECONCILIATION_TABLE = "paymentreconciliationtables";
 const MEASURE_TABLE = "measuretables";
@@ -136,11 +157,13 @@ const MEDICINAL_PRODUCT_TABLE = "medicinalproducttables";
 const DEVICE_DEFINITION_TABLE = "devicedefinitiontables";
 const COVERAGE_ELIGIBILITY_REQUEST_TABLE = "coverageeligibilityrequesttables";
 const PATIENT_TABLE = "patienttables";
+const PATIENT_TABLE_HISTORY = "patienttablehistories";
 const COVERAGE_TABLE = "coveragetables";
 const SUBSTANCE_TABLE = "substancetables";
 const CHARGE_ITEM_DEFINITION_TABLE = "chargeitemdefinitiontables";
 const MEDICINAL_PRODUCT_INTERACTION_TABLE = "medicinalproductinteractiontables";
 const ACCOUNT_TABLE = "accounttables";
+const ACCOUNT_TABLE_HISTORY = "accounttablehistories";
 const MESSAGE_HEADER_TABLE = "messageheadertables";
 const AUDIT_EVENT_TABLE = "auditeventtables";
 const NUTRITION_ORDER_TABLE = "nutritionordertables";
@@ -258,6 +281,24 @@ public isolated client class Client {
             },
             keyFields: ["RELATEDPERSONTABLE_ID"]
         },
+        [RELATED_PERSON_TABLE_HISTORY]: {
+            entityName: "RelatedPersonTableHistory",
+            tableName: "RelatedPersonTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                RELATEDPERSONTABLE_ID: {columnName: "RELATEDPERSONTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                BIRTHDATE: {columnName: "BIRTHDATE"},
+                NAME: {columnName: "NAME"},
+                GENDER: {columnName: "GENDER"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                ACTIVE: {columnName: "ACTIVE"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [EVIDENCE_VARIABLE_TABLE]: {
             entityName: "EvidenceVariableTable",
             tableName: "EvidenceVariableTable",
@@ -335,6 +376,23 @@ public isolated client class Client {
             },
             keyFields: ["DOCUMENTMANIFESTTABLE_ID"]
         },
+        [DOCUMENT_MANIFEST_TABLE_HISTORY]: {
+            entityName: "DocumentManifestTableHistory",
+            tableName: "DocumentManifestTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                DOCUMENTMANIFESTTABLE_ID: {columnName: "DOCUMENTMANIFESTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                CREATED: {columnName: "CREATED"},
+                STATUS: {columnName: "STATUS"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                TYPE: {columnName: "TYPE"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [IMMUNIZATION_RECOMMENDATION_TABLE]: {
             entityName: "ImmunizationRecommendationTable",
             tableName: "ImmunizationRecommendationTable",
@@ -352,6 +410,24 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["IMMUNIZATIONRECOMMENDATIONTABLE_ID"]
+        },
+        [IMMUNIZATION_RECOMMENDATION_TABLE_HISTORY]: {
+            entityName: "ImmunizationRecommendationTableHistory",
+            tableName: "ImmunizationRecommendationTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                IMMUNIZATIONRECOMMENDATIONTABLE_ID: {columnName: "IMMUNIZATIONRECOMMENDATIONTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                DATE: {columnName: "DATE"},
+                STATUS: {columnName: "STATUS"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                TARGET_DISEASE: {columnName: "TARGET_DISEASE"},
+                VACCINE_TYPE: {columnName: "VACCINE_TYPE"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [DEVICE_METRIC_TABLE]: {
             entityName: "DeviceMetricTable",
@@ -392,6 +468,23 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["LOCATIONTABLE_ID"]
+        },
+        [LOCATION_TABLE_HISTORY]: {
+            entityName: "LocationTableHistory",
+            tableName: "LocationTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                LOCATIONTABLE_ID: {columnName: "LOCATIONTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                NAME: {columnName: "NAME"},
+                STATUS: {columnName: "STATUS"},
+                TYPE: {columnName: "TYPE"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [EXPLANATION_OF_BENEFIT_TABLE]: {
             entityName: "ExplanationOfBenefitTable",
@@ -559,6 +652,24 @@ public isolated client class Client {
             },
             keyFields: ["PRACTITIONERROLETABLE_ID"]
         },
+        [PRACTITIONER_ROLE_TABLE_HISTORY]: {
+            entityName: "PractitionerRoleTableHistory",
+            tableName: "PractitionerRoleTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                PRACTITIONERROLETABLE_ID: {columnName: "PRACTITIONERROLETABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                ROLE: {columnName: "ROLE"},
+                DATE: {columnName: "DATE"},
+                ACTIVE: {columnName: "ACTIVE"},
+                SPECIALTY: {columnName: "SPECIALTY"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [GROUP_TABLE]: {
             entityName: "GroupTable",
             tableName: "GroupTable",
@@ -635,6 +746,25 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["PRACTITIONERTABLE_ID"]
+        },
+        [PRACTITIONER_TABLE_HISTORY]: {
+            entityName: "PractitionerTableHistory",
+            tableName: "PractitionerTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                PRACTITIONERTABLE_ID: {columnName: "PRACTITIONERTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                NAME: {columnName: "NAME"},
+                FAMILY: {columnName: "FAMILY"},
+                GIVEN: {columnName: "GIVEN"},
+                GENDER: {columnName: "GENDER"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                ACTIVE: {columnName: "ACTIVE"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [ACTIVITY_DEFINITION_TABLE]: {
             entityName: "ActivityDefinitionTable",
@@ -713,6 +843,24 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["DEVICETABLE_ID"]
+        },
+        [DEVICE_TABLE_HISTORY]: {
+            entityName: "DeviceTableHistory",
+            tableName: "DeviceTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                DEVICETABLE_ID: {columnName: "DEVICETABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                MANUFACTURER: {columnName: "MANUFACTURER"},
+                MODEL: {columnName: "MODEL"},
+                STATUS: {columnName: "STATUS"},
+                TYPE: {columnName: "TYPE"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [FAMILY_MEMBER_HISTORY_TABLE]: {
             entityName: "FamilyMemberHistoryTable",
@@ -814,6 +962,23 @@ public isolated client class Client {
             },
             keyFields: ["INVOICETABLE_ID"]
         },
+        [INVOICE_TABLE_HISTORY]: {
+            entityName: "InvoiceTableHistory",
+            tableName: "InvoiceTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                INVOICETABLE_ID: {columnName: "INVOICETABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                DATE: {columnName: "DATE"},
+                STATUS: {columnName: "STATUS"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                TYPE: {columnName: "TYPE"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [QUESTIONNAIRE_RESPONSE_TABLE]: {
             entityName: "QuestionnaireResponseTable",
             tableName: "QuestionnaireResponseTable",
@@ -861,6 +1026,26 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["OBSERVATIONTABLE_ID"]
+        },
+        [OBSERVATION_TABLE_HISTORY]: {
+            entityName: "ObservationTableHistory",
+            tableName: "ObservationTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                OBSERVATIONTABLE_ID: {columnName: "OBSERVATIONTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                DATE: {columnName: "DATE"},
+                CODE: {columnName: "CODE"},
+                STATUS: {columnName: "STATUS"},
+                CATEGORY: {columnName: "CATEGORY"},
+                VALUE_QUANTITY: {columnName: "VALUE_QUANTITY"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                METHOD: {columnName: "METHOD"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [EFFECT_EVIDENCE_SYNTHESIS_TABLE]: {
             entityName: "EffectEvidenceSynthesisTable",
@@ -975,6 +1160,24 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["SERVICEREQUESTTABLE_ID"]
+        },
+        [SERVICE_REQUEST_TABLE_HISTORY]: {
+            entityName: "ServiceRequestTableHistory",
+            tableName: "ServiceRequestTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                SERVICEREQUESTTABLE_ID: {columnName: "SERVICEREQUESTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                STATUS: {columnName: "STATUS"},
+                INTENT: {columnName: "INTENT"},
+                CATEGORY: {columnName: "CATEGORY"},
+                CODE: {columnName: "CODE"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [BASIC_TABLE]: {
             entityName: "BasicTable",
@@ -1539,6 +1742,23 @@ public isolated client class Client {
             },
             keyFields: ["CONSENTTABLE_ID"]
         },
+        [CONSENT_TABLE_HISTORY]: {
+            entityName: "ConsentTableHistory",
+            tableName: "ConsentTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                CONSENTTABLE_ID: {columnName: "CONSENTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                DATE: {columnName: "DATE"},
+                STATUS: {columnName: "STATUS"},
+                CATEGORY: {columnName: "CATEGORY"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [DETECTED_ISSUE_TABLE]: {
             entityName: "DetectedIssueTable",
             tableName: "DetectedIssueTable",
@@ -1643,6 +1863,25 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["SLOTTABLE_ID"]
+        },
+        [SLOT_TABLE_HISTORY]: {
+            entityName: "SlotTableHistory",
+            tableName: "SlotTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                SLOTTABLE_ID: {columnName: "SLOTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                STATUS: {columnName: "STATUS"},
+                START: {columnName: "START"},
+                SERVICE_CATEGORY: {columnName: "SERVICE_CATEGORY"},
+                SERVICE_TYPE: {columnName: "SERVICE_TYPE"},
+                SPECIALTY: {columnName: "SPECIALTY"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [VERIFICATION_RESULT_TABLE]: {
             entityName: "VerificationResultTable",
@@ -1762,6 +2001,24 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["HEALTHCARESERVICETABLE_ID"]
+        },
+        [HEALTHCARE_SERVICE_TABLE_HISTORY]: {
+            entityName: "HealthcareServiceTableHistory",
+            tableName: "HealthcareServiceTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                HEALTHCARESERVICETABLE_ID: {columnName: "HEALTHCARESERVICETABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                ACTIVE: {columnName: "ACTIVE"},
+                NAME: {columnName: "NAME"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                SERVICE_CATEGORY: {columnName: "SERVICE_CATEGORY"},
+                SERVICE_TYPE: {columnName: "SERVICE_TYPE"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [PAYMENT_NOTICE_TABLE]: {
             entityName: "PaymentNoticeTable",
@@ -1898,6 +2155,23 @@ public isolated client class Client {
             },
             keyFields: ["GOALTABLE_ID"]
         },
+        [GOAL_TABLE_HISTORY]: {
+            entityName: "GoalTableHistory",
+            tableName: "GoalTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                GOALTABLE_ID: {columnName: "GOALTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                TARGET_DATE: {columnName: "TARGET_DATE"},
+                CATEGORY: {columnName: "CATEGORY"},
+                LIFECYCLE_STATUS: {columnName: "LIFECYCLE_STATUS"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [CAPABILITY_STATEMENT_TABLE]: {
             entityName: "CapabilityStatementTable",
             tableName: "CapabilityStatementTable",
@@ -1976,6 +2250,20 @@ public isolated client class Client {
             },
             keyFields: ["MEDICINALPRODUCTPACKAGEDTABLE_ID"]
         },
+        [MEDICINAL_PRODUCT_PACKAGED_TABLE_HISTORY]: {
+            entityName: "MedicinalProductPackagedTableHistory",
+            tableName: "MedicinalProductPackagedTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                MEDICINALPRODUCTPACKAGEDTABLE_ID: {columnName: "MEDICINALPRODUCTPACKAGEDTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [PROCEDURE_TABLE]: {
             entityName: "ProcedureTable",
             tableName: "ProcedureTable",
@@ -1995,6 +2283,24 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["PROCEDURETABLE_ID"]
+        },
+        [PROCEDURE_TABLE_HISTORY]: {
+            entityName: "ProcedureTableHistory",
+            tableName: "ProcedureTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                PROCEDURETABLE_ID: {columnName: "PROCEDURETABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                STATUS: {columnName: "STATUS"},
+                CATEGORY: {columnName: "CATEGORY"},
+                CODE: {columnName: "CODE"},
+                DATE: {columnName: "DATE"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [LIBRARY_TABLE]: {
             entityName: "LibraryTable",
@@ -2174,6 +2480,23 @@ public isolated client class Client {
             },
             keyFields: ["MESSAGEDEFINITIONTABLE_ID"]
         },
+        [MESSAGE_DEFINITION_TABLE_HISTORY]: {
+            entityName: "MessageDefinitionTableHistory",
+            tableName: "MessageDefinitionTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                MESSAGEDEFINITIONTABLE_ID: {columnName: "MESSAGEDEFINITIONTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                DATE: {columnName: "DATE"},
+                STATUS: {columnName: "STATUS"},
+                CATEGORY: {columnName: "CATEGORY"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [RISK_EVIDENCE_SYNTHESIS_TABLE]: {
             entityName: "RiskEvidenceSynthesisTable",
             tableName: "RiskEvidenceSynthesisTable",
@@ -2333,6 +2656,22 @@ public isolated client class Client {
             },
             keyFields: ["ENDPOINTTABLE_ID"]
         },
+        [ENDPOINT_TABLE_HISTORY]: {
+            entityName: "EndpointTableHistory",
+            tableName: "EndpointTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                ENDPOINTTABLE_ID: {columnName: "ENDPOINTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                STATUS: {columnName: "STATUS"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                NAME: {columnName: "NAME"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [TERMINOLOGY_CAPABILITIES_TABLE]: {
             entityName: "TerminologyCapabilitiesTable",
             tableName: "TerminologyCapabilitiesTable",
@@ -2386,6 +2725,24 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["CONDITIONTABLE_ID"]
+        },
+        [CONDITION_TABLE_HISTORY]: {
+            entityName: "ConditionTableHistory",
+            tableName: "ConditionTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                CONDITIONTABLE_ID: {columnName: "CONDITIONTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                CLINICAL_STATUS: {columnName: "CLINICAL_STATUS"},
+                CATEGORY: {columnName: "CATEGORY"},
+                CODE: {columnName: "CODE"},
+                SEVERITY: {columnName: "SEVERITY"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [COMPOSITION_TABLE]: {
             entityName: "CompositionTable",
@@ -2557,6 +2914,21 @@ public isolated client class Client {
             },
             keyFields: ["ENROLLMENTREQUESTTABLE_ID"]
         },
+        [ENROLLMENT_REQUEST_TABLE_HISTORY]: {
+            entityName: "EnrollmentRequestTableHistory",
+            tableName: "EnrollmentRequestTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                ENROLLMENTREQUESTTABLE_ID: {columnName: "ENROLLMENTREQUESTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                STATUS: {columnName: "STATUS"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [SPECIMEN_DEFINITION_TABLE]: {
             entityName: "SpecimenDefinitionTable",
             tableName: "SpecimenDefinitionTable",
@@ -2600,6 +2972,22 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["EVENTDEFINITIONTABLE_ID"]
+        },
+        [EVENT_DEFINITION_TABLE_HISTORY]: {
+            entityName: "EventDefinitionTableHistory",
+            tableName: "EventDefinitionTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                EVENTDEFINITIONTABLE_ID: {columnName: "EVENTDEFINITIONTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                DATE: {columnName: "DATE"},
+                STATUS: {columnName: "STATUS"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [IMMUNIZATION_EVALUATION_TABLE]: {
             entityName: "ImmunizationEvaluationTable",
@@ -2833,6 +3221,28 @@ public isolated client class Client {
             },
             keyFields: ["PATIENTTABLE_ID"]
         },
+        [PATIENT_TABLE_HISTORY]: {
+            entityName: "PatientTableHistory",
+            tableName: "PatientTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                PATIENTTABLE_ID: {columnName: "PATIENTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                BIRTHDATE: {columnName: "BIRTHDATE"},
+                NAME: {columnName: "NAME"},
+                FAMILY: {columnName: "FAMILY"},
+                GIVEN: {columnName: "GIVEN"},
+                GENDER: {columnName: "GENDER"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                ACTIVE: {columnName: "ACTIVE"},
+                PHONE: {columnName: "PHONE"},
+                EMAIL: {columnName: "EMAIL"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
+        },
         [COVERAGE_TABLE]: {
             entityName: "CoverageTable",
             tableName: "CoverageTable",
@@ -2928,6 +3338,24 @@ public isolated client class Client {
                 RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
             },
             keyFields: ["ACCOUNTTABLE_ID"]
+        },
+        [ACCOUNT_TABLE_HISTORY]: {
+            entityName: "AccountTableHistory",
+            tableName: "AccountTableHistory",
+            fieldMetadata: {
+                ID: {columnName: "ID", dbGenerated: true},
+                ACCOUNTTABLE_ID: {columnName: "ACCOUNTTABLE_ID"},
+                VERSION_ID: {columnName: "VERSION_ID"},
+                OPERATION: {columnName: "OPERATION"},
+                PERIOD: {columnName: "PERIOD"},
+                STATUS: {columnName: "STATUS"},
+                IDENTIFIER: {columnName: "IDENTIFIER"},
+                TYPE: {columnName: "TYPE"},
+                NAME: {columnName: "NAME"},
+                CREATED_AT: {columnName: "CREATED_AT"},
+                RESOURCE_JSON: {columnName: "RESOURCE_JSON"}
+            },
+            keyFields: ["ID"]
         },
         [MESSAGE_HEADER_TABLE]: {
             entityName: "MessageHeaderTable",
@@ -3056,12 +3484,16 @@ public isolated client class Client {
             [TEST_SCRIPT_TABLE]: check new (dbClient, self.metadata.get(TEST_SCRIPT_TABLE), psql:H2_SPECIFICS),
             [TEST_REPORT_TABLE]: check new (dbClient, self.metadata.get(TEST_REPORT_TABLE), psql:H2_SPECIFICS),
             [RELATED_PERSON_TABLE]: check new (dbClient, self.metadata.get(RELATED_PERSON_TABLE), psql:H2_SPECIFICS),
+            [RELATED_PERSON_TABLE_HISTORY]: check new (dbClient, self.metadata.get(RELATED_PERSON_TABLE_HISTORY), psql:H2_SPECIFICS),
             [EVIDENCE_VARIABLE_TABLE]: check new (dbClient, self.metadata.get(EVIDENCE_VARIABLE_TABLE), psql:H2_SPECIFICS),
             [VALUE_SET_TABLE]: check new (dbClient, self.metadata.get(VALUE_SET_TABLE), psql:H2_SPECIFICS),
             [DOCUMENT_MANIFEST_TABLE]: check new (dbClient, self.metadata.get(DOCUMENT_MANIFEST_TABLE), psql:H2_SPECIFICS),
+            [DOCUMENT_MANIFEST_TABLE_HISTORY]: check new (dbClient, self.metadata.get(DOCUMENT_MANIFEST_TABLE_HISTORY), psql:H2_SPECIFICS),
             [IMMUNIZATION_RECOMMENDATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_RECOMMENDATION_TABLE), psql:H2_SPECIFICS),
+            [IMMUNIZATION_RECOMMENDATION_TABLE_HISTORY]: check new (dbClient, self.metadata.get(IMMUNIZATION_RECOMMENDATION_TABLE_HISTORY), psql:H2_SPECIFICS),
             [DEVICE_METRIC_TABLE]: check new (dbClient, self.metadata.get(DEVICE_METRIC_TABLE), psql:H2_SPECIFICS),
             [LOCATION_TABLE]: check new (dbClient, self.metadata.get(LOCATION_TABLE), psql:H2_SPECIFICS),
+            [LOCATION_TABLE_HISTORY]: check new (dbClient, self.metadata.get(LOCATION_TABLE_HISTORY), psql:H2_SPECIFICS),
             [EXPLANATION_OF_BENEFIT_TABLE]: check new (dbClient, self.metadata.get(EXPLANATION_OF_BENEFIT_TABLE), psql:H2_SPECIFICS),
             [FLAG_TABLE]: check new (dbClient, self.metadata.get(FLAG_TABLE), psql:H2_SPECIFICS),
             [MEDICATION_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_STATEMENT_TABLE), psql:H2_SPECIFICS),
@@ -3071,24 +3503,30 @@ public isolated client class Client {
             [MEDICINAL_PRODUCT_AUTHORIZATION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_AUTHORIZATION_TABLE), psql:H2_SPECIFICS),
             [IMAGING_STUDY_TABLE]: check new (dbClient, self.metadata.get(IMAGING_STUDY_TABLE), psql:H2_SPECIFICS),
             [PRACTITIONER_ROLE_TABLE]: check new (dbClient, self.metadata.get(PRACTITIONER_ROLE_TABLE), psql:H2_SPECIFICS),
+            [PRACTITIONER_ROLE_TABLE_HISTORY]: check new (dbClient, self.metadata.get(PRACTITIONER_ROLE_TABLE_HISTORY), psql:H2_SPECIFICS),
             [GROUP_TABLE]: check new (dbClient, self.metadata.get(GROUP_TABLE), psql:H2_SPECIFICS),
             [PERSON_TABLE]: check new (dbClient, self.metadata.get(PERSON_TABLE), psql:H2_SPECIFICS),
             [PRACTITIONER_TABLE]: check new (dbClient, self.metadata.get(PRACTITIONER_TABLE), psql:H2_SPECIFICS),
+            [PRACTITIONER_TABLE_HISTORY]: check new (dbClient, self.metadata.get(PRACTITIONER_TABLE_HISTORY), psql:H2_SPECIFICS),
             [ACTIVITY_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(ACTIVITY_DEFINITION_TABLE), psql:H2_SPECIFICS),
             [EVIDENCE_TABLE]: check new (dbClient, self.metadata.get(EVIDENCE_TABLE), psql:H2_SPECIFICS),
             [DEVICE_TABLE]: check new (dbClient, self.metadata.get(DEVICE_TABLE), psql:H2_SPECIFICS),
+            [DEVICE_TABLE_HISTORY]: check new (dbClient, self.metadata.get(DEVICE_TABLE_HISTORY), psql:H2_SPECIFICS),
             [FAMILY_MEMBER_HISTORY_TABLE]: check new (dbClient, self.metadata.get(FAMILY_MEMBER_HISTORY_TABLE), psql:H2_SPECIFICS),
             [ADVERSE_EVENT_TABLE]: check new (dbClient, self.metadata.get(ADVERSE_EVENT_TABLE), psql:H2_SPECIFICS),
             [SUPPLY_REQUEST_TABLE]: check new (dbClient, self.metadata.get(SUPPLY_REQUEST_TABLE), psql:H2_SPECIFICS),
             [EXAMPLE_SCENARIO_TABLE]: check new (dbClient, self.metadata.get(EXAMPLE_SCENARIO_TABLE), psql:H2_SPECIFICS),
             [INVOICE_TABLE]: check new (dbClient, self.metadata.get(INVOICE_TABLE), psql:H2_SPECIFICS),
+            [INVOICE_TABLE_HISTORY]: check new (dbClient, self.metadata.get(INVOICE_TABLE_HISTORY), psql:H2_SPECIFICS),
             [QUESTIONNAIRE_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(QUESTIONNAIRE_RESPONSE_TABLE), psql:H2_SPECIFICS),
             [OBSERVATION_TABLE]: check new (dbClient, self.metadata.get(OBSERVATION_TABLE), psql:H2_SPECIFICS),
+            [OBSERVATION_TABLE_HISTORY]: check new (dbClient, self.metadata.get(OBSERVATION_TABLE_HISTORY), psql:H2_SPECIFICS),
             [EFFECT_EVIDENCE_SYNTHESIS_TABLE]: check new (dbClient, self.metadata.get(EFFECT_EVIDENCE_SYNTHESIS_TABLE), psql:H2_SPECIFICS),
             [OPERATION_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(OPERATION_DEFINITION_TABLE), psql:H2_SPECIFICS),
             [MEASURE_REPORT_TABLE]: check new (dbClient, self.metadata.get(MEASURE_REPORT_TABLE), psql:H2_SPECIFICS),
             [SUPPLY_DELIVERY_TABLE]: check new (dbClient, self.metadata.get(SUPPLY_DELIVERY_TABLE), psql:H2_SPECIFICS),
             [SERVICE_REQUEST_TABLE]: check new (dbClient, self.metadata.get(SERVICE_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [SERVICE_REQUEST_TABLE_HISTORY]: check new (dbClient, self.metadata.get(SERVICE_REQUEST_TABLE_HISTORY), psql:H2_SPECIFICS),
             [BASIC_TABLE]: check new (dbClient, self.metadata.get(BASIC_TABLE), psql:H2_SPECIFICS),
             [SUBSCRIPTION_TABLE]: check new (dbClient, self.metadata.get(SUBSCRIPTION_TABLE), psql:H2_SPECIFICS),
             [ENROLLMENT_RESPONSE_TABLE]: check new (dbClient, self.metadata.get(ENROLLMENT_RESPONSE_TABLE), psql:H2_SPECIFICS),
@@ -3116,18 +3554,21 @@ public isolated client class Client {
             [CARE_TEAM_TABLE]: check new (dbClient, self.metadata.get(CARE_TEAM_TABLE), psql:H2_SPECIFICS),
             [MEDICATION_ADMINISTRATION_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_ADMINISTRATION_TABLE), psql:H2_SPECIFICS),
             [CONSENT_TABLE]: check new (dbClient, self.metadata.get(CONSENT_TABLE), psql:H2_SPECIFICS),
+            [CONSENT_TABLE_HISTORY]: check new (dbClient, self.metadata.get(CONSENT_TABLE_HISTORY), psql:H2_SPECIFICS),
             [DETECTED_ISSUE_TABLE]: check new (dbClient, self.metadata.get(DETECTED_ISSUE_TABLE), psql:H2_SPECIFICS),
             [SUBSTANCE_SPECIFICATION_TABLE]: check new (dbClient, self.metadata.get(SUBSTANCE_SPECIFICATION_TABLE), psql:H2_SPECIFICS),
             [ALLERGY_INTOLERANCE_TABLE]: check new (dbClient, self.metadata.get(ALLERGY_INTOLERANCE_TABLE), psql:H2_SPECIFICS),
             [MEDICINAL_PRODUCT_INDICATION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_INDICATION_TABLE), psql:H2_SPECIFICS),
             [MEDICINAL_PRODUCT_PHARMACEUTICAL_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_PHARMACEUTICAL_TABLE), psql:H2_SPECIFICS),
             [SLOT_TABLE]: check new (dbClient, self.metadata.get(SLOT_TABLE), psql:H2_SPECIFICS),
+            [SLOT_TABLE_HISTORY]: check new (dbClient, self.metadata.get(SLOT_TABLE_HISTORY), psql:H2_SPECIFICS),
             [VERIFICATION_RESULT_TABLE]: check new (dbClient, self.metadata.get(VERIFICATION_RESULT_TABLE), psql:H2_SPECIFICS),
             [SPECIMEN_TABLE]: check new (dbClient, self.metadata.get(SPECIMEN_TABLE), psql:H2_SPECIFICS),
             [RESEARCH_SUBJECT_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_SUBJECT_TABLE), psql:H2_SPECIFICS),
             [MEDICATION_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_TABLE), psql:H2_SPECIFICS),
             [RESEARCH_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(RESEARCH_DEFINITION_TABLE), psql:H2_SPECIFICS),
             [HEALTHCARE_SERVICE_TABLE]: check new (dbClient, self.metadata.get(HEALTHCARE_SERVICE_TABLE), psql:H2_SPECIFICS),
+            [HEALTHCARE_SERVICE_TABLE_HISTORY]: check new (dbClient, self.metadata.get(HEALTHCARE_SERVICE_TABLE_HISTORY), psql:H2_SPECIFICS),
             [PAYMENT_NOTICE_TABLE]: check new (dbClient, self.metadata.get(PAYMENT_NOTICE_TABLE), psql:H2_SPECIFICS),
             [PROVENANCE_TABLE]: check new (dbClient, self.metadata.get(PROVENANCE_TABLE), psql:H2_SPECIFICS),
             [GRAPH_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(GRAPH_DEFINITION_TABLE), psql:H2_SPECIFICS),
@@ -3135,11 +3576,14 @@ public isolated client class Client {
             [BODY_STRUCTURE_TABLE]: check new (dbClient, self.metadata.get(BODY_STRUCTURE_TABLE), psql:H2_SPECIFICS),
             [DIAGNOSTIC_REPORT_TABLE]: check new (dbClient, self.metadata.get(DIAGNOSTIC_REPORT_TABLE), psql:H2_SPECIFICS),
             [GOAL_TABLE]: check new (dbClient, self.metadata.get(GOAL_TABLE), psql:H2_SPECIFICS),
+            [GOAL_TABLE_HISTORY]: check new (dbClient, self.metadata.get(GOAL_TABLE_HISTORY), psql:H2_SPECIFICS),
             [CAPABILITY_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(CAPABILITY_STATEMENT_TABLE), psql:H2_SPECIFICS),
             [DEVICE_USE_STATEMENT_TABLE]: check new (dbClient, self.metadata.get(DEVICE_USE_STATEMENT_TABLE), psql:H2_SPECIFICS),
             [SCHEDULE_TABLE]: check new (dbClient, self.metadata.get(SCHEDULE_TABLE), psql:H2_SPECIFICS),
             [MEDICINAL_PRODUCT_PACKAGED_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_PACKAGED_TABLE), psql:H2_SPECIFICS),
+            [MEDICINAL_PRODUCT_PACKAGED_TABLE_HISTORY]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_PACKAGED_TABLE_HISTORY), psql:H2_SPECIFICS),
             [PROCEDURE_TABLE]: check new (dbClient, self.metadata.get(PROCEDURE_TABLE), psql:H2_SPECIFICS),
+            [PROCEDURE_TABLE_HISTORY]: check new (dbClient, self.metadata.get(PROCEDURE_TABLE_HISTORY), psql:H2_SPECIFICS),
             [LIBRARY_TABLE]: check new (dbClient, self.metadata.get(LIBRARY_TABLE), psql:H2_SPECIFICS),
             [CODE_SYSTEM_TABLE]: check new (dbClient, self.metadata.get(CODE_SYSTEM_TABLE), psql:H2_SPECIFICS),
             [COMMUNICATION_REQUEST_TABLE]: check new (dbClient, self.metadata.get(COMMUNICATION_REQUEST_TABLE), psql:H2_SPECIFICS),
@@ -3147,6 +3591,7 @@ public isolated client class Client {
             [REQUEST_GROUP_TABLE]: check new (dbClient, self.metadata.get(REQUEST_GROUP_TABLE), psql:H2_SPECIFICS),
             [CLAIM_TABLE]: check new (dbClient, self.metadata.get(CLAIM_TABLE), psql:H2_SPECIFICS),
             [MESSAGE_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(MESSAGE_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [MESSAGE_DEFINITION_TABLE_HISTORY]: check new (dbClient, self.metadata.get(MESSAGE_DEFINITION_TABLE_HISTORY), psql:H2_SPECIFICS),
             [RISK_EVIDENCE_SYNTHESIS_TABLE]: check new (dbClient, self.metadata.get(RISK_EVIDENCE_SYNTHESIS_TABLE), psql:H2_SPECIFICS),
             [TASK_TABLE]: check new (dbClient, self.metadata.get(TASK_TABLE), psql:H2_SPECIFICS),
             [IMPLEMENTATION_GUIDE_TABLE]: check new (dbClient, self.metadata.get(IMPLEMENTATION_GUIDE_TABLE), psql:H2_SPECIFICS),
@@ -3154,8 +3599,10 @@ public isolated client class Client {
             [MEDICINAL_PRODUCT_UNDESIRABLE_EFFECT_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_UNDESIRABLE_EFFECT_TABLE), psql:H2_SPECIFICS),
             [COMPARTMENT_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(COMPARTMENT_DEFINITION_TABLE), psql:H2_SPECIFICS),
             [ENDPOINT_TABLE]: check new (dbClient, self.metadata.get(ENDPOINT_TABLE), psql:H2_SPECIFICS),
+            [ENDPOINT_TABLE_HISTORY]: check new (dbClient, self.metadata.get(ENDPOINT_TABLE_HISTORY), psql:H2_SPECIFICS),
             [TERMINOLOGY_CAPABILITIES_TABLE]: check new (dbClient, self.metadata.get(TERMINOLOGY_CAPABILITIES_TABLE), psql:H2_SPECIFICS),
             [CONDITION_TABLE]: check new (dbClient, self.metadata.get(CONDITION_TABLE), psql:H2_SPECIFICS),
+            [CONDITION_TABLE_HISTORY]: check new (dbClient, self.metadata.get(CONDITION_TABLE_HISTORY), psql:H2_SPECIFICS),
             [COMPOSITION_TABLE]: check new (dbClient, self.metadata.get(COMPOSITION_TABLE), psql:H2_SPECIFICS),
             [CONTRACT_TABLE]: check new (dbClient, self.metadata.get(CONTRACT_TABLE), psql:H2_SPECIFICS),
             [IMMUNIZATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_TABLE), psql:H2_SPECIFICS),
@@ -3164,8 +3611,10 @@ public isolated client class Client {
             [SEARCH_PARAMETER_TABLE]: check new (dbClient, self.metadata.get(SEARCH_PARAMETER_TABLE), psql:H2_SPECIFICS),
             [MEDICATION_REQUEST_TABLE]: check new (dbClient, self.metadata.get(MEDICATION_REQUEST_TABLE), psql:H2_SPECIFICS),
             [ENROLLMENT_REQUEST_TABLE]: check new (dbClient, self.metadata.get(ENROLLMENT_REQUEST_TABLE), psql:H2_SPECIFICS),
+            [ENROLLMENT_REQUEST_TABLE_HISTORY]: check new (dbClient, self.metadata.get(ENROLLMENT_REQUEST_TABLE_HISTORY), psql:H2_SPECIFICS),
             [SPECIMEN_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(SPECIMEN_DEFINITION_TABLE), psql:H2_SPECIFICS),
             [EVENT_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(EVENT_DEFINITION_TABLE), psql:H2_SPECIFICS),
+            [EVENT_DEFINITION_TABLE_HISTORY]: check new (dbClient, self.metadata.get(EVENT_DEFINITION_TABLE_HISTORY), psql:H2_SPECIFICS),
             [IMMUNIZATION_EVALUATION_TABLE]: check new (dbClient, self.metadata.get(IMMUNIZATION_EVALUATION_TABLE), psql:H2_SPECIFICS),
             [PAYMENT_RECONCILIATION_TABLE]: check new (dbClient, self.metadata.get(PAYMENT_RECONCILIATION_TABLE), psql:H2_SPECIFICS),
             [MEASURE_TABLE]: check new (dbClient, self.metadata.get(MEASURE_TABLE), psql:H2_SPECIFICS),
@@ -3177,11 +3626,13 @@ public isolated client class Client {
             [DEVICE_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(DEVICE_DEFINITION_TABLE), psql:H2_SPECIFICS),
             [COVERAGE_ELIGIBILITY_REQUEST_TABLE]: check new (dbClient, self.metadata.get(COVERAGE_ELIGIBILITY_REQUEST_TABLE), psql:H2_SPECIFICS),
             [PATIENT_TABLE]: check new (dbClient, self.metadata.get(PATIENT_TABLE), psql:H2_SPECIFICS),
+            [PATIENT_TABLE_HISTORY]: check new (dbClient, self.metadata.get(PATIENT_TABLE_HISTORY), psql:H2_SPECIFICS),
             [COVERAGE_TABLE]: check new (dbClient, self.metadata.get(COVERAGE_TABLE), psql:H2_SPECIFICS),
             [SUBSTANCE_TABLE]: check new (dbClient, self.metadata.get(SUBSTANCE_TABLE), psql:H2_SPECIFICS),
             [CHARGE_ITEM_DEFINITION_TABLE]: check new (dbClient, self.metadata.get(CHARGE_ITEM_DEFINITION_TABLE), psql:H2_SPECIFICS),
             [MEDICINAL_PRODUCT_INTERACTION_TABLE]: check new (dbClient, self.metadata.get(MEDICINAL_PRODUCT_INTERACTION_TABLE), psql:H2_SPECIFICS),
             [ACCOUNT_TABLE]: check new (dbClient, self.metadata.get(ACCOUNT_TABLE), psql:H2_SPECIFICS),
+            [ACCOUNT_TABLE_HISTORY]: check new (dbClient, self.metadata.get(ACCOUNT_TABLE_HISTORY), psql:H2_SPECIFICS),
             [MESSAGE_HEADER_TABLE]: check new (dbClient, self.metadata.get(MESSAGE_HEADER_TABLE), psql:H2_SPECIFICS),
             [AUDIT_EVENT_TABLE]: check new (dbClient, self.metadata.get(AUDIT_EVENT_TABLE), psql:H2_SPECIFICS),
             [NUTRITION_ORDER_TABLE]: check new (dbClient, self.metadata.get(NUTRITION_ORDER_TABLE), psql:H2_SPECIFICS),
@@ -3387,6 +3838,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get relatedpersontablehistories(RelatedPersonTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get relatedpersontablehistories/[int ID](RelatedPersonTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post relatedpersontablehistories(RelatedPersonTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(RELATED_PERSON_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put relatedpersontablehistories/[int ID](RelatedPersonTableHistoryUpdate value) returns RelatedPersonTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(RELATED_PERSON_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/relatedpersontablehistories/[ID].get();
+    }
+
+    isolated resource function delete relatedpersontablehistories/[int ID]() returns RelatedPersonTableHistory|persist:Error {
+        RelatedPersonTableHistory result = check self->/relatedpersontablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(RELATED_PERSON_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get evidencevariabletables(EvidenceVariableTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -3504,6 +3995,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get documentmanifesttablehistories(DocumentManifestTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get documentmanifesttablehistories/[int ID](DocumentManifestTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post documentmanifesttablehistories(DocumentManifestTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(DOCUMENT_MANIFEST_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put documentmanifesttablehistories/[int ID](DocumentManifestTableHistoryUpdate value) returns DocumentManifestTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(DOCUMENT_MANIFEST_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/documentmanifesttablehistories/[ID].get();
+    }
+
+    isolated resource function delete documentmanifesttablehistories/[int ID]() returns DocumentManifestTableHistory|persist:Error {
+        DocumentManifestTableHistory result = check self->/documentmanifesttablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(DOCUMENT_MANIFEST_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get immunizationrecommendationtables(ImmunizationRecommendationTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -3540,6 +4071,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(IMMUNIZATION_RECOMMENDATION_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(IMMUNIZATIONRECOMMENDATIONTABLE_ID);
+        return result;
+    }
+
+    isolated resource function get immunizationrecommendationtablehistories(ImmunizationRecommendationTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get immunizationrecommendationtablehistories/[int ID](ImmunizationRecommendationTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post immunizationrecommendationtablehistories(ImmunizationRecommendationTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(IMMUNIZATION_RECOMMENDATION_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put immunizationrecommendationtablehistories/[int ID](ImmunizationRecommendationTableHistoryUpdate value) returns ImmunizationRecommendationTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(IMMUNIZATION_RECOMMENDATION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/immunizationrecommendationtablehistories/[ID].get();
+    }
+
+    isolated resource function delete immunizationrecommendationtablehistories/[int ID]() returns ImmunizationRecommendationTableHistory|persist:Error {
+        ImmunizationRecommendationTableHistory result = check self->/immunizationrecommendationtablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(IMMUNIZATION_RECOMMENDATION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -3618,6 +4189,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(LOCATION_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(LOCATIONTABLE_ID);
+        return result;
+    }
+
+    isolated resource function get locationtablehistories(LocationTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get locationtablehistories/[int ID](LocationTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post locationtablehistories(LocationTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(LOCATION_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put locationtablehistories/[int ID](LocationTableHistoryUpdate value) returns LocationTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(LOCATION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/locationtablehistories/[ID].get();
+    }
+
+    isolated resource function delete locationtablehistories/[int ID]() returns LocationTableHistory|persist:Error {
+        LocationTableHistory result = check self->/locationtablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(LOCATION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -3972,6 +4583,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get practitionerroletablehistories(PractitionerRoleTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get practitionerroletablehistories/[int ID](PractitionerRoleTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post practitionerroletablehistories(PractitionerRoleTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PRACTITIONER_ROLE_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put practitionerroletablehistories/[int ID](PractitionerRoleTableHistoryUpdate value) returns PractitionerRoleTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PRACTITIONER_ROLE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/practitionerroletablehistories/[ID].get();
+    }
+
+    isolated resource function delete practitionerroletablehistories/[int ID]() returns PractitionerRoleTableHistory|persist:Error {
+        PractitionerRoleTableHistory result = check self->/practitionerroletablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PRACTITIONER_ROLE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get grouptables(GroupTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -4089,6 +4740,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get practitionertablehistories(PractitionerTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get practitionertablehistories/[int ID](PractitionerTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post practitionertablehistories(PractitionerTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PRACTITIONER_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put practitionertablehistories/[int ID](PractitionerTableHistoryUpdate value) returns PractitionerTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PRACTITIONER_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/practitionertablehistories/[ID].get();
+    }
+
+    isolated resource function delete practitionertablehistories/[int ID]() returns PractitionerTableHistory|persist:Error {
+        PractitionerTableHistory result = check self->/practitionertablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PRACTITIONER_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get activitydefinitiontables(ActivityDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -4203,6 +4894,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(DEVICE_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(DEVICETABLE_ID);
+        return result;
+    }
+
+    isolated resource function get devicetablehistories(DeviceTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get devicetablehistories/[int ID](DeviceTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post devicetablehistories(DeviceTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(DEVICE_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put devicetablehistories/[int ID](DeviceTableHistoryUpdate value) returns DeviceTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(DEVICE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/devicetablehistories/[ID].get();
+    }
+
+    isolated resource function delete devicetablehistories/[int ID]() returns DeviceTableHistory|persist:Error {
+        DeviceTableHistory result = check self->/devicetablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(DEVICE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -4401,6 +5132,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get invoicetablehistories(InvoiceTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get invoicetablehistories/[int ID](InvoiceTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post invoicetablehistories(InvoiceTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(INVOICE_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put invoicetablehistories/[int ID](InvoiceTableHistoryUpdate value) returns InvoiceTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(INVOICE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/invoicetablehistories/[ID].get();
+    }
+
+    isolated resource function delete invoicetablehistories/[int ID]() returns InvoiceTableHistory|persist:Error {
+        InvoiceTableHistory result = check self->/invoicetablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(INVOICE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get questionnaireresponsetables(QuestionnaireResponseTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -4476,6 +5247,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(OBSERVATION_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(OBSERVATIONTABLE_ID);
+        return result;
+    }
+
+    isolated resource function get observationtablehistories(ObservationTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get observationtablehistories/[int ID](ObservationTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post observationtablehistories(ObservationTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(OBSERVATION_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put observationtablehistories/[int ID](ObservationTableHistoryUpdate value) returns ObservationTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(OBSERVATION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/observationtablehistories/[ID].get();
+    }
+
+    isolated resource function delete observationtablehistories/[int ID]() returns ObservationTableHistory|persist:Error {
+        ObservationTableHistory result = check self->/observationtablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(OBSERVATION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -4671,6 +5482,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(SERVICE_REQUEST_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(SERVICEREQUESTTABLE_ID);
+        return result;
+    }
+
+    isolated resource function get servicerequesttablehistories(ServiceRequestTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get servicerequesttablehistories/[int ID](ServiceRequestTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post servicerequesttablehistories(ServiceRequestTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(SERVICE_REQUEST_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put servicerequesttablehistories/[int ID](ServiceRequestTableHistoryUpdate value) returns ServiceRequestTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(SERVICE_REQUEST_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/servicerequesttablehistories/[ID].get();
+    }
+
+    isolated resource function delete servicerequesttablehistories/[int ID]() returns ServiceRequestTableHistory|persist:Error {
+        ServiceRequestTableHistory result = check self->/servicerequesttablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(SERVICE_REQUEST_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -5728,6 +6579,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get consenttablehistories(ConsentTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get consenttablehistories/[int ID](ConsentTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post consenttablehistories(ConsentTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(CONSENT_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put consenttablehistories/[int ID](ConsentTableHistoryUpdate value) returns ConsentTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(CONSENT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/consenttablehistories/[ID].get();
+    }
+
+    isolated resource function delete consenttablehistories/[int ID]() returns ConsentTableHistory|persist:Error {
+        ConsentTableHistory result = check self->/consenttablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(CONSENT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get detectedissuetables(DetectedIssueTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -5962,6 +6853,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get slottablehistories(SlotTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get slottablehistories/[int ID](SlotTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post slottablehistories(SlotTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(SLOT_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put slottablehistories/[int ID](SlotTableHistoryUpdate value) returns SlotTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(SLOT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/slottablehistories/[ID].get();
+    }
+
+    isolated resource function delete slottablehistories/[int ID]() returns SlotTableHistory|persist:Error {
+        SlotTableHistory result = check self->/slottablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(SLOT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get verificationresulttables(VerificationResultTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -6193,6 +7124,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(HEALTHCARE_SERVICE_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(HEALTHCARESERVICETABLE_ID);
+        return result;
+    }
+
+    isolated resource function get healthcareservicetablehistories(HealthcareServiceTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get healthcareservicetablehistories/[int ID](HealthcareServiceTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post healthcareservicetablehistories(HealthcareServiceTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(HEALTHCARE_SERVICE_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put healthcareservicetablehistories/[int ID](HealthcareServiceTableHistoryUpdate value) returns HealthcareServiceTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(HEALTHCARE_SERVICE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/healthcareservicetablehistories/[ID].get();
+    }
+
+    isolated resource function delete healthcareservicetablehistories/[int ID]() returns HealthcareServiceTableHistory|persist:Error {
+        HealthcareServiceTableHistory result = check self->/healthcareservicetablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(HEALTHCARE_SERVICE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -6469,6 +7440,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get goaltablehistories(GoalTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get goaltablehistories/[int ID](GoalTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post goaltablehistories(GoalTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(GOAL_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put goaltablehistories/[int ID](GoalTableHistoryUpdate value) returns GoalTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(GOAL_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/goaltablehistories/[ID].get();
+    }
+
+    isolated resource function delete goaltablehistories/[int ID]() returns GoalTableHistory|persist:Error {
+        GoalTableHistory result = check self->/goaltablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(GOAL_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get capabilitystatementtables(CapabilityStatementTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -6625,6 +7636,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get medicinalproductpackagedtablehistories(MedicinalProductPackagedTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get medicinalproductpackagedtablehistories/[int ID](MedicinalProductPackagedTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post medicinalproductpackagedtablehistories(MedicinalProductPackagedTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(MEDICINAL_PRODUCT_PACKAGED_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put medicinalproductpackagedtablehistories/[int ID](MedicinalProductPackagedTableHistoryUpdate value) returns MedicinalProductPackagedTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(MEDICINAL_PRODUCT_PACKAGED_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/medicinalproductpackagedtablehistories/[ID].get();
+    }
+
+    isolated resource function delete medicinalproductpackagedtablehistories/[int ID]() returns MedicinalProductPackagedTableHistory|persist:Error {
+        MedicinalProductPackagedTableHistory result = check self->/medicinalproductpackagedtablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(MEDICINAL_PRODUCT_PACKAGED_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get proceduretables(ProcedureTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -6661,6 +7712,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(PROCEDURE_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(PROCEDURETABLE_ID);
+        return result;
+    }
+
+    isolated resource function get proceduretablehistories(ProcedureTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get proceduretablehistories/[int ID](ProcedureTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post proceduretablehistories(ProcedureTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PROCEDURE_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put proceduretablehistories/[int ID](ProcedureTableHistoryUpdate value) returns ProcedureTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PROCEDURE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/proceduretablehistories/[ID].get();
+    }
+
+    isolated resource function delete proceduretablehistories/[int ID]() returns ProcedureTableHistory|persist:Error {
+        ProcedureTableHistory result = check self->/proceduretablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PROCEDURE_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -6937,6 +8028,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get messagedefinitiontablehistories(MessageDefinitionTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get messagedefinitiontablehistories/[int ID](MessageDefinitionTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post messagedefinitiontablehistories(MessageDefinitionTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(MESSAGE_DEFINITION_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put messagedefinitiontablehistories/[int ID](MessageDefinitionTableHistoryUpdate value) returns MessageDefinitionTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(MESSAGE_DEFINITION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/messagedefinitiontablehistories/[ID].get();
+    }
+
+    isolated resource function delete messagedefinitiontablehistories/[int ID]() returns MessageDefinitionTableHistory|persist:Error {
+        MessageDefinitionTableHistory result = check self->/messagedefinitiontablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(MESSAGE_DEFINITION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get riskevidencesynthesistables(RiskEvidenceSynthesisTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -7210,6 +8341,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get endpointtablehistories(EndpointTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get endpointtablehistories/[int ID](EndpointTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post endpointtablehistories(EndpointTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ENDPOINT_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put endpointtablehistories/[int ID](EndpointTableHistoryUpdate value) returns EndpointTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ENDPOINT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/endpointtablehistories/[ID].get();
+    }
+
+    isolated resource function delete endpointtablehistories/[int ID]() returns EndpointTableHistory|persist:Error {
+        EndpointTableHistory result = check self->/endpointtablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ENDPOINT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get terminologycapabilitiestables(TerminologyCapabilitiesTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -7285,6 +8456,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(CONDITION_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(CONDITIONTABLE_ID);
+        return result;
+    }
+
+    isolated resource function get conditiontablehistories(ConditionTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get conditiontablehistories/[int ID](ConditionTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post conditiontablehistories(ConditionTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(CONDITION_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put conditiontablehistories/[int ID](ConditionTableHistoryUpdate value) returns ConditionTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(CONDITION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/conditiontablehistories/[ID].get();
+    }
+
+    isolated resource function delete conditiontablehistories/[int ID]() returns ConditionTableHistory|persist:Error {
+        ConditionTableHistory result = check self->/conditiontablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(CONDITION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -7600,6 +8811,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get enrollmentrequesttablehistories(EnrollmentRequestTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get enrollmentrequesttablehistories/[int ID](EnrollmentRequestTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post enrollmentrequesttablehistories(EnrollmentRequestTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ENROLLMENT_REQUEST_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put enrollmentrequesttablehistories/[int ID](EnrollmentRequestTableHistoryUpdate value) returns EnrollmentRequestTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ENROLLMENT_REQUEST_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/enrollmentrequesttablehistories/[ID].get();
+    }
+
+    isolated resource function delete enrollmentrequesttablehistories/[int ID]() returns EnrollmentRequestTableHistory|persist:Error {
+        EnrollmentRequestTableHistory result = check self->/enrollmentrequesttablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ENROLLMENT_REQUEST_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get specimendefinitiontables(SpecimenDefinitionTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -7675,6 +8926,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(EVENT_DEFINITION_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(EVENTDEFINITIONTABLE_ID);
+        return result;
+    }
+
+    isolated resource function get eventdefinitiontablehistories(EventDefinitionTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get eventdefinitiontablehistories/[int ID](EventDefinitionTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post eventdefinitiontablehistories(EventDefinitionTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(EVENT_DEFINITION_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put eventdefinitiontablehistories/[int ID](EventDefinitionTableHistoryUpdate value) returns EventDefinitionTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(EVENT_DEFINITION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/eventdefinitiontablehistories/[ID].get();
+    }
+
+    isolated resource function delete eventdefinitiontablehistories/[int ID]() returns EventDefinitionTableHistory|persist:Error {
+        EventDefinitionTableHistory result = check self->/eventdefinitiontablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(EVENT_DEFINITION_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 
@@ -8107,6 +9398,46 @@ public isolated client class Client {
         return result;
     }
 
+    isolated resource function get patienttablehistories(PatientTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get patienttablehistories/[int ID](PatientTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post patienttablehistories(PatientTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PATIENT_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put patienttablehistories/[int ID](PatientTableHistoryUpdate value) returns PatientTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PATIENT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/patienttablehistories/[ID].get();
+    }
+
+    isolated resource function delete patienttablehistories/[int ID]() returns PatientTableHistory|persist:Error {
+        PatientTableHistory result = check self->/patienttablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(PATIENT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
+        return result;
+    }
+
     isolated resource function get coveragetables(CoverageTableTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
         'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
         name: "query"
@@ -8299,6 +9630,46 @@ public isolated client class Client {
             sqlClient = self.persistClients.get(ACCOUNT_TABLE);
         }
         _ = check sqlClient.runDeleteQuery(ACCOUNTTABLE_ID);
+        return result;
+    }
+
+    isolated resource function get accounttablehistories(AccountTableHistoryTargetType targetType = <>, sql:ParameterizedQuery whereClause = ``, sql:ParameterizedQuery orderByClause = ``, sql:ParameterizedQuery limitClause = ``, sql:ParameterizedQuery groupByClause = ``) returns stream<targetType, persist:Error?> = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "query"
+    } external;
+
+    isolated resource function get accounttablehistories/[int ID](AccountTableHistoryTargetType targetType = <>) returns targetType|persist:Error = @java:Method {
+        'class: "io.ballerina.stdlib.persist.sql.datastore.H2Processor",
+        name: "queryOne"
+    } external;
+
+    isolated resource function post accounttablehistories(AccountTableHistoryInsert[] data) returns int[]|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ACCOUNT_TABLE_HISTORY);
+        }
+        sql:ExecutionResult[] result = check sqlClient.runBatchInsertQuery(data);
+        return from sql:ExecutionResult inserted in result
+            where inserted.lastInsertId != ()
+            select <int>inserted.lastInsertId;
+    }
+
+    isolated resource function put accounttablehistories/[int ID](AccountTableHistoryUpdate value) returns AccountTableHistory|persist:Error {
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ACCOUNT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runUpdateQuery(ID, value);
+        return self->/accounttablehistories/[ID].get();
+    }
+
+    isolated resource function delete accounttablehistories/[int ID]() returns AccountTableHistory|persist:Error {
+        AccountTableHistory result = check self->/accounttablehistories/[ID].get();
+        psql:SQLClient sqlClient;
+        lock {
+            sqlClient = self.persistClients.get(ACCOUNT_TABLE_HISTORY);
+        }
+        _ = check sqlClient.runDeleteQuery(ID);
         return result;
     }
 

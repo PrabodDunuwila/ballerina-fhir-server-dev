@@ -119,6 +119,26 @@ public type RelatedPersonTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type RelatedPersonTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string RELATEDPERSONTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    time:Date? BIRTHDATE;
+    @sql:Varchar {length: 512}
+	string? NAME;
+    @sql:Varchar {length: 2048}
+	string? GENDER;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? ACTIVE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type EvidenceVariableTable record {|
     readonly string EVIDENCEVARIABLETABLE_ID;
     @sql:Varchar {length: 512}
@@ -218,6 +238,24 @@ public type DocumentManifestTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type DocumentManifestTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string DOCUMENTMANIFESTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    time:Date? CREATED;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type ImmunizationRecommendationTable record {|
     readonly string IMMUNIZATIONRECOMMENDATIONTABLE_ID;
     time:Date? DATE;
@@ -233,6 +271,26 @@ public type ImmunizationRecommendationTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ImmunizationRecommendationTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string IMMUNIZATIONRECOMMENDATIONTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? TARGET_DISEASE;
+    @sql:Varchar {length: 2048}
+	string? VACCINE_TYPE;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -279,6 +337,25 @@ public type LocationTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type LocationTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string LOCATIONTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 512}
+	string? NAME;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? TYPE;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -454,6 +531,26 @@ public type PractitionerRoleTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type PractitionerRoleTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string PRACTITIONERROLETABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? ROLE;
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? ACTIVE;
+    @sql:Varchar {length: 2048}
+	string? SPECIALTY;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type GroupTable record {|
     readonly string GROUPTABLE_ID;
     @sql:Varchar {length: 2048}
@@ -556,6 +653,29 @@ public type PractitionerTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type PractitionerTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string PRACTITIONERTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 512}
+	string? NAME;
+    @sql:Varchar {length: 512}
+	string? FAMILY;
+    @sql:Varchar {length: 512}
+	string? GIVEN;
+    @sql:Varchar {length: 2048}
+	string? GENDER;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? ACTIVE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type ActivityDefinitionTable record {|
     readonly string ACTIVITYDEFINITIONTABLE_ID;
     @sql:Varchar {length: 512}
@@ -654,6 +774,27 @@ public type DeviceTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type DeviceTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string DEVICETABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 512}
+	string? MANUFACTURER;
+    @sql:Varchar {length: 512}
+	string? MODEL;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? TYPE;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -767,6 +908,24 @@ public type InvoiceTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type InvoiceTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string INVOICETABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type QuestionnaireResponseTable record {|
     readonly string QUESTIONNAIRERESPONSETABLE_ID;
     @sql:Varchar {length: 2048}
@@ -823,6 +982,30 @@ public type ObservationTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ObservationTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string OBSERVATIONTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION; // CREATE, UPDATE, DELETE
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? CODE;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? VALUE_QUANTITY;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? METHOD;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -959,6 +1142,27 @@ public type ServiceRequestTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ServiceRequestTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string SERVICEREQUESTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? INTENT;
+    @sql:Varchar {length: 2048}
+	string? CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? CODE;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -1598,6 +1802,24 @@ public type ConsentTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type ConsentTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string CONSENTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type DetectedIssueTable record {|
     readonly string DETECTEDISSUETABLE_ID;
     @sql:Varchar {length: 2048}
@@ -1698,6 +1920,28 @@ public type SlotTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type SlotTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string SLOTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    time:Date? START;
+    @sql:Varchar {length: 2048}
+	string? SERVICE_CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? SERVICE_TYPE;
+    @sql:Varchar {length: 2048}
+	string? SPECIALTY;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -1829,6 +2073,27 @@ public type HealthcareServiceTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type HealthcareServiceTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string HEALTHCARESERVICETABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? ACTIVE;
+    @sql:Varchar {length: 512}
+	string? NAME;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? SERVICE_CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? SERVICE_TYPE;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -1974,6 +2239,24 @@ public type GoalTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type GoalTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string GOALTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    time:Date? TARGET_DATE;
+    @sql:Varchar {length: 2048}
+	string? CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? LIFECYCLE_STATUS;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type CapabilityStatementTable record {|
     readonly string CAPABILITYSTATEMENTTABLE_ID;
     @sql:Varchar {length: 512}
@@ -2060,6 +2343,19 @@ public type MedicinalProductPackagedTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type MedicinalProductPackagedTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string MEDICINALPRODUCTPACKAGEDTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type ProcedureTable record {|
     readonly string PROCEDURETABLE_ID;
     time:Date? DATE;
@@ -2079,6 +2375,26 @@ public type ProcedureTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ProcedureTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string PROCEDURETABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? CODE;
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -2309,6 +2625,24 @@ public type MessageDefinitionTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type MessageDefinitionTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string MESSAGEDEFINITIONTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type RiskEvidenceSynthesisTable record {|
     readonly string RISKEVIDENCESYNTHESISTABLE_ID;
     @sql:Varchar {length: 512}
@@ -2500,6 +2834,23 @@ public type EndpointTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type EndpointTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string ENDPOINTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 512}
+	string? NAME;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type TerminologyCapabilitiesTable record {|
     readonly string TERMINOLOGYCAPABILITIESTABLE_ID;
     time:Date? DATE;
@@ -2567,6 +2918,27 @@ public type ConditionTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ConditionTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string CONDITIONTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? CLINICAL_STATUS;
+    @sql:Varchar {length: 2048}
+	string? CATEGORY;
+    @sql:Varchar {length: 2048}
+	string? CODE;
+    @sql:Varchar {length: 2048}
+	string? SEVERITY;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -2760,6 +3132,21 @@ public type EnrollmentRequestTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type EnrollmentRequestTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string ENROLLMENTREQUESTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type SpecimenDefinitionTable record {|
     readonly string SPECIMENDEFINITIONTABLE_ID;
     @sql:Varchar {length: 2048}
@@ -2809,6 +3196,22 @@ public type EventDefinitionTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type EventDefinitionTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string EVENTDEFINITIONTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION;
+    time:Date? DATE;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 
@@ -3079,6 +3482,34 @@ public type PatientTable record {|
     byte[] RESOURCE_JSON;
 |};
 
+public type PatientTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string PATIENTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION; // CREATE, UPDATE, DELETE
+    time:Date? BIRTHDATE;
+    @sql:Varchar {length: 512}
+	string? NAME;
+    @sql:Varchar {length: 512}
+	string? FAMILY;
+    @sql:Varchar {length: 512}
+	string? GIVEN;
+    @sql:Varchar {length: 2048}
+	string? GENDER;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? ACTIVE;
+    @sql:Varchar {length: 2048}
+	string? PHONE;
+    @sql:Varchar {length: 2048}
+	string? EMAIL;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
 public type CoverageTable record {|
     readonly string COVERAGETABLE_ID;
     @sql:Varchar {length: 2048}
@@ -3179,6 +3610,26 @@ public type AccountTable record {|
     time:Civil CREATED_AT;
     time:Civil UPDATED_AT;
     time:Civil LAST_UPDATED;
+    byte[] RESOURCE_JSON;
+|};
+
+public type AccountTableHistory record {|
+    @sql:Generated
+    readonly int ID;
+    string ACCOUNTTABLE_ID;
+    int VERSION_ID;
+    @sql:Varchar {length: 20}
+    string OPERATION; // CREATE, UPDATE, DELETE
+    time:Date? PERIOD;
+    @sql:Varchar {length: 2048}
+	string? STATUS;
+    @sql:Varchar {length: 2048}
+	string? IDENTIFIER;
+    @sql:Varchar {length: 2048}
+	string? TYPE;
+    @sql:Varchar {length: 512}
+	string? NAME;
+    time:Civil CREATED_AT;
     byte[] RESOURCE_JSON;
 |};
 

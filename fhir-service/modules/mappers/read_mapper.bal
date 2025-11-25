@@ -75,9 +75,44 @@ public class ReadMapper {
                 json|error slotJson = (check self.readSlot(persistClient, resourceId)).toJson();
                 return slotJson;
             }
+            "Invoice" => {
+                json|error invoiceJson = (check self.readInvoice(persistClient, resourceId)).toJson();
+                return invoiceJson;
+            }
+            "DocumentManifest" => {
+                json|error documentManifestJson = (check self.readDocumentManifest(persistClient, resourceId)).toJson();
+                return documentManifestJson;
+            }
+            "Consent" => {
+                json|error consentJson = (check self.readConsent(persistClient, resourceId)).toJson();
+                return consentJson;
+            }
+            "Goal" => {
+                json|error goalJson = (check self.readGoal(persistClient, resourceId)).toJson();
+                return goalJson;
+            }
+            "MedicinalProductPackaged" => {
+                json|error medicinalProductPackagedJson = (check self.readMedicinalProductPackaged(persistClient, resourceId)).toJson();
+                return medicinalProductPackagedJson;
+            }
+            "MessageDefinition" => {
+                json|error messageDefinitionJson = (check self.readMessageDefinition(persistClient, resourceId)).toJson();
+                return messageDefinitionJson;
+            }
+            "Endpoint" => {
+                json|error endpointJson = (check self.readEndpoint(persistClient, resourceId)).toJson();
+                return endpointJson;
+            }
+            "EnrollmentRequest" => {
+                json|error enrollmentRequestJson = (check self.readEnrollmentRequest(persistClient, resourceId)).toJson();
+                return enrollmentRequestJson;
+            }
+            "EventDefinition" => {
+                json|error eventDefinitionJson = (check self.readEventDefinition(persistClient, resourceId)).toJson();
+                return eventDefinitionJson;
+            }
             _ => {
-                // Generic handler for all other resources
-                return self.readGenericResource(persistClient, resourceType, resourceId);
+                return error(string `Resource type ${resourceType} is not supported for read operations`);
             }
         }
     }
@@ -131,9 +166,35 @@ public class ReadMapper {
             "Slot" => {
                 return self.searchSlots(persistClient, queryParams);
             }
+            "Invoice" => {
+                return self.searchInvoices(persistClient, queryParams);
+            }
+            "DocumentManifest" => {
+                return self.searchDocumentManifests(persistClient, queryParams);
+            }
+            "Consent" => {
+                return self.searchConsents(persistClient, queryParams);
+            }
+            "Goal" => {
+                return self.searchGoals(persistClient, queryParams);
+            }
+            "MedicinalProductPackaged" => {
+                return self.searchMedicinalProductPackageds(persistClient, queryParams);
+            }
+            "MessageDefinition" => {
+                return self.searchMessageDefinitions(persistClient, queryParams);
+            }
+            "Endpoint" => {
+                return self.searchEndpoints(persistClient, queryParams);
+            }
+            "EnrollmentRequest" => {
+                return self.searchEnrollmentRequests(persistClient, queryParams);
+            }
+            "EventDefinition" => {
+                return self.searchEventDefinitions(persistClient, queryParams);
+            }
             _ => {
-                // Generic handler for all other resources
-                return self.searchGenericResources(persistClient, resourceType, queryParams);
+                return error(string `Resource type ${resourceType} is not supported for search operations`);
             }
         }
     }
@@ -594,7 +655,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/Patient/${patient.PATIENTTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -685,7 +749,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/Practitioner/${practitioner.PRACTITIONERTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -780,7 +847,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/Device/${device.DEVICETABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -875,7 +945,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/HealthcareService/${healthcareService.HEALTHCARESERVICETABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -962,7 +1035,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/PractitionerRole/${practitionerRole.PRACTITIONERROLETABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -1057,7 +1133,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/RelatedPerson/${relatedPerson.RELATEDPERSONTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -1152,7 +1231,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/Location/${location.LOCATIONTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -1247,7 +1329,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/ServiceRequest/${serviceRequest.SERVICEREQUESTTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -1756,7 +1841,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/Condition/${condition.CONDITIONTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -1853,7 +1941,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/Observation/${observation.OBSERVATIONTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -1950,7 +2041,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/Procedure/${procedure.PROCEDURETABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -2047,7 +2141,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/ImmunizationRecommendation/${immunizationRecommendation.IMMUNIZATIONRECOMMENDATIONTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -2152,7 +2249,10 @@ public class ReadMapper {
             if resourceJson is json {
                 entries.push({
                     "fullUrl": string `https://example.com/fhir/Slot/${slot.SLOTTABLE_ID}`,
-                    "resource": resourceJson
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
                 });
             }
         }
@@ -2167,6 +2267,569 @@ public class ReadMapper {
         return bundle;
     }
 
+    private isolated function searchInvoices(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:InvoiceTable, persist:Error?> invoiceStream = persistClient->/invoicetables();
+
+        db_store:InvoiceTable[] allInvoices = check from var invoice in invoiceStream
+            select invoice;
+
+        db_store:InvoiceTable[] filteredInvoices = [];
+        
+        foreach var invoice in allInvoices {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && invoice.INVOICETABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && invoice.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && invoice.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredInvoices.push(invoice);
+            }
+        }
+
+        json[] entries = [];
+        foreach var invoice in filteredInvoices {
+            json|error resourceJson = check self.mapFromInvoiceTable(invoice);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Invoice/${invoice.INVOICETABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredInvoices.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    private isolated function searchDocumentManifests(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:DocumentManifestTable, persist:Error?> documentManifestStream = persistClient->/documentmanifesttables();
+
+        db_store:DocumentManifestTable[] allDocumentManifests = check from var documentManifest in documentManifestStream
+            select documentManifest;
+
+        db_store:DocumentManifestTable[] filteredDocumentManifests = [];
+        
+        foreach var documentManifest in allDocumentManifests {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && documentManifest.DOCUMENTMANIFESTTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && documentManifest.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && documentManifest.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredDocumentManifests.push(documentManifest);
+            }
+        }
+
+        json[] entries = [];
+        foreach var documentManifest in filteredDocumentManifests {
+            json|error resourceJson = check self.mapFromDocumentManifestTable(documentManifest);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/DocumentManifest/${documentManifest.DOCUMENTMANIFESTTABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredDocumentManifests.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    private isolated function searchConsents(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:ConsentTable, persist:Error?> consentStream = persistClient->/consenttables();
+
+        db_store:ConsentTable[] allConsents = check from var consent in consentStream
+            select consent;
+
+        db_store:ConsentTable[] filteredConsents = [];
+        
+        foreach var consent in allConsents {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && consent.CONSENTTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && consent.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && consent.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredConsents.push(consent);
+            }
+        }
+
+        json[] entries = [];
+        foreach var consent in filteredConsents {
+            json|error resourceJson = check self.mapFromConsentTable(consent);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Consent/${consent.CONSENTTABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredConsents.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    private isolated function searchGoals(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:GoalTable, persist:Error?> goalStream = persistClient->/goaltables();
+
+        db_store:GoalTable[] allGoals = check from var goal in goalStream
+            select goal;
+
+        db_store:GoalTable[] filteredGoals = [];
+        
+        foreach var goal in allGoals {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && goal.GOALTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("lifecycle-status") {
+                string[] statuses = queryParams.get("lifecycle-status");
+                if statuses.length() > 0 && goal.LIFECYCLE_STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && goal.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredGoals.push(goal);
+            }
+        }
+
+        json[] entries = [];
+        foreach var goal in filteredGoals {
+            json|error resourceJson = check self.mapFromGoalTable(goal);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Goal/${goal.GOALTABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredGoals.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    private isolated function searchMedicinalProductPackageds(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:MedicinalProductPackagedTable, persist:Error?> medicinalProductStream = persistClient->/medicinalproductpackagedtables();
+
+        db_store:MedicinalProductPackagedTable[] allMedicinalProducts = check from var medicinalProduct in medicinalProductStream
+            select medicinalProduct;
+
+        db_store:MedicinalProductPackagedTable[] filteredMedicinalProducts = [];
+        
+        foreach var medicinalProduct in allMedicinalProducts {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && medicinalProduct.MEDICINALPRODUCTPACKAGEDTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && medicinalProduct.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredMedicinalProducts.push(medicinalProduct);
+            }
+        }
+
+        json[] entries = [];
+        foreach var medicinalProduct in filteredMedicinalProducts {
+            json|error resourceJson = check self.mapFromMedicinalProductPackagedTable(medicinalProduct);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/MedicinalProductPackaged/${medicinalProduct.MEDICINALPRODUCTPACKAGEDTABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredMedicinalProducts.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    private isolated function searchMessageDefinitions(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:MessageDefinitionTable, persist:Error?> messageDefinitionStream = persistClient->/messagedefinitiontables();
+
+        db_store:MessageDefinitionTable[] allMessageDefinitions = check from var messageDefinition in messageDefinitionStream
+            select messageDefinition;
+
+        db_store:MessageDefinitionTable[] filteredMessageDefinitions = [];
+        
+        foreach var messageDefinition in allMessageDefinitions {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && messageDefinition.MESSAGEDEFINITIONTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && messageDefinition.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && messageDefinition.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("name") {
+                string[] names = queryParams.get("name");
+                if names.length() > 0 && messageDefinition.NAME != names[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredMessageDefinitions.push(messageDefinition);
+            }
+        }
+
+        json[] entries = [];
+        foreach var messageDefinition in filteredMessageDefinitions {
+            json|error resourceJson = check self.mapFromMessageDefinitionTable(messageDefinition);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/MessageDefinition/${messageDefinition.MESSAGEDEFINITIONTABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredMessageDefinitions.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    private isolated function searchEndpoints(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:EndpointTable, persist:Error?> endpointStream = persistClient->/endpointtables();
+
+        db_store:EndpointTable[] allEndpoints = check from var endpoint in endpointStream
+            select endpoint;
+
+        db_store:EndpointTable[] filteredEndpoints = [];
+        
+        foreach var endpoint in allEndpoints {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && endpoint.ENDPOINTTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && endpoint.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && endpoint.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("name") {
+                string[] names = queryParams.get("name");
+                if names.length() > 0 && endpoint.NAME != names[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredEndpoints.push(endpoint);
+            }
+        }
+
+        json[] entries = [];
+        foreach var endpoint in filteredEndpoints {
+            json|error resourceJson = check self.mapFromEndpointTable(endpoint);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/Endpoint/${endpoint.ENDPOINTTABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredEndpoints.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    private isolated function searchEnrollmentRequests(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:EnrollmentRequestTable, persist:Error?> enrollmentRequestStream = persistClient->/enrollmentrequesttables();
+
+        db_store:EnrollmentRequestTable[] allEnrollmentRequests = check from var enrollmentRequest in enrollmentRequestStream
+            select enrollmentRequest;
+
+        db_store:EnrollmentRequestTable[] filteredEnrollmentRequests = [];
+        
+        foreach var enrollmentRequest in allEnrollmentRequests {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && enrollmentRequest.ENROLLMENTREQUESTTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && enrollmentRequest.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && enrollmentRequest.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredEnrollmentRequests.push(enrollmentRequest);
+            }
+        }
+
+        json[] entries = [];
+        foreach var enrollmentRequest in filteredEnrollmentRequests {
+            json|error resourceJson = check self.mapFromEnrollmentRequestTable(enrollmentRequest);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/EnrollmentRequest/${enrollmentRequest.ENROLLMENTREQUESTTABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredEnrollmentRequests.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
+    private isolated function searchEventDefinitions(db_store:Client persistClient, map<string[]> queryParams) returns json|error {
+        stream<db_store:EventDefinitionTable, persist:Error?> eventDefinitionStream = persistClient->/eventdefinitiontables();
+
+        db_store:EventDefinitionTable[] allEventDefinitions = check from var eventDefinition in eventDefinitionStream
+            select eventDefinition;
+
+        db_store:EventDefinitionTable[] filteredEventDefinitions = [];
+        
+        foreach var eventDefinition in allEventDefinitions {
+            boolean matches = true;
+            
+            if matches && queryParams.hasKey("_id") {
+                string[] ids = queryParams.get("_id");
+                if ids.length() > 0 && eventDefinition.EVENTDEFINITIONTABLE_ID != ids[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("status") {
+                string[] statuses = queryParams.get("status");
+                if statuses.length() > 0 && eventDefinition.STATUS != statuses[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("identifier") {
+                string[] identifiers = queryParams.get("identifier");
+                if identifiers.length() > 0 && eventDefinition.IDENTIFIER != identifiers[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches && queryParams.hasKey("name") {
+                string[] names = queryParams.get("name");
+                if names.length() > 0 && eventDefinition.NAME != names[0] {
+                    matches = false;
+                }
+            }
+            
+            if matches {
+                filteredEventDefinitions.push(eventDefinition);
+            }
+        }
+
+        json[] entries = [];
+        foreach var eventDefinition in filteredEventDefinitions {
+            json|error resourceJson = check self.mapFromEventDefinitionTable(eventDefinition);
+            if resourceJson is json {
+                entries.push({
+                    "fullUrl": string `https://example.com/fhir/EventDefinition/${eventDefinition.EVENTDEFINITIONTABLE_ID}`,
+                    "resource": resourceJson,
+                    "search": {
+                        "mode": "match"
+                    }
+                });
+            }
+        }
+
+        json bundle = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": filteredEventDefinitions.length(),
+            "entry": entries
+        };
+
+        return bundle;
+    }
+
     // Map from SlotTable to Slot JSON
     public isolated function mapFromSlotTable(db_store:SlotTable slotTable) returns json|error {
         // Extract the RESOURCE_JSON bytes and convert to JSON
@@ -2174,6 +2837,69 @@ public class ReadMapper {
         string resourceJsonString = check string:fromBytes(resourceJsonBytes);
         json resourceJson = resourceJsonString.toJson();
 
+        return resourceJson;
+    }
+
+    public isolated function mapFromInvoiceTable(db_store:InvoiceTable invoiceTable) returns json|error {
+        byte[] resourceJsonBytes = invoiceTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+        return resourceJson;
+    }
+
+    public isolated function mapFromDocumentManifestTable(db_store:DocumentManifestTable documentManifestTable) returns json|error {
+        byte[] resourceJsonBytes = documentManifestTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+        return resourceJson;
+    }
+
+    public isolated function mapFromConsentTable(db_store:ConsentTable consentTable) returns json|error {
+        byte[] resourceJsonBytes = consentTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+        return resourceJson;
+    }
+
+    public isolated function mapFromGoalTable(db_store:GoalTable goalTable) returns json|error {
+        byte[] resourceJsonBytes = goalTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+        return resourceJson;
+    }
+
+    public isolated function mapFromMedicinalProductPackagedTable(db_store:MedicinalProductPackagedTable medicinalProductPackagedTable) returns json|error {
+        byte[] resourceJsonBytes = medicinalProductPackagedTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+        return resourceJson;
+    }
+
+    public isolated function mapFromMessageDefinitionTable(db_store:MessageDefinitionTable messageDefinitionTable) returns json|error {
+        byte[] resourceJsonBytes = messageDefinitionTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+        return resourceJson;
+    }
+
+    public isolated function mapFromEndpointTable(db_store:EndpointTable endpointTable) returns json|error {
+        byte[] resourceJsonBytes = endpointTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+        return resourceJson;
+    }
+
+    public isolated function mapFromEnrollmentRequestTable(db_store:EnrollmentRequestTable enrollmentRequestTable) returns json|error {
+        byte[] resourceJsonBytes = enrollmentRequestTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
+        return resourceJson;
+    }
+
+    public isolated function mapFromEventDefinitionTable(db_store:EventDefinitionTable eventDefinitionTable) returns json|error {
+        byte[] resourceJsonBytes = eventDefinitionTable.RESOURCE_JSON;
+        string resourceJsonString = check string:fromBytes(resourceJsonBytes);
+        json resourceJson = resourceJsonString.toJson();
         return resourceJson;
     }
 
@@ -2251,71 +2977,141 @@ public class ReadMapper {
         return result;
     }
 
-    // Generic resource reader for all unsupported resources
-    private isolated function readGenericResource(db_store:Client persistClient, string resourceType, string resourceId) returns json|error {
-        // Construct table name
-        string tableName = resourceType.toUpperAscii() + "Table";
-        string idColumn = resourceType.toUpperAscii() + "TABLE_ID";
-        
-        // Build and execute SQL query
-        sql:ParameterizedQuery query = `SELECT RESOURCE_JSON FROM ${tableName} WHERE ${idColumn} = ${resourceId}`;
-        
-        stream<record {| byte[] RESOURCE_JSON; |}, persist:Error?> resultStream = persistClient->queryNativeSQL(query);
-        
-        record {| byte[] RESOURCE_JSON; |}[] results = check from var row in resultStream select row;
-        
+    // Read Invoice resource
+    private isolated function readInvoice(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:InvoiceTable, persist:Error?> invoiceStream = persistClient->/invoicetables();
+
+        db_store:InvoiceTable[] results = check from var invoice in invoiceStream
+            where invoice.INVOICETABLE_ID == resourceId
+            select invoice;
+
         if results.length() == 0 {
-            return error(string `${resourceType}/${resourceId} not found`);
+            return error(string `Invoice/${resourceId} not found`);
         }
-        
-        // Convert bytes to JSON
-        string jsonStr = check string:fromBytes(results[0].RESOURCE_JSON);
-        json resourceJson = check jsonStr.fromJsonString();
-        
-        return resourceJson;
+
+        return check self.mapFromInvoiceTable(results[0]);
     }
 
-    // Generic resource searcher for all unsupported resources  
-    private isolated function searchGenericResources(db_store:Client persistClient, string resourceType, map<string[]> queryParams) returns json|error {
-        string tableName = resourceType.toUpperAscii() + "Table";
-        
-        // Build and execute SQL query
-        sql:ParameterizedQuery query = `SELECT RESOURCE_JSON FROM ${tableName}`;
-        
-        stream<record {| byte[] RESOURCE_JSON; |}, persist:Error?> resultStream = persistClient->queryNativeSQL(query);
-        
-        record {| byte[] RESOURCE_JSON; |}[] results = check from var row in resultStream select row;
-        
-        // Convert results to FHIR Bundle
-        json[] entries = [];
-        foreach var row in results {
-            string jsonStr = check string:fromBytes(row.RESOURCE_JSON);
-            json resourceJson = check jsonStr.fromJsonString();
-            
-            string resourceIdStr = "";
-            json|error idValue = resourceJson.id;
-            if idValue is string {
-                resourceIdStr = idValue;
-            } else if idValue is json {
-                resourceIdStr = idValue.toString();
-            }
-            
-            json entry = {
-                "fullUrl": string `${resourceType}/${resourceIdStr}`,
-                "resource": resourceJson
-            };
-            entries.push(entry);
+    // Read DocumentManifest resource
+    private isolated function readDocumentManifest(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:DocumentManifestTable, persist:Error?> documentManifestStream = persistClient->/documentmanifesttables();
+
+        db_store:DocumentManifestTable[] results = check from var documentManifest in documentManifestStream
+            where documentManifest.DOCUMENTMANIFESTTABLE_ID == resourceId
+            select documentManifest;
+
+        if results.length() == 0 {
+            return error(string `DocumentManifest/${resourceId} not found`);
         }
-        
-        json bundle = {
-            "resourceType": "Bundle",
-            "type": "searchset",
-            "total": entries.length(),
-            "entry": entries
-        };
-        
-        return bundle;
+
+        return check self.mapFromDocumentManifestTable(results[0]);
     }
+
+    // Read Consent resource
+    private isolated function readConsent(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:ConsentTable, persist:Error?> consentStream = persistClient->/consenttables();
+
+        db_store:ConsentTable[] results = check from var consent in consentStream
+            where consent.CONSENTTABLE_ID == resourceId
+            select consent;
+
+        if results.length() == 0 {
+            return error(string `Consent/${resourceId} not found`);
+        }
+
+        return check self.mapFromConsentTable(results[0]);
+    }
+
+    // Read Goal resource
+    private isolated function readGoal(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:GoalTable, persist:Error?> goalStream = persistClient->/goaltables();
+
+        db_store:GoalTable[] results = check from var goal in goalStream
+            where goal.GOALTABLE_ID == resourceId
+            select goal;
+
+        if results.length() == 0 {
+            return error(string `Goal/${resourceId} not found`);
+        }
+
+        return check self.mapFromGoalTable(results[0]);
+    }
+
+    // Read MedicinalProductPackaged resource
+    private isolated function readMedicinalProductPackaged(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:MedicinalProductPackagedTable, persist:Error?> medicinalProductPackagedStream = persistClient->/medicinalproductpackagedtables();
+
+        db_store:MedicinalProductPackagedTable[] results = check from var medicinalProductPackaged in medicinalProductPackagedStream
+            where medicinalProductPackaged.MEDICINALPRODUCTPACKAGEDTABLE_ID == resourceId
+            select medicinalProductPackaged;
+
+        if results.length() == 0 {
+            return error(string `MedicinalProductPackaged/${resourceId} not found`);
+        }
+
+        return check self.mapFromMedicinalProductPackagedTable(results[0]);
+    }
+
+    // Read MessageDefinition resource
+    private isolated function readMessageDefinition(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:MessageDefinitionTable, persist:Error?> messageDefinitionStream = persistClient->/messagedefinitiontables();
+
+        db_store:MessageDefinitionTable[] results = check from var messageDefinition in messageDefinitionStream
+            where messageDefinition.MESSAGEDEFINITIONTABLE_ID == resourceId
+            select messageDefinition;
+
+        if results.length() == 0 {
+            return error(string `MessageDefinition/${resourceId} not found`);
+        }
+
+        return check self.mapFromMessageDefinitionTable(results[0]);
+    }
+
+    // Read Endpoint resource
+    private isolated function readEndpoint(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:EndpointTable, persist:Error?> endpointStream = persistClient->/endpointtables();
+
+        db_store:EndpointTable[] results = check from var endpoint in endpointStream
+            where endpoint.ENDPOINTTABLE_ID == resourceId
+            select endpoint;
+
+        if results.length() == 0 {
+            return error(string `Endpoint/${resourceId} not found`);
+        }
+
+        return check self.mapFromEndpointTable(results[0]);
+    }
+
+    // Read EnrollmentRequest resource
+    private isolated function readEnrollmentRequest(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:EnrollmentRequestTable, persist:Error?> enrollmentRequestStream = persistClient->/enrollmentrequesttables();
+
+        db_store:EnrollmentRequestTable[] results = check from var enrollmentRequest in enrollmentRequestStream
+            where enrollmentRequest.ENROLLMENTREQUESTTABLE_ID == resourceId
+            select enrollmentRequest;
+
+        if results.length() == 0 {
+            return error(string `EnrollmentRequest/${resourceId} not found`);
+        }
+
+        return check self.mapFromEnrollmentRequestTable(results[0]);
+    }
+
+    // Read EventDefinition resource
+    private isolated function readEventDefinition(db_store:Client persistClient, string resourceId) returns json|error {
+        stream<db_store:EventDefinitionTable, persist:Error?> eventDefinitionStream = persistClient->/eventdefinitiontables();
+
+        db_store:EventDefinitionTable[] results = check from var eventDefinition in eventDefinitionStream
+            where eventDefinition.EVENTDEFINITIONTABLE_ID == resourceId
+            select eventDefinition;
+
+        if results.length() == 0 {
+            return error(string `EventDefinition/${resourceId} not found`);
+        }
+
+        return check self.mapFromEventDefinitionTable(results[0]);
+    }
+
 }
 
 

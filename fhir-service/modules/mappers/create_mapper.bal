@@ -511,46 +511,258 @@ public class CreateMapper {
 
                 return slotInsert;
             }
-            _ => {
-                // Generic handler for all other resources
-                return self.createGenericInsertModel(resourceType, resourceJson, extractedValues);
-            }
-        }
-    }
+            "Invoice" => {
+                time:Date? dateValue = ();
+                if extractedValues.hasKey("date") {
+                    string dateStr = extractedValues.get("date").toString();
+                    if dateStr.trim().length() > 0 {
+                        dateValue = check parseDateString(dateStr);
+                    }
+                }
+                
+                db_store:InvoiceTableInsert invoiceInsert = {
+                    INVOICETABLE_ID: check resourceJson.id,
+                    DATE: dateValue,
+                    STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
+                    TOTALNET: extractedValues.hasKey("totalnet") ? extractedValues.get("totalnet").toString() : (),
+                    PARTICIPANT_ROLE: extractedValues.hasKey("participant-role") ? extractedValues.get("participant-role").toString() : (),
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    TYPE: extractedValues.hasKey("type") ? extractedValues.get("type").toString() : (),
+                    TOTALGROSS: extractedValues.hasKey("totalgross") ? extractedValues.get("totalgross").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
 
-    // Generic insert model creator for all resources
-    private isolated function createGenericInsertModel(string resourceType, json resourceJson, map<json> extractedValues) returns record {|anydata...;|}|error {
-        
-        // Create base record with required fields
-        map<anydata> insertModel = {};
-        
-        // Add ID field (required for all resources)
-        string idFieldName = resourceType.toUpperAscii() + "TABLE_ID";
-        insertModel[idFieldName] = check resourceJson.id;
-        
-        // Add all extracted search parameter values
-        foreach var [key, value] in extractedValues.entries() {
-            string columnName = key.toUpperAscii();
-            // Replace hyphens with underscores
-            string[] parts = re `-`.split(columnName);
-            columnName = string:'join("_", ...parts);
-            
-            // Handle different value types
-            if value is string {
-                insertModel[columnName] = value;
-            } else if value is json {
-                insertModel[columnName] = value.toString();
+                return invoiceInsert;
+            }
+            "DocumentManifest" => {
+                time:Date? createdValue = ();
+                if extractedValues.hasKey("created") {
+                    string createdStr = extractedValues.get("created").toString();
+                    if createdStr.trim().length() > 0 {
+                        createdValue = check parseDateString(createdStr);
+                    }
+                }
+                
+                db_store:DocumentManifestTableInsert documentManifestInsert = {
+                    DOCUMENTMANIFESTTABLE_ID: check resourceJson.id,
+                    CREATED: createdValue,
+                    STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
+                    RELATED_ID: extractedValues.hasKey("related-id") ? extractedValues.get("related-id").toString() : (),
+                    DESCRIPTION: extractedValues.hasKey("description") ? extractedValues.get("description").toString() : (),
+                    SOURCE: extractedValues.hasKey("source") ? extractedValues.get("source").toString() : (),
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    TYPE: extractedValues.hasKey("type") ? extractedValues.get("type").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return documentManifestInsert;
+            }
+            "Consent" => {
+                time:Date? dateValue = ();
+                if extractedValues.hasKey("date") {
+                    string dateStr = extractedValues.get("date").toString();
+                    if dateStr.trim().length() > 0 {
+                        dateValue = check parseDateString(dateStr);
+                    }
+                }
+                
+                time:Date? periodValue = ();
+                if extractedValues.hasKey("period") {
+                    string periodStr = extractedValues.get("period").toString();
+                    if periodStr.trim().length() > 0 {
+                        periodValue = check parseDateString(periodStr);
+                    }
+                }
+                
+                db_store:ConsentTableInsert consentInsert = {
+                    CONSENTTABLE_ID: check resourceJson.id,
+                    DATE: dateValue,
+                    SECURITY_LABEL: extractedValues.hasKey("security-label") ? extractedValues.get("security-label").toString() : (),
+                    STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
+                    ACTION: extractedValues.hasKey("action") ? extractedValues.get("action").toString() : (),
+                    SCOPE: extractedValues.hasKey("scope") ? extractedValues.get("scope").toString() : (),
+                    CATEGORY: extractedValues.hasKey("category") ? extractedValues.get("category").toString() : (),
+                    PERIOD: periodValue,
+                    PURPOSE: extractedValues.hasKey("purpose") ? extractedValues.get("purpose").toString() : (),
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return consentInsert;
+            }
+            "Goal" => {
+                time:Date? startDateValue = ();
+                if extractedValues.hasKey("start-date") {
+                    string startDateStr = extractedValues.get("start-date").toString();
+                    if startDateStr.trim().length() > 0 {
+                        startDateValue = check parseDateString(startDateStr);
+                    }
+                }
+                
+                time:Date? targetDateValue = ();
+                if extractedValues.hasKey("target-date") {
+                    string targetDateStr = extractedValues.get("target-date").toString();
+                    if targetDateStr.trim().length() > 0 {
+                        targetDateValue = check parseDateString(targetDateStr);
+                    }
+                }
+                
+                db_store:GoalTableInsert goalInsert = {
+                    GOALTABLE_ID: check resourceJson.id,
+                    TARGET_DATE: targetDateValue,
+                    ACHIEVEMENT_STATUS: extractedValues.hasKey("achievement-status") ? extractedValues.get("achievement-status").toString() : (),
+                    CATEGORY: extractedValues.hasKey("category") ? extractedValues.get("category").toString() : (),
+                    LIFECYCLE_STATUS: extractedValues.hasKey("lifecycle-status") ? extractedValues.get("lifecycle-status").toString() : (),
+                    START_DATE: startDateValue,
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return goalInsert;
+            }
+            "MedicinalProductPackaged" => {
+                db_store:MedicinalProductPackagedTableInsert medicinalProductPackagedInsert = {
+                    MEDICINALPRODUCTPACKAGEDTABLE_ID: check resourceJson.id,
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return medicinalProductPackagedInsert;
+            }
+            "MessageDefinition" => {
+                time:Date? dateValue = ();
+                if extractedValues.hasKey("date") {
+                    string dateStr = extractedValues.get("date").toString();
+                    if dateStr.trim().length() > 0 {
+                        dateValue = check parseDateString(dateStr);
+                    }
+                }
+                
+                db_store:MessageDefinitionTableInsert messageDefinitionInsert = {
+                    MESSAGEDEFINITIONTABLE_ID: check resourceJson.id,
+                    PUBLISHER: extractedValues.hasKey("publisher") ? extractedValues.get("publisher").toString() : (),
+                    JURISDICTION: extractedValues.hasKey("jurisdiction") ? extractedValues.get("jurisdiction").toString() : (),
+                    FOCUS: extractedValues.hasKey("focus") ? extractedValues.get("focus").toString() : (),
+                    CONTEXT: extractedValues.hasKey("context") ? extractedValues.get("context").toString() : (),
+                    URL: extractedValues.hasKey("url") ? extractedValues.get("url").toString() : (),
+                    EVENT: extractedValues.hasKey("event") ? extractedValues.get("event").toString() : (),
+                    NAME: extractedValues.hasKey("name") ? extractedValues.get("name").toString() : (),
+                    DATE: dateValue,
+                    STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
+                    DESCRIPTION: extractedValues.hasKey("description") ? extractedValues.get("description").toString() : (),
+                    CATEGORY: extractedValues.hasKey("category") ? extractedValues.get("category").toString() : (),
+                    VERSION: extractedValues.hasKey("version") ? extractedValues.get("version").toString() : (),
+                    TITLE: extractedValues.hasKey("title") ? extractedValues.get("title").toString() : (),
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    CONTEXT_QUANTITY: extractedValues.hasKey("context-quantity") ? extractedValues.get("context-quantity").toString() : (),
+                    CONTEXT_TYPE: extractedValues.hasKey("context-type") ? extractedValues.get("context-type").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return messageDefinitionInsert;
+            }
+            "Endpoint" => {
+                db_store:EndpointTableInsert endpointInsert = {
+                    ENDPOINTTABLE_ID: check resourceJson.id,
+                    STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
+                    CONNECTION_TYPE: extractedValues.hasKey("connection-type") ? extractedValues.get("connection-type").toString() : (),
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    PAYLOAD_TYPE: extractedValues.hasKey("payload-type") ? extractedValues.get("payload-type").toString() : (),
+                    NAME: extractedValues.hasKey("name") ? extractedValues.get("name").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return endpointInsert;
+            }
+            "EnrollmentRequest" => {
+                db_store:EnrollmentRequestTableInsert enrollmentRequestInsert = {
+                    ENROLLMENTREQUESTTABLE_ID: check resourceJson.id,
+                    STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return enrollmentRequestInsert;
+            }
+            "EventDefinition" => {
+                time:Date? dateValue = ();
+                if extractedValues.hasKey("date") {
+                    string dateStr = extractedValues.get("date").toString();
+                    if dateStr.trim().length() > 0 {
+                        dateValue = check parseDateString(dateStr);
+                    }
+                }
+                
+                time:Date? effectiveValue = ();
+                if extractedValues.hasKey("effective") {
+                    string effectiveStr = extractedValues.get("effective").toString();
+                    if effectiveStr.trim().length() > 0 {
+                        effectiveValue = check parseDateString(effectiveStr);
+                    }
+                }
+                
+                db_store:EventDefinitionTableInsert eventDefinitionInsert = {
+                    EVENTDEFINITIONTABLE_ID: check resourceJson.id,
+                    PUBLISHER: extractedValues.hasKey("publisher") ? extractedValues.get("publisher").toString() : (),
+                    JURISDICTION: extractedValues.hasKey("jurisdiction") ? extractedValues.get("jurisdiction").toString() : (),
+                    EFFECTIVE: effectiveValue,
+                    TOPIC: extractedValues.hasKey("topic") ? extractedValues.get("topic").toString() : (),
+                    CONTEXT: extractedValues.hasKey("context") ? extractedValues.get("context").toString() : (),
+                    URL: extractedValues.hasKey("url") ? extractedValues.get("url").toString() : (),
+                    NAME: extractedValues.hasKey("name") ? extractedValues.get("name").toString() : (),
+                    DATE: dateValue,
+                    STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
+                    DESCRIPTION: extractedValues.hasKey("description") ? extractedValues.get("description").toString() : (),
+                    VERSION: extractedValues.hasKey("version") ? extractedValues.get("version").toString() : (),
+                    TITLE: extractedValues.hasKey("title") ? extractedValues.get("title").toString() : (),
+                    IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
+                    CONTEXT_QUANTITY: extractedValues.hasKey("context-quantity") ? extractedValues.get("context-quantity").toString() : (),
+                    CONTEXT_TYPE: extractedValues.hasKey("context-type") ? extractedValues.get("context-type").toString() : (),
+                    VERSION_ID: 1,
+                    CREATED_AT: time:utcToCivil(time:utcNow()),
+                    UPDATED_AT: time:utcToCivil(time:utcNow()),
+                    LAST_UPDATED: time:utcToCivil(time:utcNow()),
+                    RESOURCE_JSON: resourceJson.toJsonString().toBytes()
+                };
+
+                return eventDefinitionInsert;
+            }
+            _ => {
+                return error(string `Resource type ${resourceType} is not supported for create operation`);
             }
         }
-        
-        // Add standard fields (required for all tables)
-        insertModel["VERSION_ID"] = 1;
-        insertModel["CREATED_AT"] = time:utcToCivil(time:utcNow());
-        insertModel["UPDATED_AT"] = time:utcToCivil(time:utcNow());
-        insertModel["LAST_UPDATED"] = time:utcToCivil(time:utcNow());
-        insertModel["RESOURCE_JSON"] = resourceJson.toJsonString().toBytes();
-        
-        return insertModel;
     }
 
     public isolated function getReferences() returns json[] {

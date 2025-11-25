@@ -2,7 +2,6 @@ import ballerina_fhir_server.db_store;
 import ballerina_fhir_server.utils;
 
 import ballerina/log;
-import ballerina/sql;
 
 public class DeleteHandler {
     private utils:TransactionHandler transactionHandler;
@@ -212,23 +211,9 @@ public class DeleteHandler {
                 return results.length() > 0;
             }
             _ => {
-                // Generic handler for all other resources using SQL
-                return self.checkGenericResourceExists(persistClient, resourceType, resourceId);
+                return error(string `Resource type ${resourceType} is not supported for delete operations`);
             }
         }
-    }
-
-    // Generic resource existence checker
-    private isolated function checkGenericResourceExists(db_store:Client persistClient, string resourceType, string resourceId) returns boolean|error {
-        string tableName = resourceType.toUpperAscii() + "Table";
-        string idColumn = resourceType.toUpperAscii() + "TABLE_ID";
-        
-        sql:ParameterizedQuery query = `SELECT COUNT(*) as count FROM ${tableName} WHERE ${idColumn} = ${resourceId}`;
-        stream<record {| int count; |}, error?> resultStream = persistClient->queryNativeSQL(query);
-        
-        record {| int count; |}[] results = check from var row in resultStream select row;
-        
-        return results.length() > 0 && results[0].count > 0;
     }
 
     // Find all references where this resource is the SOURCE
@@ -385,23 +370,9 @@ public class DeleteHandler {
                 return results.length() > 0 ? results[0] : error("Resource not found");
             }
             _ => {
-                // Generic handler for all other resources
-                return self.backupGenericResource(persistClient, resourceType, resourceId);
+                return error(string `Resource type ${resourceType} is not supported for backup operations`);
             }
         }
-    }
-
-    // Generic resource backup
-    private isolated function backupGenericResource(db_store:Client persistClient, string resourceType, string resourceId) returns record {|anydata...;|}|error {
-        string tableName = resourceType.toUpperAscii() + "Table";
-        string idColumn = resourceType.toUpperAscii() + "TABLE_ID";
-        
-        sql:ParameterizedQuery query = `SELECT * FROM ${tableName} WHERE ${idColumn} = ${resourceId}`;
-        stream<record {| anydata...; |}, error?> resultStream = persistClient->queryNativeSQL(query);
-        
-        record {| anydata...; |}[] results = check from var row in resultStream select row;
-        
-        return results.length() > 0 ? results[0] : error("Resource not found");
     }
 
     private isolated function backupReferences(db_store:Client persistClient, string resourceType, string resourceId) returns db_store:REFERENCES[]|error {

@@ -284,6 +284,62 @@ public type RelatedPersonTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type RelatedPersonTableHistory record {|
+    readonly int ID;
+    string RELATEDPERSONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? BIRTHDATE;
+    string? NAME;
+    string? GENDER;
+    string? IDENTIFIER;
+    string? ACTIVE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type RelatedPersonTableHistoryOptionalized record {|
+    int ID?;
+    string RELATEDPERSONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? BIRTHDATE?;
+    string? NAME?;
+    string? GENDER?;
+    string? IDENTIFIER?;
+    string? ACTIVE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type RelatedPersonTableHistoryTargetType typedesc<RelatedPersonTableHistoryOptionalized>;
+
+public type RelatedPersonTableHistoryInsert record {|
+    string RELATEDPERSONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? BIRTHDATE;
+    string? NAME;
+    string? GENDER;
+    string? IDENTIFIER;
+    string? ACTIVE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type RelatedPersonTableHistoryUpdate record {|
+    string RELATEDPERSONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? BIRTHDATE?;
+    string? NAME?;
+    string? GENDER?;
+    string? IDENTIFIER?;
+    string? ACTIVE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type EvidenceVariableTable record {|
     readonly string EVIDENCEVARIABLETABLE_ID;
     string? PUBLISHER;
@@ -488,6 +544,58 @@ public type DocumentManifestTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type DocumentManifestTableHistory record {|
+    readonly int ID;
+    string DOCUMENTMANIFESTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? CREATED;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type DocumentManifestTableHistoryOptionalized record {|
+    int ID?;
+    string DOCUMENTMANIFESTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? CREATED?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? TYPE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type DocumentManifestTableHistoryTargetType typedesc<DocumentManifestTableHistoryOptionalized>;
+
+public type DocumentManifestTableHistoryInsert record {|
+    string DOCUMENTMANIFESTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? CREATED;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type DocumentManifestTableHistoryUpdate record {|
+    string DOCUMENTMANIFESTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? CREATED?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? TYPE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type ImmunizationRecommendationTable record {|
     readonly string IMMUNIZATIONRECOMMENDATIONTABLE_ID;
     time:Date? DATE;
@@ -530,6 +638,62 @@ public type ImmunizationRecommendationTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ImmunizationRecommendationTableHistory record {|
+    readonly int ID;
+    string IMMUNIZATIONRECOMMENDATIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? TARGET_DISEASE;
+    string? VACCINE_TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ImmunizationRecommendationTableHistoryOptionalized record {|
+    int ID?;
+    string IMMUNIZATIONRECOMMENDATIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? TARGET_DISEASE?;
+    string? VACCINE_TYPE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ImmunizationRecommendationTableHistoryTargetType typedesc<ImmunizationRecommendationTableHistoryOptionalized>;
+
+public type ImmunizationRecommendationTableHistoryInsert record {|
+    string IMMUNIZATIONRECOMMENDATIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? TARGET_DISEASE;
+    string? VACCINE_TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ImmunizationRecommendationTableHistoryUpdate record {|
+    string IMMUNIZATIONRECOMMENDATIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? TARGET_DISEASE?;
+    string? VACCINE_TYPE?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -632,6 +796,58 @@ public type LocationTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type LocationTableHistory record {|
+    readonly int ID;
+    string LOCATIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? NAME;
+    string? STATUS;
+    string? TYPE;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type LocationTableHistoryOptionalized record {|
+    int ID?;
+    string LOCATIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? NAME?;
+    string? STATUS?;
+    string? TYPE?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type LocationTableHistoryTargetType typedesc<LocationTableHistoryOptionalized>;
+
+public type LocationTableHistoryInsert record {|
+    string LOCATIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? NAME;
+    string? STATUS;
+    string? TYPE;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type LocationTableHistoryUpdate record {|
+    string LOCATIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? NAME?;
+    string? STATUS?;
+    string? TYPE?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -1052,6 +1268,62 @@ public type PractitionerRoleTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type PractitionerRoleTableHistory record {|
+    readonly int ID;
+    string PRACTITIONERROLETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? ROLE;
+    time:Date? DATE;
+    string? ACTIVE;
+    string? SPECIALTY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type PractitionerRoleTableHistoryOptionalized record {|
+    int ID?;
+    string PRACTITIONERROLETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? ROLE?;
+    time:Date? DATE?;
+    string? ACTIVE?;
+    string? SPECIALTY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type PractitionerRoleTableHistoryTargetType typedesc<PractitionerRoleTableHistoryOptionalized>;
+
+public type PractitionerRoleTableHistoryInsert record {|
+    string PRACTITIONERROLETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? ROLE;
+    time:Date? DATE;
+    string? ACTIVE;
+    string? SPECIALTY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type PractitionerRoleTableHistoryUpdate record {|
+    string PRACTITIONERROLETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? ROLE?;
+    time:Date? DATE?;
+    string? ACTIVE?;
+    string? SPECIALTY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type GroupTable record {|
     readonly string GROUPTABLE_ID;
     string? CHARACTERISTIC;
@@ -1253,6 +1525,66 @@ public type PractitionerTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type PractitionerTableHistory record {|
+    readonly int ID;
+    string PRACTITIONERTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? NAME;
+    string? FAMILY;
+    string? GIVEN;
+    string? GENDER;
+    string? IDENTIFIER;
+    string? ACTIVE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type PractitionerTableHistoryOptionalized record {|
+    int ID?;
+    string PRACTITIONERTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? NAME?;
+    string? FAMILY?;
+    string? GIVEN?;
+    string? GENDER?;
+    string? IDENTIFIER?;
+    string? ACTIVE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type PractitionerTableHistoryTargetType typedesc<PractitionerTableHistoryOptionalized>;
+
+public type PractitionerTableHistoryInsert record {|
+    string PRACTITIONERTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? NAME;
+    string? FAMILY;
+    string? GIVEN;
+    string? GENDER;
+    string? IDENTIFIER;
+    string? ACTIVE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type PractitionerTableHistoryUpdate record {|
+    string PRACTITIONERTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? NAME?;
+    string? FAMILY?;
+    string? GIVEN?;
+    string? GENDER?;
+    string? IDENTIFIER?;
+    string? ACTIVE?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -1460,6 +1792,62 @@ public type DeviceTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type DeviceTableHistory record {|
+    readonly int ID;
+    string DEVICETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? MANUFACTURER;
+    string? MODEL;
+    string? STATUS;
+    string? TYPE;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type DeviceTableHistoryOptionalized record {|
+    int ID?;
+    string DEVICETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? MANUFACTURER?;
+    string? MODEL?;
+    string? STATUS?;
+    string? TYPE?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type DeviceTableHistoryTargetType typedesc<DeviceTableHistoryOptionalized>;
+
+public type DeviceTableHistoryInsert record {|
+    string DEVICETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? MANUFACTURER;
+    string? MODEL;
+    string? STATUS;
+    string? TYPE;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type DeviceTableHistoryUpdate record {|
+    string DEVICETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? MANUFACTURER?;
+    string? MODEL?;
+    string? STATUS?;
+    string? TYPE?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -1718,6 +2106,58 @@ public type InvoiceTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type InvoiceTableHistory record {|
+    readonly int ID;
+    string INVOICETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type InvoiceTableHistoryOptionalized record {|
+    int ID?;
+    string INVOICETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? TYPE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type InvoiceTableHistoryTargetType typedesc<InvoiceTableHistoryOptionalized>;
+
+public type InvoiceTableHistoryInsert record {|
+    string INVOICETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type InvoiceTableHistoryUpdate record {|
+    string INVOICETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? TYPE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type QuestionnaireResponseTable record {|
     readonly string QUESTIONNAIRERESPONSETABLE_ID;
     string? STATUS;
@@ -1841,6 +2281,70 @@ public type ObservationTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ObservationTableHistory record {|
+    readonly int ID;
+    string OBSERVATIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? CODE;
+    string? STATUS;
+    string? CATEGORY;
+    string? VALUE_QUANTITY;
+    string? IDENTIFIER;
+    string? METHOD;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ObservationTableHistoryOptionalized record {|
+    int ID?;
+    string OBSERVATIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? CODE?;
+    string? STATUS?;
+    string? CATEGORY?;
+    string? VALUE_QUANTITY?;
+    string? IDENTIFIER?;
+    string? METHOD?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ObservationTableHistoryTargetType typedesc<ObservationTableHistoryOptionalized>;
+
+public type ObservationTableHistoryInsert record {|
+    string OBSERVATIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? CODE;
+    string? STATUS;
+    string? CATEGORY;
+    string? VALUE_QUANTITY;
+    string? IDENTIFIER;
+    string? METHOD;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ObservationTableHistoryUpdate record {|
+    string OBSERVATIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? CODE?;
+    string? STATUS?;
+    string? CATEGORY?;
+    string? VALUE_QUANTITY?;
+    string? IDENTIFIER?;
+    string? METHOD?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -2138,6 +2642,62 @@ public type ServiceRequestTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ServiceRequestTableHistory record {|
+    readonly int ID;
+    string SERVICEREQUESTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    string? INTENT;
+    string? CATEGORY;
+    string? CODE;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ServiceRequestTableHistoryOptionalized record {|
+    int ID?;
+    string SERVICEREQUESTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    string? INTENT?;
+    string? CATEGORY?;
+    string? CODE?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ServiceRequestTableHistoryTargetType typedesc<ServiceRequestTableHistoryOptionalized>;
+
+public type ServiceRequestTableHistoryInsert record {|
+    string SERVICEREQUESTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    string? INTENT;
+    string? CATEGORY;
+    string? CODE;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ServiceRequestTableHistoryUpdate record {|
+    string SERVICEREQUESTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    string? INTENT?;
+    string? CATEGORY?;
+    string? CODE?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -3602,6 +4162,58 @@ public type ConsentTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type ConsentTableHistory record {|
+    readonly int ID;
+    string CONSENTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? CATEGORY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ConsentTableHistoryOptionalized record {|
+    int ID?;
+    string CONSENTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? CATEGORY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ConsentTableHistoryTargetType typedesc<ConsentTableHistoryOptionalized>;
+
+public type ConsentTableHistoryInsert record {|
+    string CONSENTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? CATEGORY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ConsentTableHistoryUpdate record {|
+    string CONSENTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? CATEGORY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type DetectedIssueTable record {|
     readonly string DETECTEDISSUETABLE_ID;
     string? CODE;
@@ -3860,6 +4472,66 @@ public type SlotTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type SlotTableHistory record {|
+    readonly int ID;
+    string SLOTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    time:Date? START;
+    string? SERVICE_CATEGORY;
+    string? SERVICE_TYPE;
+    string? SPECIALTY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type SlotTableHistoryOptionalized record {|
+    int ID?;
+    string SLOTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    time:Date? START?;
+    string? SERVICE_CATEGORY?;
+    string? SERVICE_TYPE?;
+    string? SPECIALTY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type SlotTableHistoryTargetType typedesc<SlotTableHistoryOptionalized>;
+
+public type SlotTableHistoryInsert record {|
+    string SLOTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    time:Date? START;
+    string? SERVICE_CATEGORY;
+    string? SERVICE_TYPE;
+    string? SPECIALTY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type SlotTableHistoryUpdate record {|
+    string SLOTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    time:Date? START?;
+    string? SERVICE_CATEGORY?;
+    string? SERVICE_TYPE?;
+    string? SPECIALTY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -4163,6 +4835,62 @@ public type HealthcareServiceTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type HealthcareServiceTableHistory record {|
+    readonly int ID;
+    string HEALTHCARESERVICETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? ACTIVE;
+    string? NAME;
+    string? IDENTIFIER;
+    string? SERVICE_CATEGORY;
+    string? SERVICE_TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type HealthcareServiceTableHistoryOptionalized record {|
+    int ID?;
+    string HEALTHCARESERVICETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? ACTIVE?;
+    string? NAME?;
+    string? IDENTIFIER?;
+    string? SERVICE_CATEGORY?;
+    string? SERVICE_TYPE?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type HealthcareServiceTableHistoryTargetType typedesc<HealthcareServiceTableHistoryOptionalized>;
+
+public type HealthcareServiceTableHistoryInsert record {|
+    string HEALTHCARESERVICETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? ACTIVE;
+    string? NAME;
+    string? IDENTIFIER;
+    string? SERVICE_CATEGORY;
+    string? SERVICE_TYPE;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type HealthcareServiceTableHistoryUpdate record {|
+    string HEALTHCARESERVICETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? ACTIVE?;
+    string? NAME?;
+    string? IDENTIFIER?;
+    string? SERVICE_CATEGORY?;
+    string? SERVICE_TYPE?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -4508,6 +5236,58 @@ public type GoalTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type GoalTableHistory record {|
+    readonly int ID;
+    string GOALTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? TARGET_DATE;
+    string? CATEGORY;
+    string? LIFECYCLE_STATUS;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type GoalTableHistoryOptionalized record {|
+    int ID?;
+    string GOALTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? TARGET_DATE?;
+    string? CATEGORY?;
+    string? LIFECYCLE_STATUS?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type GoalTableHistoryTargetType typedesc<GoalTableHistoryOptionalized>;
+
+public type GoalTableHistoryInsert record {|
+    string GOALTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? TARGET_DATE;
+    string? CATEGORY;
+    string? LIFECYCLE_STATUS;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type GoalTableHistoryUpdate record {|
+    string GOALTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? TARGET_DATE?;
+    string? CATEGORY?;
+    string? LIFECYCLE_STATUS?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type CapabilityStatementTable record {|
     readonly string CAPABILITYSTATEMENTTABLE_ID;
     string? PUBLISHER;
@@ -4706,6 +5486,46 @@ public type MedicinalProductPackagedTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type MedicinalProductPackagedTableHistory record {|
+    readonly int ID;
+    string MEDICINALPRODUCTPACKAGEDTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type MedicinalProductPackagedTableHistoryOptionalized record {|
+    int ID?;
+    string MEDICINALPRODUCTPACKAGEDTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type MedicinalProductPackagedTableHistoryTargetType typedesc<MedicinalProductPackagedTableHistoryOptionalized>;
+
+public type MedicinalProductPackagedTableHistoryInsert record {|
+    string MEDICINALPRODUCTPACKAGEDTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type MedicinalProductPackagedTableHistoryUpdate record {|
+    string MEDICINALPRODUCTPACKAGEDTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type ProcedureTable record {|
     readonly string PROCEDURETABLE_ID;
     time:Date? DATE;
@@ -4754,6 +5574,62 @@ public type ProcedureTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ProcedureTableHistory record {|
+    readonly int ID;
+    string PROCEDURETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    string? CATEGORY;
+    string? CODE;
+    time:Date? DATE;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ProcedureTableHistoryOptionalized record {|
+    int ID?;
+    string PROCEDURETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    string? CATEGORY?;
+    string? CODE?;
+    time:Date? DATE?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ProcedureTableHistoryTargetType typedesc<ProcedureTableHistoryOptionalized>;
+
+public type ProcedureTableHistoryInsert record {|
+    string PROCEDURETABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    string? CATEGORY;
+    string? CODE;
+    time:Date? DATE;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ProcedureTableHistoryUpdate record {|
+    string PROCEDURETABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    string? CATEGORY?;
+    string? CODE?;
+    time:Date? DATE?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -5228,6 +6104,58 @@ public type MessageDefinitionTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type MessageDefinitionTableHistory record {|
+    readonly int ID;
+    string MESSAGEDEFINITIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? CATEGORY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type MessageDefinitionTableHistoryOptionalized record {|
+    int ID?;
+    string MESSAGEDEFINITIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? CATEGORY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type MessageDefinitionTableHistoryTargetType typedesc<MessageDefinitionTableHistoryOptionalized>;
+
+public type MessageDefinitionTableHistoryInsert record {|
+    string MESSAGEDEFINITIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? CATEGORY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type MessageDefinitionTableHistoryUpdate record {|
+    string MESSAGEDEFINITIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? CATEGORY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type RiskEvidenceSynthesisTable record {|
     readonly string RISKEVIDENCESYNTHESISTABLE_ID;
     string? PUBLISHER;
@@ -5642,6 +6570,54 @@ public type EndpointTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type EndpointTableHistory record {|
+    readonly int ID;
+    string ENDPOINTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? NAME;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type EndpointTableHistoryOptionalized record {|
+    int ID?;
+    string ENDPOINTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? NAME?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type EndpointTableHistoryTargetType typedesc<EndpointTableHistoryOptionalized>;
+
+public type EndpointTableHistoryInsert record {|
+    string ENDPOINTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? NAME;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type EndpointTableHistoryUpdate record {|
+    string ENDPOINTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? NAME?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type TerminologyCapabilitiesTable record {|
     readonly string TERMINOLOGYCAPABILITIESTABLE_ID;
     time:Date? DATE;
@@ -5783,6 +6759,62 @@ public type ConditionTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ConditionTableHistory record {|
+    readonly int ID;
+    string CONDITIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? CLINICAL_STATUS;
+    string? CATEGORY;
+    string? CODE;
+    string? SEVERITY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ConditionTableHistoryOptionalized record {|
+    int ID?;
+    string CONDITIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? CLINICAL_STATUS?;
+    string? CATEGORY?;
+    string? CODE?;
+    string? SEVERITY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type ConditionTableHistoryTargetType typedesc<ConditionTableHistoryOptionalized>;
+
+public type ConditionTableHistoryInsert record {|
+    string CONDITIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? CLINICAL_STATUS;
+    string? CATEGORY;
+    string? CODE;
+    string? SEVERITY;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type ConditionTableHistoryUpdate record {|
+    string CONDITIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? CLINICAL_STATUS?;
+    string? CATEGORY?;
+    string? CODE?;
+    string? SEVERITY?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -6224,6 +7256,50 @@ public type EnrollmentRequestTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type EnrollmentRequestTableHistory record {|
+    readonly int ID;
+    string ENROLLMENTREQUESTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type EnrollmentRequestTableHistoryOptionalized record {|
+    int ID?;
+    string ENROLLMENTREQUESTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type EnrollmentRequestTableHistoryTargetType typedesc<EnrollmentRequestTableHistoryOptionalized>;
+
+public type EnrollmentRequestTableHistoryInsert record {|
+    string ENROLLMENTREQUESTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    string? STATUS;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type EnrollmentRequestTableHistoryUpdate record {|
+    string ENROLLMENTREQUESTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type SpecimenDefinitionTable record {|
     readonly string SPECIMENDEFINITIONTABLE_ID;
     string? CONTAINER;
@@ -6335,6 +7411,54 @@ public type EventDefinitionTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type EventDefinitionTableHistory record {|
+    readonly int ID;
+    string EVENTDEFINITIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type EventDefinitionTableHistoryOptionalized record {|
+    int ID?;
+    string EVENTDEFINITIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type EventDefinitionTableHistoryTargetType typedesc<EventDefinitionTableHistoryOptionalized>;
+
+public type EventDefinitionTableHistoryInsert record {|
+    string EVENTDEFINITIONTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? DATE;
+    string? STATUS;
+    string? IDENTIFIER;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type EventDefinitionTableHistoryUpdate record {|
+    string EVENTDEFINITIONTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? DATE?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
@@ -6935,6 +8059,78 @@ public type PatientTableUpdate record {|
     byte[] RESOURCE_JSON?;
 |};
 
+public type PatientTableHistory record {|
+    readonly int ID;
+    string PATIENTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? BIRTHDATE;
+    string? NAME;
+    string? FAMILY;
+    string? GIVEN;
+    string? GENDER;
+    string? IDENTIFIER;
+    string? ACTIVE;
+    string? PHONE;
+    string? EMAIL;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type PatientTableHistoryOptionalized record {|
+    int ID?;
+    string PATIENTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? BIRTHDATE?;
+    string? NAME?;
+    string? FAMILY?;
+    string? GIVEN?;
+    string? GENDER?;
+    string? IDENTIFIER?;
+    string? ACTIVE?;
+    string? PHONE?;
+    string? EMAIL?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type PatientTableHistoryTargetType typedesc<PatientTableHistoryOptionalized>;
+
+public type PatientTableHistoryInsert record {|
+    string PATIENTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? BIRTHDATE;
+    string? NAME;
+    string? FAMILY;
+    string? GIVEN;
+    string? GENDER;
+    string? IDENTIFIER;
+    string? ACTIVE;
+    string? PHONE;
+    string? EMAIL;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type PatientTableHistoryUpdate record {|
+    string PATIENTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? BIRTHDATE?;
+    string? NAME?;
+    string? FAMILY?;
+    string? GIVEN?;
+    string? GENDER?;
+    string? IDENTIFIER?;
+    string? ACTIVE?;
+    string? PHONE?;
+    string? EMAIL?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
 public type CoverageTable record {|
     readonly string COVERAGETABLE_ID;
     string? STATUS;
@@ -7175,6 +8371,62 @@ public type AccountTableUpdate record {|
     time:Civil CREATED_AT?;
     time:Civil UPDATED_AT?;
     time:Civil LAST_UPDATED?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type AccountTableHistory record {|
+    readonly int ID;
+    string ACCOUNTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? PERIOD;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? TYPE;
+    string? NAME;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type AccountTableHistoryOptionalized record {|
+    int ID?;
+    string ACCOUNTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? PERIOD?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? TYPE?;
+    string? NAME?;
+    time:Civil CREATED_AT?;
+    byte[] RESOURCE_JSON?;
+|};
+
+public type AccountTableHistoryTargetType typedesc<AccountTableHistoryOptionalized>;
+
+public type AccountTableHistoryInsert record {|
+    string ACCOUNTTABLE_ID;
+    int VERSION_ID;
+    string OPERATION;
+    time:Date? PERIOD;
+    string? STATUS;
+    string? IDENTIFIER;
+    string? TYPE;
+    string? NAME;
+    time:Civil CREATED_AT;
+    byte[] RESOURCE_JSON;
+|};
+
+public type AccountTableHistoryUpdate record {|
+    string ACCOUNTTABLE_ID?;
+    int VERSION_ID?;
+    string OPERATION?;
+    time:Date? PERIOD?;
+    string? STATUS?;
+    string? IDENTIFIER?;
+    string? TYPE?;
+    string? NAME?;
+    time:Civil CREATED_AT?;
     byte[] RESOURCE_JSON?;
 |};
 
