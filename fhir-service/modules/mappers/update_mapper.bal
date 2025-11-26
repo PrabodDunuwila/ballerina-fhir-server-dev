@@ -1,4 +1,5 @@
 import ballerina_fhir_server.db_store;
+import ballerina_fhir_server.utils as mapperUtils;
 
 import ballerina/io;
 import ballerina/time;
@@ -25,13 +26,13 @@ public class UpdateMapper {
                     if periodJson is map<json> && periodJson.hasKey("start") {
                         string startDateStr = periodJson.get("start").toString();
                         if startDateStr.trim().length() > 0 {
-                            periodValue = check parseDateString(startDateStr);
+                            periodValue = check mapperUtils:parseDateString(startDateStr);
                         }
                     } else if periodJson is string {
                         // Handle simple string date format
                         string periodStr = periodJson;
                         if periodStr.trim().length() > 0 {
-                            periodValue = check parseDateString(periodStr);
+                            periodValue = check mapperUtils:parseDateString(periodStr);
                         }
                     }
                 }
@@ -79,7 +80,7 @@ public class UpdateMapper {
                     ACTIVE: extractedValues.hasKey("active") ? extractedValues.get("active").toString() : "",
                     PHONE: extractedValues.hasKey("phone") ? extractedValues.get("phone").toString() : "",
                     DECEASED: extractedValues.hasKey("deceased") ? extractedValues.get("deceased").toString() : "",
-                    BIRTHDATE: extractedValues.hasKey("birthdate") ? check parseDateString(extractedValues.get("birthdate").toString()) : (),
+                    BIRTHDATE: extractedValues.hasKey("birthdate") ? check mapperUtils:parseDateString(extractedValues.get("birthdate").toString()) : (),
                     ADDRESS_CITY: extractedValues.hasKey("address-city") ? extractedValues.get("address-city").toString() : "",
                     EMAIL: extractedValues.hasKey("email") ? extractedValues.get("email").toString() : "",
                     ADDRESS_STATE: extractedValues.hasKey("address-state") ? extractedValues.get("address-state").toString() : "",
@@ -91,7 +92,7 @@ public class UpdateMapper {
                     ADDRESS: extractedValues.hasKey("address") ? extractedValues.get("address").toString() : "",
                     GENDER: extractedValues.hasKey("gender") ? extractedValues.get("gender").toString() : "",
                     PHONETIC: extractedValues.hasKey("phonetic") ? extractedValues.get("phonetic").toString() : "",
-                    DEATH_DATE: extractedValues.hasKey("death-date") ? check parseDateString(extractedValues.get("death-date").toString()) : (),
+                    DEATH_DATE: extractedValues.hasKey("death-date") ? check mapperUtils:parseDateString(extractedValues.get("death-date").toString()) : (),
                     IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
                     VERSION_ID: newVersion,
                     UPDATED_AT: time:utcToCivil(time:utcNow()),
@@ -184,7 +185,7 @@ public class UpdateMapper {
                     ADDRESS_POSTALCODE: extractedValues.hasKey("address-postalcode") ? extractedValues.get("address-postalcode").toString() : "",
                     ACTIVE: extractedValues.hasKey("active") ? extractedValues.get("active").toString() : "",
                     PHONE: extractedValues.hasKey("phone") ? extractedValues.get("phone").toString() : "",
-                    BIRTHDATE: extractedValues.hasKey("birthdate") ? check parseDateString(extractedValues.get("birthdate").toString()) : (),
+                    BIRTHDATE: extractedValues.hasKey("birthdate") ? check mapperUtils:parseDateString(extractedValues.get("birthdate").toString()) : (),
                     ADDRESS_CITY: extractedValues.hasKey("address-city") ? extractedValues.get("address-city").toString() : "",
                     EMAIL: extractedValues.hasKey("email") ? extractedValues.get("email").toString() : "",
                     ADDRESS_STATE: extractedValues.hasKey("address-state") ? extractedValues.get("address-state").toString() : "",
@@ -249,7 +250,7 @@ public class UpdateMapper {
             "Condition" => {
                 db_store:ConditionTableUpdate conditionUpdate = {
                     ABATEMENT_AGE: extractedValues.hasKey("abatement-age") ? extractedValues.get("abatement-age").toString() : "",
-                    ABATEMENT_DATE: extractedValues.hasKey("abatement-date") ? check parseDateString(extractedValues.get("abatement-date").toString()) : (),
+                    ABATEMENT_DATE: extractedValues.hasKey("abatement-date") ? check mapperUtils:parseDateString(extractedValues.get("abatement-date").toString()) : (),
                     ABATEMENT_STRING: extractedValues.hasKey("abatement-string") ? extractedValues.get("abatement-string").toString() : "",
                     BODY_SITE: extractedValues.hasKey("body-site") ? extractedValues.get("body-site").toString() : "",
                     CATEGORY: extractedValues.hasKey("category") ? extractedValues.get("category").toString() : "",
@@ -258,9 +259,9 @@ public class UpdateMapper {
                     EVIDENCE: extractedValues.hasKey("evidence") ? extractedValues.get("evidence").toString() : "",
                     IDENTIFIER: extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
                     ONSET_AGE: extractedValues.hasKey("onset-age") ? extractedValues.get("onset-age").toString() : "",
-                    ONSET_DATE: extractedValues.hasKey("onset-date") ? check parseDateString(extractedValues.get("onset-date").toString()) : (),
+                    ONSET_DATE: extractedValues.hasKey("onset-date") ? check mapperUtils:parseDateString(extractedValues.get("onset-date").toString()) : (),
                     ONSET_INFO: extractedValues.hasKey("onset-info") ? extractedValues.get("onset-info").toString() : "",
-                    RECORDED_DATE: extractedValues.hasKey("recorded-date") ? check parseDateString(extractedValues.get("recorded-date").toString()) : (),
+                    RECORDED_DATE: extractedValues.hasKey("recorded-date") ? check mapperUtils:parseDateString(extractedValues.get("recorded-date").toString()) : (),
                     SEVERITY: extractedValues.hasKey("severity") ? extractedValues.get("severity").toString() : "",
                     STAGE: extractedValues.hasKey("stage") ? extractedValues.get("stage").toString() : "",
                     VERIFICATION_STATUS: extractedValues.hasKey("verification-status") ? extractedValues.get("verification-status").toString() : "",
@@ -290,7 +291,7 @@ public class UpdateMapper {
                     METHOD: extractedValues.hasKey("method") ? extractedValues.get("method").toString() : "",
                     STATUS: extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
                     VALUE_CONCEPT: extractedValues.hasKey("value-concept") ? extractedValues.get("value-concept").toString() : "",
-                    VALUE_DATE: extractedValues.hasKey("value-date") ? check parseDateString(extractedValues.get("value-date").toString()) : (),
+                    VALUE_DATE: extractedValues.hasKey("value-date") ? check mapperUtils:parseDateString(extractedValues.get("value-date").toString()) : (),
                     VALUE_QUANTITY: extractedValues.hasKey("value-quantity") ? extractedValues.get("value-quantity").toString() : "",
                     VALUE_STRING: extractedValues.hasKey("value-string") ? extractedValues.get("value-string").toString() : "",
                     VERSION_ID: newVersion,
@@ -355,7 +356,7 @@ public class UpdateMapper {
                 if extractedValues.hasKey("date") {
                     string dateStr = extractedValues.get("date").toString();
                     if dateStr.trim().length() > 0 {
-                        dateValue = check parseDateString(dateStr);
+                        dateValue = check mapperUtils:parseDateString(dateStr);
                     }
                 }
                 
@@ -380,7 +381,7 @@ public class UpdateMapper {
                 if extractedValues.hasKey("created") {
                     string createdStr = extractedValues.get("created").toString();
                     if createdStr.trim().length() > 0 {
-                        createdValue = check parseDateString(createdStr);
+                        createdValue = check mapperUtils:parseDateString(createdStr);
                     }
                 }
                 
@@ -406,12 +407,12 @@ public class UpdateMapper {
                     if periodJson is map<json> && periodJson.hasKey("start") {
                         string startDateStr = periodJson.get("start").toString();
                         if startDateStr.trim().length() > 0 {
-                            periodValue = check parseDateString(startDateStr);
+                            periodValue = check mapperUtils:parseDateString(startDateStr);
                         }
                     } else if periodJson is string {
                         string periodStr = periodJson;
                         if periodStr.trim().length() > 0 {
-                            periodValue = check parseDateString(periodStr);
+                            periodValue = check mapperUtils:parseDateString(periodStr);
                         }
                     }
                 }
@@ -433,7 +434,7 @@ public class UpdateMapper {
                 if extractedValues.hasKey("start-date") {
                     string startDateStr = extractedValues.get("start-date").toString();
                     if startDateStr.trim().length() > 0 {
-                        startDateValue = check parseDateString(startDateStr);
+                        startDateValue = check mapperUtils:parseDateString(startDateStr);
                     }
                 }
                 
@@ -441,7 +442,7 @@ public class UpdateMapper {
                 if extractedValues.hasKey("target-date") {
                     string targetDateStr = extractedValues.get("target-date").toString();
                     if targetDateStr.trim().length() > 0 {
-                        targetDateValue = check parseDateString(targetDateStr);
+                        targetDateValue = check mapperUtils:parseDateString(targetDateStr);
                     }
                 }
                 
@@ -523,7 +524,7 @@ public class UpdateMapper {
                 if extractedValues.hasKey("date") {
                     string dateStr = extractedValues.get("date").toString();
                     if dateStr.trim().length() > 0 {
-                        dateValue = check parseDateString(dateStr);
+                        dateValue = check mapperUtils:parseDateString(dateStr);
                     }
                 }
                 
@@ -531,7 +532,7 @@ public class UpdateMapper {
                 if extractedValues.hasKey("effective") {
                     string effectiveStr = extractedValues.get("effective").toString();
                     if effectiveStr.trim().length() > 0 {
-                        effectiveValue = check parseDateString(effectiveStr);
+                        effectiveValue = check mapperUtils:parseDateString(effectiveStr);
                     }
                 }
                 

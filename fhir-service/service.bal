@@ -426,7 +426,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Appointment appointment) returns Appointment|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Appointment", appointment.toJson());
 
             if result is string {
@@ -664,7 +664,7 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Account account) returns Account|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Account", account.toJson());
 
             if result is string {
@@ -837,7 +837,7 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Invoice invoice) returns Invoice|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Invoice", invoice.toJson());
             if result is string {
                 log:printInfo("Invoice: POST - Execution Success!");
@@ -1001,7 +1001,7 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CatalogEntry catalogentry) returns CatalogEntry|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "CatalogEntry", catalogentry.toJson());
             if result is string {
                 log:printInfo("CatalogEntry: POST - Execution Success!");
@@ -1165,7 +1165,7 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EventDefinition eventdefinition) returns EventDefinition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "EventDefinition", eventdefinition.toJson());
             if result is string {
                 log:printInfo("EventDefinition: POST - Execution Success!");
@@ -1329,7 +1329,7 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DocumentManifest documentmanifest) returns DocumentManifest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "DocumentManifest", documentmanifest.toJson());
             if result is string {
                 log:printInfo("DocumentManifest: POST - Execution Success!");
@@ -1488,7 +1488,7 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
 
     isolated resource function post .(r4:FHIRContext fhirContext, MessageDefinition messagedefinition) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "MessageDefinition", messagedefinition.toJson());
             if result is string {
                 log:printInfo("MessageDefinition: POST - Execution Success!");
@@ -1635,7 +1635,7 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
 
     isolated resource function post .(r4:FHIRContext fhirContext, Goal goal) returns Goal|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Goal", goal.toJson());
             if result is string {
                 log:printInfo("Goal: POST - Execution Success!");
@@ -1782,7 +1782,7 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
 
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductPackaged medicinalproductpackaged) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "MedicinalProductPackaged", medicinalproductpackaged.toJson());
             if result is string {
                 log:printInfo("MedicinalProductPackaged: POST - Execution Success!");
@@ -1929,7 +1929,7 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
 
     isolated resource function post .(r4:FHIRContext fhirContext, Endpoint endpoint) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Endpoint", endpoint.toJson());
             if result is string {
                 log:printInfo("Endpoint: POST - Execution Success!");
@@ -2076,7 +2076,7 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
 
     isolated resource function post .(r4:FHIRContext fhirContext, EnrollmentRequest enrollmentrequest) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "EnrollmentRequest", enrollmentrequest.toJson());
             if result is string {
                 log:printInfo("EnrollmentRequest: POST - Execution Success!");
@@ -2223,7 +2223,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
 
     isolated resource function post .(r4:FHIRContext fhirContext, Consent consent) returns Consent|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Consent", consent.toJson());
             if result is string {
                 log:printInfo("Consent: POST - Execution Success!");
@@ -2931,7 +2931,7 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PractitionerRole practitionerrole) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "PractitionerRole", practitionerrole.toJson());
 
             if result is string {
@@ -3126,7 +3126,7 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RelatedPerson relatedperson) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "RelatedPerson", relatedperson.toJson());
 
             if result is string {
@@ -3321,7 +3321,7 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ServiceRequest servicerequest) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "ServiceRequest", servicerequest.toJson());
 
             if result is string {
@@ -3566,7 +3566,7 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Practitioner practitioner) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Practitioner", practitioner.toJson());
 
             if result is string {
@@ -3933,7 +3933,7 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Slot slot) returns Slot|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Slot", slot.toJson());
 
             if result is string {
@@ -5578,7 +5578,7 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImmunizationRecommendation immunizationrecommendation) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "ImmunizationRecommendation", immunizationrecommendation.toJson());
 
             if result is string {
@@ -6373,7 +6373,7 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Procedure procedure) returns Procedure|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Procedure", procedure.toJson());
 
             if result is string {
@@ -6918,7 +6918,7 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Device device) returns Device|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Device", device.toJson());
 
             if result is string {
@@ -7813,7 +7813,7 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Observation observation) returns Observation|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Observation", observation.toJson());
 
             if result is string {
@@ -8758,7 +8758,7 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, HealthcareService healthcareservice) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "HealthcareService", healthcareservice.toJson());
 
             if result is string {
@@ -9253,7 +9253,7 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Condition condition) returns Condition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Condition", condition.toJson());
 
             if result is string {
@@ -9748,7 +9748,7 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Patient patient) returns Patient|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Patient", patient.toJson());
 
             if result is string {
@@ -10529,7 +10529,7 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Location location) returns Location|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler();
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
             string|error? result = createHandler.saveResourceWithTransaction(persistClient, "Location", location.toJson());
 
             if result is string {
