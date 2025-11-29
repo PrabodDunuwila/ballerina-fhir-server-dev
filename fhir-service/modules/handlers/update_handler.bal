@@ -5,12 +5,16 @@ import ballerina_fhir_server.utils;
 import ballerina/log;
 import ballerina/persist;
 
+import ballerinax/java.jdbc;
+
 public class UpdateHandler {
     private mappers:UpdateMapper updateMapper;
     private utils:TransactionHandler transactionHandler;
     private HistoryHandler historyHandler;
+    private final jdbc:Client? jdbcClient;
 
-    public isolated function init() {
+    public isolated function init(jdbc:Client? jdbcClient = ()) {
+        self.jdbcClient = jdbcClient;
         self.updateMapper = new mappers:UpdateMapper();
         self.transactionHandler = new utils:TransactionHandler();
         self.historyHandler = new HistoryHandler();
@@ -24,6 +28,12 @@ public class UpdateHandler {
         'transaction.mainResourceId = resourceId;
 
         do {
+            // Get JDBC client
+            jdbc:Client? jdbcConn = self.jdbcClient;
+            if jdbcConn is () {
+                return error("JDBC client not initialized");
+            }
+
             // Check if resource exists
             log:printInfo(string `Checking if ${resourceType}/${resourceId} exists`);
             boolean exists = check self.checkResourceExists(persistClient, resourceType, resourceId);
@@ -73,7 +83,7 @@ public class UpdateHandler {
 
             // Map updated resource to update model
             log:printInfo(string `Mapping updated ${resourceType} to model (version ${newVersion})`);
-            record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(persistClient, resourceType, resourceJson, newVersion);
+            record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(jdbcConn, resourceType, resourceJson, newVersion);
 
             if updateModel is () || updateModel is error {
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
@@ -152,6 +162,12 @@ public class UpdateHandler {
 
     // Main function for PATCH (partial update) with transaction support
     public isolated function patchResourceWithTransaction(db_store:Client persistClient, string resourceType, string resourceId, json patchJson) returns json|error {
+        // Get JDBC client
+        jdbc:Client? jdbcConn = self.jdbcClient;
+        if jdbcConn is () {
+            return error("JDBC client not initialized");
+        }
+
         // Begin transaction
         utils:TransactionContext 'transaction = self.transactionHandler.beginTransaction();
         'transaction.mainResourceId = resourceId;
@@ -185,7 +201,7 @@ public class UpdateHandler {
 
             // Map merged resource to update model
             log:printInfo(string `Mapping patched resource to model`);
-            record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(persistClient, resourceType, mergedResource);
+            record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(jdbcConn, resourceType, mergedResource);
 
             if updateModel is () || updateModel is error {
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(persistClient, 'transaction, resourceType);

@@ -4,6 +4,8 @@ import ballerina_fhir_server.utils as mapperUtils;
 import ballerina/io;
 import ballerina/time;
 
+import ballerinax/java.jdbc;
+
 public class UpdateMapper {
     private json[] references;
 
@@ -12,9 +14,9 @@ public class UpdateMapper {
     }
 
     // This function will map values to persist update models
-    public isolated function mapToUpdateModel(db_store:Client persistClient, string resourceType, json resourceJson, int newVersion = 2) returns record {|anydata...;|}|error? {
+    public isolated function mapToUpdateModel(jdbc:Client jdbcClient, string resourceType, json resourceJson, int newVersion = 2) returns record {|anydata...;|}|error? {
         FHIRMapper fhirMapper = new FHIRMapper();
-        map<json> extractedValues = check fhirMapper.extractSearchParameters(persistClient, resourceType, resourceJson);
+        map<json> extractedValues = check fhirMapper.extractSearchParameters(jdbcClient, resourceType, resourceJson);
         self.references = fhirMapper.getReferences();
 
         match resourceType {

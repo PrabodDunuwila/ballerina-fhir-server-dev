@@ -1,8 +1,10 @@
 import ballerina_fhir_server.db_store;
-
+import ballerinax/java.jdbc;
+import ballerina/sql;
 import ballerina/log;
-import ballerina/persist;
 import ballerinax/health.fhir.r4utils.fhirpath;
+
+type SearchParamRow record {int ID; string SEARCH_PARAM_NAME; string SEARCH_PARAM_TYPE; string RESOURCE_NAME; string EXPRESSION;};
 
 public type SearchParamMapping record {|
     string paramName; // Database column
@@ -24,9 +26,9 @@ public class FHIRMapper {
     }
 
     // Load configuration for a specific resource type on demand
-    private isolated function loadResourceConfig(db_store:Client persistClient, string resourceType) returns ResourceMappingConfig|error? {
+    private isolated function loadResourceConfig(jdbc:Client jdbcClient, string resourceType) returns ResourceMappingConfig|error? {
         SearchParamMapping[] searchParamMappings = [];
-        db_store:SEARCH_PARAM_RES_EXPRESSIONS[]|error? searchParamsExprs = check self.getSearchParamExpressions(persistClient, resourceType);
+        db_store:SEARCH_PARAM_RES_EXPRESSIONS[]|error? searchParamsExprs = check self.getSearchParamExpressions(jdbcClient, resourceType);
 
         if (searchParamsExprs is db_store:SEARCH_PARAM_RES_EXPRESSIONS[]) {
             foreach db_store:SEARCH_PARAM_RES_EXPRESSIONS search_param_expr in searchParamsExprs {
@@ -35,7 +37,6 @@ public class FHIRMapper {
                     paramType: search_param_expr.SEARCH_PARAM_TYPE,
                     fhirPath: search_param_expr.EXPRESSION
                 };
-
                 searchParamMappings.push(mapping);
             }
         }
@@ -49,8 +50,8 @@ public class FHIRMapper {
         return config;
     }
 
-    public isolated function extractSearchParameters(db_store:Client persistClient, string resourceType, json resourceJson) returns map<json>|error {
-        ResourceMappingConfig|error? config = check self.loadResourceConfig(persistClient, resourceType);
+    public isolated function extractSearchParameters(jdbc:Client jdbcClient, string resourceType, json resourceJson) returns map<json>|error {
+        ResourceMappingConfig|error? config = check self.loadResourceConfig(jdbcClient, resourceType);
 
         map<json> extractedParams = {};
         if (config is ResourceMappingConfig) {
@@ -91,11 +92,42 @@ public class FHIRMapper {
         return result;
     }
 
-    private isolated function getSearchParamExpressions(db_store:Client persistClient, string resourceName) returns db_store:SEARCH_PARAM_RES_EXPRESSIONS[]|error? {
-        stream<db_store:SEARCH_PARAM_RES_EXPRESSIONS, persist:Error?> expressions = persistClient->/search_param_res_expressions;
-        db_store:SEARCH_PARAM_RES_EXPRESSIONS[] filtered = check from var expression in expressions
-            where expression.RESOURCE_NAME == resourceName
-            select expression;
-        return filtered;
+    private isolated function getSearchParamExpressions(jdbc:Client jdbcClient, string resourceName) returns db_store:SEARCH_PARAM_RES_EXPRESSIONS[]|error? {
+        sql:ParameterizedQuery pq = `SELECT ID, SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION FROM search_param_res_expressions WHERE RESOURCE_NAME = ${resourceName}`;
+        stream<SearchParamRow, error?> result = jdbcClient->query(pq);
+
+        db_store:SEARCH_PARAM_RES_EXPRESSIONS[] expressions = [];
+        error? e = ();
+        // Iterate the stream and collect results, handling errors per row
+        do {
+            var next = result.next();
+            while !(next is ()) {
+                if (next is error) {
+                    e = next;
+                    break;
+                } else if (next is record {}) {
+                    if (next.hasKey("value")) {
+                        var val = next.value;
+                        if val is record {int ID; string SEARCH_PARAM_NAME; string SEARCH_PARAM_TYPE; string RESOURCE_NAME; string EXPRESSION;} {
+                            db_store:SEARCH_PARAM_RES_EXPRESSIONS expr = {
+                                ID: val.ID,
+                                SEARCH_PARAM_NAME: val.SEARCH_PARAM_NAME,
+                                SEARCH_PARAM_TYPE: val.SEARCH_PARAM_TYPE,
+                                RESOURCE_NAME: val.RESOURCE_NAME,
+                                EXPRESSION: val.EXPRESSION
+                            };
+                            expressions.push(expr);
+                        }
+                    }
+                }
+                next = result.next();
+            }
+        } on fail error err {
+            e = err;
+        }
+        if e is error {
+            return e;
+        }
+        return expressions;
     }
 }

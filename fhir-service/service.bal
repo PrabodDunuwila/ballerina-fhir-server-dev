@@ -459,7 +459,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
     isolated resource function put [string id](r4:FHIRContext fhirContext, Appointment appointment) returns Appointment|r4:OperationOutcome|r4:FHIRError {
 
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Appointment", id, appointment.toJson());
 
             if result is string {
@@ -488,7 +488,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Appointment|r4:OperationOutcome|r4:FHIRError {
 
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Appointment", id, patch);
 
             if result is json {
@@ -689,7 +689,7 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Account account) returns Account|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Account", id, account.toJson());
 
             if result is string {
@@ -713,7 +713,7 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Account|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Account", id, patch);
 
             if result is json {
@@ -859,7 +859,7 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Invoice invoice) returns Invoice|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Invoice", id, invoice.toJson());
             if result is string {
                 log:printInfo("Invoice: PUT - Execution Success!");
@@ -881,7 +881,7 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Invoice|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Invoice", id, patch);
             if result is json {
                 log:printInfo("Invoice: PATCH - Execution Success!");
@@ -1023,7 +1023,7 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CatalogEntry catalogentry) returns CatalogEntry|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "CatalogEntry", id, catalogentry.toJson());
             if result is string {
                 log:printInfo("CatalogEntry: PUT - Execution Success!");
@@ -1045,7 +1045,7 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CatalogEntry|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "CatalogEntry", id, patch);
             if result is json {
                 log:printInfo("CatalogEntry: PATCH - Execution Success!");
@@ -1187,7 +1187,7 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, EventDefinition eventdefinition) returns EventDefinition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "EventDefinition", id, eventdefinition.toJson());
             if result is string {
                 log:printInfo("EventDefinition: PUT - Execution Success!");
@@ -1209,7 +1209,7 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EventDefinition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "EventDefinition", id, patch);
             if result is json {
                 log:printInfo("EventDefinition: PATCH - Execution Success!");
@@ -1351,7 +1351,7 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DocumentManifest documentmanifest) returns DocumentManifest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "DocumentManifest", id, documentmanifest.toJson());
             if result is string {
                 log:printInfo("DocumentManifest: PUT - Execution Success!");
@@ -1373,7 +1373,7 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DocumentManifest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "DocumentManifest", id, patch);
             if result is json {
                 log:printInfo("DocumentManifest: PATCH - Execution Success!");
@@ -1507,7 +1507,7 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, MessageDefinition messagedefinition) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "MessageDefinition", id, messagedefinition.toJson());
             if result is string {
                 log:printInfo("MessageDefinition: PUT - Execution Success!");
@@ -1526,7 +1526,7 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "MessageDefinition", id, patch);
             if result is json {
                 log:printInfo("MessageDefinition: PATCH - Execution Success!");
@@ -1654,7 +1654,7 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, Goal goal) returns Goal|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Goal", id, goal.toJson());
             if result is string {
                 log:printInfo("Goal: PUT - Execution Success!");
@@ -1673,7 +1673,7 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Goal|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Goal", id, patch);
             if result is json {
                 log:printInfo("Goal: PATCH - Execution Success!");
@@ -1801,7 +1801,7 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductPackaged medicinalproductpackaged) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "MedicinalProductPackaged", id, medicinalproductpackaged.toJson());
             if result is string {
                 log:printInfo("MedicinalProductPackaged: PUT - Execution Success!");
@@ -1820,7 +1820,7 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "MedicinalProductPackaged", id, patch);
             if result is json {
                 log:printInfo("MedicinalProductPackaged: PATCH - Execution Success!");
@@ -1948,7 +1948,7 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, Endpoint endpoint) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Endpoint", id, endpoint.toJson());
             if result is string {
                 log:printInfo("Endpoint: PUT - Execution Success!");
@@ -1967,7 +1967,7 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Endpoint", id, patch);
             if result is json {
                 log:printInfo("Endpoint: PATCH - Execution Success!");
@@ -2095,7 +2095,7 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, EnrollmentRequest enrollmentrequest) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "EnrollmentRequest", id, enrollmentrequest.toJson());
             if result is string {
                 log:printInfo("EnrollmentRequest: PUT - Execution Success!");
@@ -2114,7 +2114,7 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "EnrollmentRequest", id, patch);
             if result is json {
                 log:printInfo("EnrollmentRequest: PATCH - Execution Success!");
@@ -2242,7 +2242,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, Consent consent) returns Consent|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Consent", id, consent.toJson());
             if result is string {
                 log:printInfo("Consent: PUT - Execution Success!");
@@ -2261,7 +2261,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Consent|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Consent", id, patch);
             if result is json {
                 log:printInfo("Consent: PATCH - Execution Success!");
@@ -2963,7 +2963,7 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, PractitionerRole practitionerrole) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "PractitionerRole", id, practitionerrole.toJson());
 
             if result is string {
@@ -2988,7 +2988,7 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "PractitionerRole", id, patch);
 
             if result is json {
@@ -3158,7 +3158,7 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, RelatedPerson relatedperson) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "RelatedPerson", id, relatedperson.toJson());
 
             if result is string {
@@ -3183,7 +3183,7 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "RelatedPerson", id, patch);
 
             if result is json {
@@ -3353,7 +3353,7 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ServiceRequest servicerequest) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "ServiceRequest", id, servicerequest.toJson());
 
             if result is string {
@@ -3378,7 +3378,7 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "ServiceRequest", id, patch);
 
             if result is json {
@@ -3598,7 +3598,7 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Practitioner practitioner) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Practitioner", id, practitioner.toJson());
 
             if result is string {
@@ -3623,7 +3623,7 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Practitioner", id, patch);
 
             if result is json {
@@ -3965,7 +3965,7 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Slot slot) returns Slot|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Slot", id, slot.toJson());
 
             if result is string {
@@ -3990,7 +3990,7 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Slot|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Slot", id, patch);
 
             if result is json {
@@ -5610,7 +5610,7 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ImmunizationRecommendation immunizationrecommendation) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "ImmunizationRecommendation", id, immunizationrecommendation.toJson());
 
             if result is string {
@@ -5635,7 +5635,7 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "ImmunizationRecommendation", id, patch);
 
             if result is json {
@@ -6405,7 +6405,7 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Procedure procedure) returns Procedure|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Procedure", id, procedure.toJson());
 
             if result is string {
@@ -6430,7 +6430,7 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Procedure|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Procedure", id, patch);
 
             if result is json {
@@ -6950,7 +6950,7 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Device device) returns Device|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Device", id, device.toJson());
 
             if result is string {
@@ -6975,7 +6975,7 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Device|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Device", id, patch);
 
             if result is json {
@@ -7845,7 +7845,7 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Observation observation) returns Observation|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Observation", id, observation.toJson());
 
             if result is string {
@@ -7870,7 +7870,7 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Observation|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Observation", id, patch);
 
             if result is json {
@@ -8790,7 +8790,7 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, HealthcareService healthcareservice) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "HealthcareService", id, healthcareservice.toJson());
 
             if result is string {
@@ -8815,7 +8815,7 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "HealthcareService", id, patch);
 
             if result is json {
@@ -9285,7 +9285,7 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Condition condition) returns Condition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Condition", id, condition.toJson());
 
             if result is string {
@@ -9310,7 +9310,7 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Condition|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Condition", id, patch);
 
             if result is json {
@@ -9774,7 +9774,7 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Patient patient) returns Patient|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Patient", id, patient.toJson());
 
             if result is string {
@@ -9799,7 +9799,7 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Patient|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Patient", id, patch);
 
             if result is json {
@@ -10561,7 +10561,7 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Location location) returns Location|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             string|error result = updateHandler.updateResourceWithTransaction(persistClient, "Location", id, location.toJson());
 
             if result is string {
@@ -10586,7 +10586,7 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Location|r4:OperationOutcome|r4:FHIRError {
         do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler();
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
             json|error result = updateHandler.patchResourceWithTransaction(persistClient, "Location", id, patch);
 
             if result is json {

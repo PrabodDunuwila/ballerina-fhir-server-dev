@@ -1,4 +1,3 @@
-import ballerina_fhir_server.db_store;
 import ballerina_fhir_server.utils as mapperUtils;
 
 import ballerina/log;
@@ -137,9 +136,9 @@ public class CreateMapper {
     }
 
     // This function will map values to persist insert models
-    public isolated function mapToInsertModel(db_store:Client persistClient, string resourceType, json resourceJson) returns record {|anydata...;|}|error? {
+    public isolated function mapToInsertModel(jdbc:Client jdbcClient, string resourceType, json resourceJson) returns record {|anydata...;|}|error? {
         FHIRMapper fhirMapper = new FHIRMapper();
-        map<json> extractedValues = check fhirMapper.extractSearchParameters(persistClient, resourceType, resourceJson);
+        map<json> extractedValues = check fhirMapper.extractSearchParameters(jdbcClient, resourceType, resourceJson);
         self.references = fhirMapper.getReferences();
 
         // Use fully generic database-driven approach for all resources
