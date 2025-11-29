@@ -1,7 +1,7 @@
-import ballerina_fhir_server.db_store;
 import ballerina_fhir_server.mappers;
 
 import ballerina/log;
+import ballerinax/java.jdbc;
 
 public class ReadHandler {
     private mappers:ReadMapper readMapper;
@@ -11,11 +11,11 @@ public class ReadHandler {
     }
 
     // Main function to read a single resource by ID
-    public isolated function readResource(db_store:Client persistClient, string resourceType, string resourceId) returns json|error {
+    public isolated function readResource(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns json|error {
         log:printInfo(string `Reading ${resourceType}/${resourceId}`);
 
         // Use ReadMapper to fetch resource
-        json|error resourceJson = self.readMapper.readResourceById(persistClient, resourceType, resourceId);
+        json|error resourceJson = self.readMapper.readResourceById(jdbcClient, resourceType, resourceId);
 
         if resourceJson is error {
             log:printError(string `Failed to read ${resourceType}/${resourceId}: ${resourceJson.message()}`);
@@ -27,11 +27,11 @@ public class ReadHandler {
     }
 
     // Function to search resources with query parameters
-    public isolated function searchResources(db_store:Client persistClient, string resourceType, map<string[]> queryParams) returns json|error {
+    public isolated function searchResources(jdbc:Client? jdbcClient, string resourceType, map<string[]> queryParams) returns json|error {
         log:printInfo(string `Searching ${resourceType} with query parameters`);
 
         // Use ReadMapper to search resources
-        json|error searchResults = self.readMapper.searchResources(persistClient, resourceType, queryParams);
+        json|error searchResults = self.readMapper.searchResources(jdbcClient, resourceType, queryParams);
 
         if searchResults is error {
             log:printError(string `Failed to search ${resourceType}: ${searchResults.message()}`);
@@ -43,11 +43,11 @@ public class ReadHandler {
     }
 
     // Function to read all resources of a type (with optional limit)
-    public isolated function readAllResources(db_store:Client persistClient, string resourceType, int? 'limit = ()) returns json|error {
+    public isolated function readAllResources(jdbc:Client? jdbcClient, string resourceType, int? 'limit = ()) returns json|error {
         log:printInfo(string `Reading all ${resourceType} resources${('limit is int) ? string ` (limit: ${'limit})` : ""}`);
 
         // Use ReadMapper to fetch all resources
-        json|error allResources = self.readMapper.readAllResources(persistClient, resourceType, 'limit);
+        json|error allResources = self.readMapper.readAllResources(jdbcClient, resourceType, 'limit);
 
         if allResources is error {
             log:printError(string `Failed to read all ${resourceType} resources: ${allResources.message()}`);
@@ -59,11 +59,11 @@ public class ReadHandler {
     }
 
     // Function to check if a resource exists
-    public isolated function checkResourceExists(db_store:Client persistClient, string resourceType, string resourceId) returns boolean|error {
+    public isolated function checkResourceExists(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns boolean|error {
         log:printInfo(string `Checking if ${resourceType}/${resourceId} exists`);
 
         // Use ReadMapper to check existence
-        boolean|error exists = self.readMapper.resourceExists(persistClient, resourceType, resourceId);
+        boolean|error exists = self.readMapper.resourceExists(jdbcClient, resourceType, resourceId);
 
         if exists is error {
             log:printError(string `Failed to check existence of ${resourceType}/${resourceId}: ${exists.message()}`);
@@ -75,11 +75,11 @@ public class ReadHandler {
     }
 
     // Function to get resource count
-    public isolated function getResourceCount(db_store:Client persistClient, string resourceType) returns int|error {
+    public isolated function getResourceCount(jdbc:Client? jdbcClient, string resourceType) returns int|error {
         log:printInfo(string `Getting count for ${resourceType} resources`);
 
         // Use ReadMapper to get count
-        int|error count = self.readMapper.getResourceCount(persistClient, resourceType);
+        int|error count = self.readMapper.getResourceCount(jdbcClient, resourceType);
 
         if count is error {
             log:printError(string `Failed to get count for ${resourceType}: ${count.message()}`);
@@ -91,11 +91,11 @@ public class ReadHandler {
     }
 
     // Function to get resource metadata only (without full RESOURCE_JSON)
-    public isolated function getResourceMetadata(db_store:Client persistClient, string resourceType, string resourceId) returns record {|anydata...;|}|error {
+    public isolated function getResourceMetadata(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns record {|anydata...;|}|error {
         log:printInfo(string `Getting metadata for ${resourceType}/${resourceId}`);
 
         // Use ReadMapper to get metadata
-        record {|anydata...;|}|error metadata = self.readMapper.getResourceMetadata(persistClient, resourceType, resourceId);
+        record {|anydata...;|}|error metadata = self.readMapper.getResourceMetadata(jdbcClient, resourceType, resourceId);
 
         if metadata is error {
             log:printError(string `Failed to get metadata for ${resourceType}/${resourceId}: ${metadata.message()}`);
@@ -107,11 +107,11 @@ public class ReadHandler {
     }
 
     // Function to read references for a resource
-    public isolated function readResourceReferences(db_store:Client persistClient, string resourceType, string resourceId) returns json[]|error {
+    public isolated function readResourceReferences(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns json[]|error {
         log:printInfo(string `Reading references for ${resourceType}/${resourceId}`);
 
         // Use ReadMapper to get references
-        json[]|error references = self.readMapper.readReferences(persistClient, resourceType, resourceId);
+        json[]|error references = self.readMapper.readReferences(jdbcClient, resourceType, resourceId);
 
         if references is error {
             log:printError(string `Failed to read references for ${resourceType}/${resourceId}: ${references.message()}`);
@@ -123,14 +123,14 @@ public class ReadHandler {
     }
 
     // Function to read resource with its references (combined operation)
-    public isolated function readResourceWithReferences(db_store:Client persistClient, string resourceType, string resourceId) returns json|error {
+    public isolated function readResourceWithReferences(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns json|error {
         log:printInfo(string `Reading ${resourceType}/${resourceId} with references`);
 
         // Read the main resource
-        json resourceJson = check self.readResource(persistClient, resourceType, resourceId);
+        json resourceJson = check self.readResource(jdbcClient, resourceType, resourceId);
 
         // Read associated references
-        json[] references = check self.readResourceReferences(persistClient, resourceType, resourceId);
+        json[] references = check self.readResourceReferences(jdbcClient, resourceType, resourceId);
 
         // Combine resource and references into a single response
         json response = {

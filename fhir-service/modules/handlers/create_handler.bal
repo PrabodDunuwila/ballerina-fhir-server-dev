@@ -1,4 +1,3 @@
-import ballerina_fhir_server.db_store;
 import ballerina_fhir_server.mappers;
 import ballerina_fhir_server.utils;
 import ballerina_fhir_server.utils as mapperUtils;
@@ -20,7 +19,7 @@ public class CreateHandler {
     }
 
     // Main function to save resource
-    public isolated function saveResourceWithTransaction(db_store:Client persistClient, string resourceType, json resourceJson) returns string|error {
+    public isolated function saveResourceWithTransaction(string resourceType, json resourceJson) returns string|error {
 
         // Begin transaction
         utils:TransactionContext 'transaction = self.transactionHandler.beginTransaction();
@@ -51,7 +50,7 @@ public class CreateHandler {
 
             // Validate all references BEFORE saving main resource
             log:printInfo(string `Validating ${references.length()} reference(s) for ${resourceType}`);
-            error? validationResult = utils:validateReferences(persistClient, references);
+            error? validationResult = utils:validateReferences(self.jdbcClient, references);
             if validationResult is error {
                 log:printError(string `Reference validation failed: ${validationResult.message()}`);
                 return validationResult;
@@ -59,19 +58,19 @@ public class CreateHandler {
 
             // Save main resource
             log:printInfo(string `Saving main ${resourceType} record`);
-            string resourceId = check self.saveMainResource(persistClient, resourceType, insertModel);
+            string resourceId = check self.saveMainResource(resourceType, insertModel);
             'transaction.mainResourceId = resourceId;
 
             log:printInfo(string `Saved ${resourceType} with ID: ${resourceId}`);
 
             // Save all references
             log:printInfo(string `Saving references for ${resourceType}/${resourceId}`);
-            error? refResult = utils:saveReferences(persistClient, references, resourceType, resourceId, 'transaction);
+            error? refResult = utils:saveReferences(self.jdbcClient, references, resourceType, resourceId, 'transaction);
 
             if refResult is error {
                 // Rollback on reference save failure
                 log:printError(string `Reference save failed: ${refResult.message()}`);
-                error? rollbackResult = self.transactionHandler.rollbackCreateTransaction(persistClient, 'transaction, resourceType);
+                error? rollbackResult = self.transactionHandler.rollbackCreateTransaction(self.jdbcClient, 'transaction, resourceType);
                 if (rollbackResult is error) {
                     log:printError(`Rollback Status: ${rollbackResult.toString()}`);
                 }
@@ -87,7 +86,7 @@ public class CreateHandler {
         } on fail error e {
             // Rollback on any failure
             log:printError(string `Transaction failed for ${resourceType}: ${e.message()}`);
-            error? rollbackResult = check self.transactionHandler.rollbackCreateTransaction(persistClient, 'transaction, resourceType);
+            error? rollbackResult = check self.transactionHandler.rollbackCreateTransaction(self.jdbcClient, 'transaction, resourceType);
             if (rollbackResult is error) {
                 log:printError(`Rollback Status: ${rollbackResult.toString()}`);
             }
@@ -96,7 +95,7 @@ public class CreateHandler {
     }
 
     // Generic insert method
-    private isolated function saveMainResource(db_store:Client persistClient, string resourceType, record {|anydata...;|} insertModel) returns string|error {
+    private isolated function saveMainResource(string resourceType, record {|anydata...;|} insertModel) returns string|error {
         
         // Get table name
         string tableName = mapperUtils:getTableName(resourceType);

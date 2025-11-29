@@ -1,5 +1,3 @@
-import ballerina_fhir_server.db_store;
-
 import ballerina/io;
 import ballerina/sql;
 import ballerinax/java.jdbc;
@@ -20,10 +18,6 @@ public class DBHandler {
         return self.jdbcClient;
     }
 
-    public function initializePersistClient() returns db_store:Client|error {
-        return new ();
-    }
-
     private function isDBExsists(jdbc:Client jdbcClient) returns boolean|error {
         sql:ParameterizedQuery query = `SELECT COUNT(TABLE_CATALOG) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'`;
         int count = check jdbcClient->queryRow(query);
@@ -33,7 +27,7 @@ public class DBHandler {
         return false;
     }
 
-    public function initDatabase(jdbc:Client jdbcClient, db_store:Client persistClient) returns boolean|error? {
+    public function initDatabase(jdbc:Client jdbcClient) returns boolean|error? {
         if (self.isDBExsists(jdbcClient) is error) {
             return false;
         } else if (self.isDBExsists(jdbcClient) == true) {
@@ -63,7 +57,7 @@ public class DBHandler {
             io:println("Create Query Result: " + createQueryResult.toString());
 
             // MIGHT BE OBSOLETE: Check whether if necessary
-            error? isSearchParamsPopulated = self.populateSearchParamExpressionTable(persistClient);
+            error? isSearchParamsPopulated = self.populateSearchParamExpressionTable();
             if (isSearchParamsPopulated is error) {
                 io:print("An error occured while populating the SEARCH_PARAM_EXPRESSION_TABLE: " + isSearchParamsPopulated.message());
                 return false;
@@ -128,12 +122,14 @@ public class DBHandler {
         }
     }
 
-    private function populateSearchParamExpressionTable(db_store:Client persistClient) returns error? {
+    private function populateSearchParamExpressionTable() returns error? {
         final string dataFilePath = "./assets/r4-searchParam-Expression.csv";
         final string[] readLines = check io:fileReadLines(dataFilePath);
         final string:RegExp regex = re `,`;
         int i = 0;
         int totRecords = 0;
+
+        jdbc:Client jdbcConn = check self.jdbcClient;
 
         foreach string line in readLines {
             i += 1;
@@ -151,15 +147,13 @@ public class DBHandler {
                 string searchParamType = data[2];
                 string expression = data[3];
 
-                db_store:SEARCH_PARAM_RES_EXPRESSIONSInsert searchParamResourceExpression = {
-                    SEARCH_PARAM_NAME: searchParamName,
-                    SEARCH_PARAM_TYPE: searchParamType,
-                    RESOURCE_NAME: 'resource,
-                    EXPRESSION: expression
-                };
+                string sqlQuery = string `INSERT INTO "SEARCH_PARAM_RES_EXPRESSIONS" (SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION) VALUES ('${searchParamName}', '${searchParamType}', '${'resource}', '${expression}')`;
+                sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
 
-                int[] recordId = check persistClient->/search_param_res_expressions.post([searchParamResourceExpression]);
-                totRecords = recordId[0]; // tot_records = last_rec_id
+                sql:ExecutionResult result = check jdbcConn->execute(query);
+                if result.lastInsertId is int {
+                    totRecords = <int>result.lastInsertId;
+                }
             }
         }
         io:println("Total Records Inserted: " + totRecords.toString());

@@ -1,13 +1,18 @@
 import ballerina_fhir_server.db_store;
 
 import ballerina/log;
+import ballerina/regex;
+import ballerina/sql;
+import ballerina/time;
+
+import ballerinax/java.jdbc;
 
 public type TransactionContext record {|
     string? mainResourceId = ();
     int[] savedReferenceIds = [];
     int[] deletedReferenceIds = [];
     record {|anydata...;|}? backupResource = ();
-    db_store:REFERENCES[]? backupReferences = ();
+    record {|anydata...;|}[]? backupReferences = ();
     boolean committed = false;
 |};
 
@@ -25,7 +30,7 @@ public class TransactionHandler {
     }
 
     // Rollback for CREATE operations
-    public isolated function rollbackCreateTransaction(db_store:Client persistClient, TransactionContext 'transaction, string resourceType) returns error? {
+    public isolated function rollbackCreateTransaction(jdbc:Client? jdbcClient, TransactionContext 'transaction, string resourceType) returns error? {
         if 'transaction.committed {
             log:printWarn("Cannot rollback a committed transaction");
             return;
@@ -38,7 +43,7 @@ public class TransactionHandler {
 
         // Delete references
         int[] referenceIds = 'transaction.savedReferenceIds.reverse();
-        error? refDeleteResult = deleteReferences(persistClient, referenceIds, 'transaction);
+        error? refDeleteResult = deleteReferences(jdbcClient, referenceIds, 'transaction);
         if (refDeleteResult is error) {
             log:printError(refDeleteResult.toString());
         }
@@ -46,7 +51,7 @@ public class TransactionHandler {
         // Delete main resource if it was saved
         if 'transaction.mainResourceId is string {
             string resourceId = <string>'transaction.mainResourceId;
-            error? deleteResult = deleteResource(persistClient, resourceType, resourceId);
+            error? deleteResult = deleteResource(jdbcClient, resourceType, resourceId);
 
             if deleteResult is error {
                 log:printError(string `Failed to delete main resource ${resourceId}: ${deleteResult.message()}`);
@@ -60,7 +65,7 @@ public class TransactionHandler {
     }
 
     // Rollback for DELETE operations (restore deleted items)
-    public isolated function rollbackDeleteTransaction(db_store:Client persistClient, TransactionContext 'transaction, string resourceType) returns error? {
+    public isolated function rollbackDeleteTransaction(jdbc:Client? jdbcClient, TransactionContext 'transaction, string resourceType) returns error? {
 
         if 'transaction.committed {
             log:printWarn("Cannot rollback a committed transaction");
@@ -72,7 +77,7 @@ public class TransactionHandler {
         // Restore main resource
         if 'transaction.backupResource is record {|anydata...;|} {
             string resourceId = <string>'transaction.mainResourceId;
-            error? restoreResult = self.restoreResource(persistClient, resourceType, resourceId, 'transaction.backupResource);
+            error? restoreResult = self.restoreResource(jdbcClient, resourceType, resourceId, 'transaction.backupResource);
 
             if restoreResult is error {
                 log:printError(string `Failed to restore resource: ${restoreResult.message()}`);
@@ -82,25 +87,13 @@ public class TransactionHandler {
             }
         }
 
-        // Restore deleted references
+        // Restore deleted references using JDBC
         if 'transaction.backupReferences is db_store:REFERENCES[] {
             db_store:REFERENCES[] backupRefs = <db_store:REFERENCES[]>'transaction.backupReferences;
             foreach db_store:REFERENCES ref in backupRefs {
-                db_store:REFERENCESInsert refInsert = {
-                    SOURCE_RESOURCE_TYPE: ref.SOURCE_RESOURCE_TYPE,
-                    SOURCE_RESOURCE_ID: ref.SOURCE_RESOURCE_ID,
-                    SOURCE_EXPRESSION: ref.SOURCE_EXPRESSION,
-                    TARGET_RESOURCE_TYPE: ref.TARGET_RESOURCE_TYPE,
-                    TARGET_RESOURCE_ID: ref.TARGET_RESOURCE_ID,
-                    DISPLAY_VALUE: ref.DISPLAY_VALUE,
-                    CREATED_AT: ref.CREATED_AT,
-                    UPDATED_AT: ref.UPDATED_AT,
-                    LAST_UPDATED: ref.LAST_UPDATED
-                };
-
-                int[]|error result = persistClient->/references.post([refInsert]);
-                if result is error {
-                    log:printError(string `Failed to restore reference: ${result.message()}`);
+                error? restoreResult = self.restoreReference(jdbcClient, ref);
+                if restoreResult is error {
+                    log:printError(string `Failed to restore reference: ${restoreResult.message()}`);
                 } else {
                     log:printInfo(string `Restored reference: ${ref.ID}`);
                 }
@@ -126,7 +119,7 @@ public class TransactionHandler {
     }
 
     // Rollback for UPDATE operations (restore from backup)
-    public isolated function rollbackUpdateTransaction(db_store:Client persistClient, TransactionContext 'transaction, string resourceType) returns error? {
+    public isolated function rollbackUpdateTransaction(jdbc:Client? jdbcClient, TransactionContext 'transaction, string resourceType) returns error? {
 
         if 'transaction.committed {
             log:printWarn("Cannot rollback a committed transaction");
@@ -138,7 +131,7 @@ public class TransactionHandler {
         // Restore backed up resource
         if 'transaction.backupResource is record {|anydata...;|} {
             string resourceId = <string>'transaction.mainResourceId;
-            error? restoreResult = self.restoreResource(persistClient, resourceType, resourceId, 'transaction.backupResource);
+            error? restoreResult = self.restoreResource(jdbcClient, resourceType, resourceId, 'transaction.backupResource);
             if restoreResult is error {
                 log:printError(string `Failed to restore resource: ${restoreResult.message()}`);
             } else {
@@ -146,48 +139,114 @@ public class TransactionHandler {
             }
         }
 
-        // Delete newly created references
-        foreach int refId in 'transaction.savedReferenceIds.reverse() {
-            _ = check persistClient->/references/[refId].delete();
+        // Delete newly created references using JDBC
+        if jdbcClient is jdbc:Client {
+            foreach int refId in 'transaction.savedReferenceIds.reverse() {
+                string deleteQuery = string `DELETE FROM "REFERENCES" WHERE ID = ${refId}`;
+                sql:ExecutionResult|error result = jdbcClient->execute(new RawSQLQuery(deleteQuery));
+                if result is error {
+                    log:printError(string `Failed to delete reference ${refId}: ${result.message()}`);
+                }
+            }
         }
 
         log:printInfo("Update rollback completed");
     }
 
-    private isolated function restoreResource(db_store:Client persistClient, string resourceType, string resourceId, record {|anydata...;|}? backup) returns error? {
-
+    private isolated function restoreResource(jdbc:Client? jdbcClient, string resourceType, string resourceId, record {|anydata...;|}? backup) returns error? {
         if backup is () {
             return error("No backup available for restore");
         }
 
-        match resourceType {
-            "Account" => { _ = check persistClient->/accounttables/[resourceId].put(check backup.cloneWithType(db_store:AccountTableUpdate)); }
-            "Appointment" => { _ = check persistClient->/appointmenttables/[resourceId].put(check backup.cloneWithType(db_store:AppointmentTableUpdate)); }
-            "Patient" => { _ = check persistClient->/patienttables/[resourceId].put(check backup.cloneWithType(db_store:PatientTableUpdate)); }
-            "Practitioner" => { _ = check persistClient->/practitionertables/[resourceId].put(check backup.cloneWithType(db_store:PractitionerTableUpdate)); }
-            "Device" => { _ = check persistClient->/devicetables/[resourceId].put(check backup.cloneWithType(db_store:DeviceTableUpdate)); }
-            "HealthcareService" => { _ = check persistClient->/healthcareservicetables/[resourceId].put(check backup.cloneWithType(db_store:HealthcareServiceTableUpdate)); }
-            "PractitionerRole" => { _ = check persistClient->/practitionerroletables/[resourceId].put(check backup.cloneWithType(db_store:PractitionerRoleTableUpdate)); }
-            "RelatedPerson" => { _ = check persistClient->/relatedpersontables/[resourceId].put(check backup.cloneWithType(db_store:RelatedPersonTableUpdate)); }
-            "Location" => { _ = check persistClient->/locationtables/[resourceId].put(check backup.cloneWithType(db_store:LocationTableUpdate)); }
-            "ServiceRequest" => { _ = check persistClient->/servicerequesttables/[resourceId].put(check backup.cloneWithType(db_store:ServiceRequestTableUpdate)); }
-            "Condition" => { _ = check persistClient->/conditiontables/[resourceId].put(check backup.cloneWithType(db_store:ConditionTableUpdate)); }
-            "Observation" => { _ = check persistClient->/observationtables/[resourceId].put(check backup.cloneWithType(db_store:ObservationTableUpdate)); }
-            "Procedure" => { _ = check persistClient->/proceduretables/[resourceId].put(check backup.cloneWithType(db_store:ProcedureTableUpdate)); }
-            "ImmunizationRecommendation" => { _ = check persistClient->/immunizationrecommendationtables/[resourceId].put(check backup.cloneWithType(db_store:ImmunizationRecommendationTableUpdate)); }
-            "Slot" => { _ = check persistClient->/slottables/[resourceId].put(check backup.cloneWithType(db_store:SlotTableUpdate)); }
-            "Invoice" => { _ = check persistClient->/invoicetables/[resourceId].put(check backup.cloneWithType(db_store:InvoiceTableUpdate)); }
-            "DocumentManifest" => { _ = check persistClient->/documentmanifesttables/[resourceId].put(check backup.cloneWithType(db_store:DocumentManifestTableUpdate)); }
-            "Consent" => { _ = check persistClient->/consenttables/[resourceId].put(check backup.cloneWithType(db_store:ConsentTableUpdate)); }
-            "Goal" => { _ = check persistClient->/goaltables/[resourceId].put(check backup.cloneWithType(db_store:GoalTableUpdate)); }
-            "MedicinalProductPackaged" => { _ = check persistClient->/medicinalproductpackagedtables/[resourceId].put(check backup.cloneWithType(db_store:MedicinalProductPackagedTableUpdate)); }
-            "MessageDefinition" => { _ = check persistClient->/messagedefinitiontables/[resourceId].put(check backup.cloneWithType(db_store:MessageDefinitionTableUpdate)); }
-            "Endpoint" => { _ = check persistClient->/endpointtables/[resourceId].put(check backup.cloneWithType(db_store:EndpointTableUpdate)); }
-            "EnrollmentRequest" => { _ = check persistClient->/enrollmentrequesttables/[resourceId].put(check backup.cloneWithType(db_store:EnrollmentRequestTableUpdate)); }
-            "EventDefinition" => { _ = check persistClient->/eventdefinitiontables/[resourceId].put(check backup.cloneWithType(db_store:EventDefinitionTableUpdate)); }
-            _ => {
-                return error(string `Unsupported resource type: ${resourceType}`);
-            }
+        if jdbcClient is () {
+            return error("JDBC Client is not initialized");
         }
+
+        // Get table name and primary key
+        string tableName = getTableName(resourceType);
+        string primaryKeyColumn = getPrimaryKeyColumn(resourceType);
+
+        // Build UPDATE SET clause dynamically from backup record
+        string[] setClauses = [];
+        foreach var [columnName, value] in backup.entries() {
+            string columnValue = self.formatValue(value);
+            setClauses.push(string `${columnName} = ${columnValue}`);
+        }
+
+        if setClauses.length() == 0 {
+            return error("No data to restore");
+        }
+
+        // Build and execute UPDATE query
+        string updateQuery = string `UPDATE "${tableName}" SET ${string:'join(", ", ...setClauses)} WHERE ${primaryKeyColumn} = '${resourceId}'`;
+        sql:ExecutionResult result = check jdbcClient->execute(new RawSQLQuery(updateQuery));
+
+        if result.affectedRowCount == 0 {
+            return error(string `Failed to restore ${resourceType}/${resourceId} - resource not found`);
+        }
+
+        log:printInfo(string `Restored ${resourceType}/${resourceId} with ${setClauses.length()} fields`);
+    }
+
+    // Helper to restore a single reference using JDBC
+    private isolated function restoreReference(jdbc:Client? jdbcClient, db_store:REFERENCES ref) returns error? {
+        if jdbcClient is () {
+            return error("JDBC Client is not initialized");
+        }
+
+        // Escape string values
+        string escapedSourceResType = regex:replaceAll(ref.SOURCE_RESOURCE_TYPE, "'", "''");
+        string escapedSourceResId = regex:replaceAll(ref.SOURCE_RESOURCE_ID, "'", "''");
+        string escapedSourceExpr = regex:replaceAll(ref.SOURCE_EXPRESSION, "'", "''");
+        string escapedTargetResType = regex:replaceAll(ref.TARGET_RESOURCE_TYPE, "'", "''");
+        string escapedTargetResId = regex:replaceAll(ref.TARGET_RESOURCE_ID, "'", "''");
+        string displayValue = ref.DISPLAY_VALUE is string ? ref.DISPLAY_VALUE : "";
+        string escapedDisplayValue = regex:replaceAll(displayValue, "'", "''");
+
+        // Format timestamps
+        string createdAt = self.formatTimestamp(ref.CREATED_AT);
+        string updatedAt = self.formatTimestamp(ref.UPDATED_AT);
+        string lastUpdated = self.formatTimestamp(ref.LAST_UPDATED);
+
+        // Build INSERT query
+        string insertQuery = string `INSERT INTO "REFERENCES" (ID, SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID, SOURCE_EXPRESSION, TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID, DISPLAY_VALUE, CREATED_AT, UPDATED_AT, LAST_UPDATED) VALUES (${ref.ID}, '${escapedSourceResType}', '${escapedSourceResId}', '${escapedSourceExpr}', '${escapedTargetResType}', '${escapedTargetResId}', '${escapedDisplayValue}', '${createdAt}', '${updatedAt}', '${lastUpdated}')`;
+
+        _ = check jdbcClient->execute(new RawSQLQuery(insertQuery));
+    }
+
+    // Helper to format a value for SQL
+    public isolated function formatValue(anydata value) returns string {
+        if value is () {
+            return "NULL";
+        } else if value is string {
+            string escaped = regex:replaceAll(value, "'", "''");
+            return string `'${escaped}'`;
+        } else if value is int|float|decimal {
+            return value.toString();
+        } else if value is boolean {
+            return value ? "TRUE" : "FALSE";
+        } else if value is time:Date {
+            time:Date dateVal = <time:Date>value;
+            return string `'${dateVal.year}-${self.padZero(dateVal.month)}-${self.padZero(dateVal.day)}'`;
+        } else if value is time:Civil {
+            return string `'${self.formatTimestamp(value)}'`;
+        } else if value is byte[] {
+            byte[] bytes = <byte[]>value;
+            return string `X'${bytes.toBase16()}'`;
+        } else {
+            string escaped = regex:replaceAll(value.toString(), "'", "''");
+            return string `'${escaped}'`;
+        }
+    }
+
+    // Helper to format timestamp
+    private isolated function formatTimestamp(time:Civil timestamp) returns string {
+        decimal seconds = timestamp.second ?: 0.0d;
+        return string `${timestamp.year}-${self.padZero(timestamp.month)}-${self.padZero(timestamp.day)} ${self.padZero(timestamp.hour)}:${self.padZero(timestamp.minute)}:${formatSeconds(seconds)}`;
+    }
+
+    // Helper to pad numbers with zero
+    private isolated function padZero(int value) returns string {
+        return value < 10 ? string `0${value}` : value.toString();
     }
 }
