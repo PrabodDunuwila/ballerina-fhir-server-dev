@@ -138,9 +138,6 @@ modules = [
 org = "ballerina"
 name = "jballerina.java"
 version = "0.0.0"
-modules = [
-	{org = "ballerina", packageName = "jballerina.java", moduleName = "jballerina.java"}
-]
 
 [[package]]
 org = "ballerina"
@@ -291,17 +288,6 @@ dependencies = [
 
 [[package]]
 org = "ballerina"
-name = "persist"
-version = "1.6.0"
-dependencies = [
-	{org = "ballerina", name = "jballerina.java"}
-]
-modules = [
-	{org = "ballerina", packageName = "persist", moduleName = "persist"}
-]
-
-[[package]]
-org = "ballerina"
 name = "regex"
 version = "1.3.2"
 dependencies = [
@@ -385,38 +371,25 @@ version = "2.0.1"
 dependencies = [
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "io"},
-	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.regexp"},
 	{org = "ballerina", name = "log"},
-	{org = "ballerina", name = "persist"},
 	{org = "ballerina", name = "regex"},
 	{org = "ballerina", name = "sql"},
 	{org = "ballerina", name = "time"},
 	{org = "ballerinai", name = "observe"},
-	{org = "ballerinax", name = "h2.driver"},
 	{org = "ballerinax", name = "health.fhir.r4"},
 	{org = "ballerinax", name = "health.fhir.r4.international401"},
 	{org = "ballerinax", name = "health.fhir.r4.parser"},
 	{org = "ballerinax", name = "health.fhir.r4utils.fhirpath"},
 	{org = "ballerinax", name = "health.fhirr4"},
-	{org = "ballerinax", name = "java.jdbc"},
-	{org = "ballerinax", name = "persist.sql"}
+	{org = "ballerinax", name = "java.jdbc"}
 ]
 modules = [
 	{org = "ballerinax", packageName = "ballerina_fhir_server", moduleName = "ballerina_fhir_server"},
-	{org = "ballerinax", packageName = "ballerina_fhir_server", moduleName = "ballerina_fhir_server.db_store"},
 	{org = "ballerinax", packageName = "ballerina_fhir_server", moduleName = "ballerina_fhir_server.handlers"},
 	{org = "ballerinax", packageName = "ballerina_fhir_server", moduleName = "ballerina_fhir_server.mappers"},
 	{org = "ballerinax", packageName = "ballerina_fhir_server", moduleName = "ballerina_fhir_server.r4_api_config"},
 	{org = "ballerinax", packageName = "ballerina_fhir_server", moduleName = "ballerina_fhir_server.utils"}
-]
-
-[[package]]
-org = "ballerinax"
-name = "h2.driver"
-version = "1.2.0"
-modules = [
-	{org = "ballerinax", packageName = "h2.driver", moduleName = "h2.driver"}
 ]
 
 [[package]]
@@ -585,25 +558,4 @@ dependencies = [
 modules = [
 	{org = "ballerinax", packageName = "java.jdbc", moduleName = "java.jdbc"}
 ]
-
-[[package]]
-org = "ballerinax"
-name = "persist.sql"
-version = "1.6.0"
-dependencies = [
-	{org = "ballerina", name = "jballerina.java"},
-	{org = "ballerina", name = "log"},
-	{org = "ballerina", name = "persist"},
-	{org = "ballerina", name = "sql"},
-	{org = "ballerina", name = "time"}
-]
-modules = [
-	{org = "ballerinax", packageName = "persist.sql", moduleName = "persist.sql"}
-]
-
-[[tool]]
-id = "persist"
-org = "ballerina"
-name = "tool_persist"
-version = "0.0.0"
 

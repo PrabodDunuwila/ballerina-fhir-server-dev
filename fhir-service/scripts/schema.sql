@@ -1,7 +1,4 @@
--- AUTO-GENERATED FILE.
-
--- This file is an auto-generated file by Ballerina persistence layer for model.
--- Please verify the generated scripts and execute them against the target DB server.
+-- FHIR resource tables
 
 DROP TABLE IF EXISTS "TestScriptTable";
 DROP TABLE IF EXISTS "TestReportTable";

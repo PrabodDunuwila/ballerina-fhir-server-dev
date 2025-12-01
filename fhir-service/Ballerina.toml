@@ -10,17 +10,6 @@ template = true
 [build-options]
 observabilityIncluded = true
 
-[[tool.persist]]
-id = "generate-db-client"
-targetModule = "ballerina_fhir_server"
-options.datastore = "h2"
-filePath = "persist/model.bal"
-
-[[platform.java21.dependency]]
-groupId = "io.ballerina.stdlib"
-artifactId = "persist.sql-native"
-version = "1.6.0"
-
 [[platform.java21.dependency]]
 artifactId = "h2"
 version = "2.3.232"

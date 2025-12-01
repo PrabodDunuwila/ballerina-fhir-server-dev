@@ -1,5 +1,3 @@
-import ballerina_fhir_server.db_store;
-
 import ballerina/log;
 import ballerina/regex;
 import ballerina/sql;
@@ -88,14 +86,15 @@ public class TransactionHandler {
         }
 
         // Restore deleted references using JDBC
-        if 'transaction.backupReferences is db_store:REFERENCES[] {
-            db_store:REFERENCES[] backupRefs = <db_store:REFERENCES[]>'transaction.backupReferences;
-            foreach db_store:REFERENCES ref in backupRefs {
+        if 'transaction.backupReferences is record {|anydata...;|}[] {
+            record {|anydata...;|}[] backupRefs = <record {|anydata...;|}[]>'transaction.backupReferences;
+            foreach var ref in backupRefs {
                 error? restoreResult = self.restoreReference(jdbcClient, ref);
                 if restoreResult is error {
                     log:printError(string `Failed to restore reference: ${restoreResult.message()}`);
                 } else {
-                    log:printInfo(string `Restored reference: ${ref.ID}`);
+                    int refId = check int:fromString(ref.get("ID").toString());
+                    log:printInfo(string `Restored reference: ${refId}`);
                 }
             }
         }
@@ -189,27 +188,40 @@ public class TransactionHandler {
     }
 
     // Helper to restore a single reference using JDBC
-    private isolated function restoreReference(jdbc:Client? jdbcClient, db_store:REFERENCES ref) returns error? {
+    private isolated function restoreReference(jdbc:Client? jdbcClient, record {|anydata...;|} ref) returns error? {
         if jdbcClient is () {
             return error("JDBC Client is not initialized");
         }
 
-        // Escape string values
-        string escapedSourceResType = regex:replaceAll(ref.SOURCE_RESOURCE_TYPE, "'", "''");
-        string escapedSourceResId = regex:replaceAll(ref.SOURCE_RESOURCE_ID, "'", "''");
-        string escapedSourceExpr = regex:replaceAll(ref.SOURCE_EXPRESSION, "'", "''");
-        string escapedTargetResType = regex:replaceAll(ref.TARGET_RESOURCE_TYPE, "'", "''");
-        string escapedTargetResId = regex:replaceAll(ref.TARGET_RESOURCE_ID, "'", "''");
-        string displayValue = ref.DISPLAY_VALUE is string ? ref.DISPLAY_VALUE : "";
+        // Extract and escape string values
+        string sourceResType = ref.get("SOURCE_RESOURCE_TYPE").toString();
+        string sourceResId = ref.get("SOURCE_RESOURCE_ID").toString();
+        string sourceExpr = ref.get("SOURCE_EXPRESSION").toString();
+        string targetResType = ref.get("TARGET_RESOURCE_TYPE").toString();
+        string targetResId = ref.get("TARGET_RESOURCE_ID").toString();
+        string displayValue = ref.get("DISPLAY_VALUE").toString();
+        
+        string escapedSourceResType = regex:replaceAll(sourceResType, "'", "''");
+        string escapedSourceResId = regex:replaceAll(sourceResId, "'", "''");
+        string escapedSourceExpr = regex:replaceAll(sourceExpr, "'", "''");
+        string escapedTargetResType = regex:replaceAll(targetResType, "'", "''");
+        string escapedTargetResId = regex:replaceAll(targetResId, "'", "''");
         string escapedDisplayValue = regex:replaceAll(displayValue, "'", "''");
 
         // Format timestamps
-        string createdAt = self.formatTimestamp(ref.CREATED_AT);
-        string updatedAt = self.formatTimestamp(ref.UPDATED_AT);
-        string lastUpdated = self.formatTimestamp(ref.LAST_UPDATED);
+        anydata createdAtData = ref.get("CREATED_AT");
+        anydata updatedAtData = ref.get("UPDATED_AT");
+        anydata lastUpdatedData = ref.get("LAST_UPDATED");
+        
+        string createdAt = createdAtData is time:Civil ? self.formatTimestamp(createdAtData) : createdAtData.toString();
+        string updatedAt = updatedAtData is time:Civil ? self.formatTimestamp(updatedAtData) : updatedAtData.toString();
+        string lastUpdated = lastUpdatedData is time:Civil ? self.formatTimestamp(lastUpdatedData) : lastUpdatedData.toString();
+
+        // Get reference ID
+        int refId = check int:fromString(ref.get("ID").toString());
 
         // Build INSERT query
-        string insertQuery = string `INSERT INTO "REFERENCES" (ID, SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID, SOURCE_EXPRESSION, TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID, DISPLAY_VALUE, CREATED_AT, UPDATED_AT, LAST_UPDATED) VALUES (${ref.ID}, '${escapedSourceResType}', '${escapedSourceResId}', '${escapedSourceExpr}', '${escapedTargetResType}', '${escapedTargetResId}', '${escapedDisplayValue}', '${createdAt}', '${updatedAt}', '${lastUpdated}')`;
+        string insertQuery = string `INSERT INTO "REFERENCES" (ID, SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID, SOURCE_EXPRESSION, TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID, DISPLAY_VALUE, CREATED_AT, UPDATED_AT, LAST_UPDATED) VALUES (${refId}, '${escapedSourceResType}', '${escapedSourceResId}', '${escapedSourceExpr}', '${escapedTargetResType}', '${escapedTargetResId}', '${escapedDisplayValue}', '${createdAt}', '${updatedAt}', '${lastUpdated}')`;
 
         _ = check jdbcClient->execute(new RawSQLQuery(insertQuery));
     }

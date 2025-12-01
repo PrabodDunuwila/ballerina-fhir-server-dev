@@ -1,4 +1,4 @@
-import ballerina_fhir_server.db_store;
+import ballerina_fhir_server.utils;
 import ballerinax/java.jdbc;
 import ballerina/sql;
 import ballerina/log;
@@ -28,10 +28,10 @@ public class FHIRMapper {
     // Load configuration for a specific resource type on demand
     private isolated function loadResourceConfig(jdbc:Client jdbcClient, string resourceType) returns ResourceMappingConfig|error? {
         SearchParamMapping[] searchParamMappings = [];
-        db_store:SEARCH_PARAM_RES_EXPRESSIONS[]|error? searchParamsExprs = check self.getSearchParamExpressions(jdbcClient, resourceType);
+        utils:SearchParamExpression[]|error? searchParamsExprs = check self.getSearchParamExpressions(jdbcClient, resourceType);
 
-        if (searchParamsExprs is db_store:SEARCH_PARAM_RES_EXPRESSIONS[]) {
-            foreach db_store:SEARCH_PARAM_RES_EXPRESSIONS search_param_expr in searchParamsExprs {
+        if (searchParamsExprs is utils:SearchParamExpression[]) {
+            foreach utils:SearchParamExpression search_param_expr in searchParamsExprs {
                 SearchParamMapping mapping = {
                     paramName: search_param_expr.SEARCH_PARAM_NAME,
                     paramType: search_param_expr.SEARCH_PARAM_TYPE,
@@ -92,11 +92,11 @@ public class FHIRMapper {
         return result;
     }
 
-    private isolated function getSearchParamExpressions(jdbc:Client jdbcClient, string resourceName) returns db_store:SEARCH_PARAM_RES_EXPRESSIONS[]|error? {
+    private isolated function getSearchParamExpressions(jdbc:Client jdbcClient, string resourceName) returns utils:SearchParamExpression[]|error? {
         sql:ParameterizedQuery pq = `SELECT ID, SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION FROM search_param_res_expressions WHERE RESOURCE_NAME = ${resourceName}`;
         stream<SearchParamRow, error?> result = jdbcClient->query(pq);
 
-        db_store:SEARCH_PARAM_RES_EXPRESSIONS[] expressions = [];
+        utils:SearchParamExpression[] expressions = [];
         error? e = ();
         // Iterate the stream and collect results, handling errors per row
         do {
@@ -109,8 +109,7 @@ public class FHIRMapper {
                     if (next.hasKey("value")) {
                         var val = next.value;
                         if val is record {int ID; string SEARCH_PARAM_NAME; string SEARCH_PARAM_TYPE; string RESOURCE_NAME; string EXPRESSION;} {
-                            db_store:SEARCH_PARAM_RES_EXPRESSIONS expr = {
-                                ID: val.ID,
+                            utils:SearchParamExpression expr = {
                                 SEARCH_PARAM_NAME: val.SEARCH_PARAM_NAME,
                                 SEARCH_PARAM_TYPE: val.SEARCH_PARAM_TYPE,
                                 RESOURCE_NAME: val.RESOURCE_NAME,

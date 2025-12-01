@@ -2,9 +2,14 @@ import ballerina/io;
 import ballerina/sql;
 import ballerinax/java.jdbc;
 
+// Database configuration
+configurable string dbUrl = ?;
+configurable string dbUser = ?;
+configurable string dbPassword = ?;
+
 public class DBHandler {
-    private final string filePath = "./modules/db_store/script.sql";
-    private final jdbc:Client|sql:Error jdbcClient = new ("jdbc:h2:~./fhir-data-db", "sa", "");
+    private final string filePath = "./scripts/schema.sql";
+    private final jdbc:Client|sql:Error jdbcClient = new (dbUrl, dbUser, dbPassword);
 
     private sql:ParameterizedQuery[] dropQueries;
     private sql:ParameterizedQuery[] createQueries;
