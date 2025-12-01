@@ -105,19 +105,16 @@ public class FHIRMapper {
                 if (next is error) {
                     e = next;
                     break;
-                } else if (next is record {}) {
-                    if (next.hasKey("value")) {
-                        var val = next.value;
-                        if val is record {int ID; string SEARCH_PARAM_NAME; string SEARCH_PARAM_TYPE; string RESOURCE_NAME; string EXPRESSION;} {
-                            utils:SearchParamExpression expr = {
-                                SEARCH_PARAM_NAME: val.SEARCH_PARAM_NAME,
-                                SEARCH_PARAM_TYPE: val.SEARCH_PARAM_TYPE,
-                                RESOURCE_NAME: val.RESOURCE_NAME,
-                                EXPRESSION: val.EXPRESSION
-                            };
-                            expressions.push(expr);
-                        }
-                    }
+                } else {
+                    // next.value is already SearchParamRow type from the stream
+                    SearchParamRow val = next.value;
+                    utils:SearchParamExpression expr = {
+                        SEARCH_PARAM_NAME: val.SEARCH_PARAM_NAME,
+                        SEARCH_PARAM_TYPE: val.SEARCH_PARAM_TYPE,
+                        RESOURCE_NAME: val.RESOURCE_NAME,
+                        EXPRESSION: val.EXPRESSION
+                    };
+                    expressions.push(expr);
                 }
                 next = result.next();
             }

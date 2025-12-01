@@ -13,7 +13,7 @@ public class UpdateHandler {
 
     public isolated function init(jdbc:Client? jdbcClient = ()) {
         self.jdbcClient = jdbcClient;
-        self.updateMapper = new mappers:UpdateMapper();
+        self.updateMapper = new mappers:UpdateMapper(jdbcClient);
         self.transactionHandler = new utils:TransactionHandler();
         self.historyHandler = new HistoryHandler(jdbcClient);
     }

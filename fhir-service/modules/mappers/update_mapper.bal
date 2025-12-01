@@ -1,15 +1,136 @@
 import ballerina_fhir_server.utils as mapperUtils;
 
-import ballerina/io;
+import ballerina/log;
 import ballerina/time;
 
 import ballerinax/java.jdbc;
 
 public class UpdateMapper {
     private json[] references;
+    private final jdbc:Client? jdbcClient;
 
-    public isolated function init() {
+    public isolated function init(jdbc:Client? jdbcClient = ()) {
         self.references = [];
+        self.jdbcClient = jdbcClient;
+    }
+
+    // Generic helper to build update record from extracted search parameters
+    // Queries database schema to determine which columns exist in the table
+    private isolated function buildUpdateRecord(
+        string resourceType,
+        map<json> extractedValues,
+        byte[] resourceJsonBytes,
+        int newVersion
+    ) returns map<anydata>|error {
+        
+        jdbc:Client? jdbcConn = self.jdbcClient;
+        if jdbcConn is () {
+            return error("JDBC client is required for generic column mapping");
+        }
+        
+        string tableName = mapperUtils:getTableName(resourceType);
+        
+        // Get actual column names from database schema
+        string[] tableColumns = check mapperUtils:getTableColumns(jdbcConn, tableName);
+        
+        // Convert column names to a set for fast lookup
+        map<boolean> columnSet = {};
+        foreach string column in tableColumns {
+            columnSet[column] = true;
+        }
+        
+        map<anydata> updateRecord = {};
+        
+        // First, initialize all columns with null/default values (except primary key and created_at)
+        foreach string column in tableColumns {
+            // Skip primary key (never updated)
+            string primaryKeyColumn = mapperUtils:getPrimaryKeyColumn(resourceType);
+            if column == primaryKeyColumn {
+                continue;
+            }
+            
+            // Skip CREATED_AT (should never change on update)
+            if column == "CREATED_AT" {
+                continue;
+            }
+            
+            // Skip metadata fields (they're added at the end)
+            if column == "VERSION_ID" || column == "UPDATED_AT" || 
+               column == "LAST_UPDATED" || column == "RESOURCE_JSON" {
+                continue;
+            }
+            
+            // Initialize with null for optional fields
+            updateRecord[column] = ();
+        }
+        
+        // Now populate with actual values from extractedValues
+        foreach string searchParam in extractedValues.keys() {
+            string dbColumn = mapperUtils:toDbColumnName(searchParam);
+            
+            // Only include if this column exists in the table
+            if !columnSet.hasKey(dbColumn) {
+                continue;
+            }
+            
+            // Skip primary key and metadata fields
+            string primaryKeyColumn = mapperUtils:getPrimaryKeyColumn(resourceType);
+            if dbColumn == primaryKeyColumn || dbColumn == "VERSION_ID" || 
+               dbColumn == "CREATED_AT" || dbColumn == "UPDATED_AT" || 
+               dbColumn == "LAST_UPDATED" || dbColumn == "RESOURCE_JSON" {
+                continue;
+            }
+            
+            json value = extractedValues.get(searchParam);
+            
+            // Determine field type based on parameter name patterns
+            if searchParam.endsWith("date") || searchParam == "period" || 
+               searchParam == "effective" || searchParam == "authored" || 
+               searchParam == "created" || searchParam == "started" {
+                // Handle date fields
+                string valueStr = value.toString();
+                if valueStr.trim().length() > 0 {
+                    // Try to parse as date first
+                    time:Date|error dateResult = mapperUtils:parseDateString(valueStr);
+                    if dateResult is time:Date {
+                        updateRecord[dbColumn] = dateResult;
+                    } else {
+                        // If not a simple date, might be a civil datetime
+                        time:Civil|error civilResult = time:civilFromString(valueStr);
+                        if civilResult is time:Civil {
+                            updateRecord[dbColumn] = civilResult;
+                        } else {
+                            updateRecord[dbColumn] = ();
+                        }
+                    }
+                } else {
+                    updateRecord[dbColumn] = ();
+                }
+            } else {
+                // String fields - only set if non-empty
+                string strValue = value.toString();
+                if strValue.trim().length() > 0 {
+                    updateRecord[dbColumn] = strValue;
+                }
+                // If empty, leave as () which was initialized above
+            }
+        }
+        
+        // Add standard metadata fields (only if they exist in table)
+        if columnSet.hasKey("VERSION_ID") {
+            updateRecord["VERSION_ID"] = newVersion;
+        }
+        if columnSet.hasKey("UPDATED_AT") {
+            updateRecord["UPDATED_AT"] = time:utcToCivil(time:utcNow());
+        }
+        if columnSet.hasKey("LAST_UPDATED") {
+            updateRecord["LAST_UPDATED"] = time:utcToCivil(time:utcNow());
+        }
+        if columnSet.hasKey("RESOURCE_JSON") {
+            updateRecord["RESOURCE_JSON"] = resourceJsonBytes;
+        }
+        
+        return updateRecord;
     }
 
     // This function will map values to persist update models
@@ -18,552 +139,23 @@ public class UpdateMapper {
         map<json> extractedValues = check fhirMapper.extractSearchParameters(jdbcClient, resourceType, resourceJson);
         self.references = fhirMapper.getReferences();
 
-        match resourceType {
-            "Account" => {
-                time:Date? periodValue = ();
-                if extractedValues.hasKey("period") {
-                    json periodJson = extractedValues.get("period");
-                    // Check if period is a JSON object with start/end dates
-                    if periodJson is map<json> && periodJson.hasKey("start") {
-                        string startDateStr = periodJson.get("start").toString();
-                        if startDateStr.trim().length() > 0 {
-                            periodValue = check mapperUtils:parseDateString(startDateStr);
-                        }
-                    } else if periodJson is string {
-                        // Handle simple string date format
-                        string periodStr = periodJson;
-                        if periodStr.trim().length() > 0 {
-                            periodValue = check mapperUtils:parseDateString(periodStr);
-                        }
-                    }
-                }
-                
-                record {|anydata...;|} accountUpdate = {
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "PERIOD": periodValue,
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "TYPE": extractedValues.hasKey("type") ? extractedValues.get("type").toString() : "",
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : "",
-                    "VERSION_ID": 2,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return accountUpdate;
-            }
-            "Appointment" => {
-                io:println(extractedValues);
-
-                record {|anydata...;|} appointmentUpdate = {
-                    "DATE": extractedValues.hasKey("date") ? check time:civilFromString(extractedValues.get("date").toString()) : (),
-                    "SERVICE_CATEGORY": extractedValues.hasKey("service-category") ? extractedValues.get("service-category").toString() : "",
-                    "PART_STATUS": extractedValues.hasKey("part-status") ? extractedValues.get("part-status").toString() : "",
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "APPOINTMENT_TYPE": extractedValues.hasKey("appointment-type") ? extractedValues.get("appointment-type").toString() : "",
-                    "REASON_CODE": extractedValues.hasKey("reason-code") ? extractedValues.get("reason-code").toString() : "",
-                    "SPECIALTY": extractedValues.hasKey("speciality") ? extractedValues.get("speciality").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "SERVICE_TYPE": extractedValues.hasKey("service-type") ? extractedValues.get("service-type").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return appointmentUpdate;
-            }
-            "Patient" => {
-                record {|anydata...;|} patientUpdate = {
-                    "LANGUAGE": extractedValues.hasKey("language") ? extractedValues.get("language").toString() : "",
-                    "ADDRESS_COUNTRY": extractedValues.hasKey("address-country") ? extractedValues.get("address-country").toString() : "",
-                    "ADDRESS_POSTALCODE": extractedValues.hasKey("address-postalcode") ? extractedValues.get("address-postalcode").toString() : "",
-                    "ACTIVE": extractedValues.hasKey("active") ? extractedValues.get("active").toString() : "",
-                    "PHONE": extractedValues.hasKey("phone") ? extractedValues.get("phone").toString() : "",
-                    "DECEASED": extractedValues.hasKey("deceased") ? extractedValues.get("deceased").toString() : "",
-                    "BIRTHDATE": extractedValues.hasKey("birthdate") ? check mapperUtils:parseDateString(extractedValues.get("birthdate").toString()) : (),
-                    "ADDRESS_CITY": extractedValues.hasKey("address-city") ? extractedValues.get("address-city").toString() : "",
-                    "EMAIL": extractedValues.hasKey("email") ? extractedValues.get("email").toString() : "",
-                    "ADDRESS_STATE": extractedValues.hasKey("address-state") ? extractedValues.get("address-state").toString() : "",
-                    "TELECOM": extractedValues.hasKey("telecom") ? extractedValues.get("telecom").toString() : "",
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : "",
-                    "FAMILY": extractedValues.hasKey("family") ? extractedValues.get("family").toString() : "",
-                    "ADDRESS_USE": extractedValues.hasKey("address-use") ? extractedValues.get("address-use").toString() : "",
-                    "GIVEN": extractedValues.hasKey("given") ? extractedValues.get("given").toString() : "",
-                    "ADDRESS": extractedValues.hasKey("address") ? extractedValues.get("address").toString() : "",
-                    "GENDER": extractedValues.hasKey("gender") ? extractedValues.get("gender").toString() : "",
-                    "PHONETIC": extractedValues.hasKey("phonetic") ? extractedValues.get("phonetic").toString() : "",
-                    "DEATH_DATE": extractedValues.hasKey("death-date") ? check mapperUtils:parseDateString(extractedValues.get("death-date").toString()) : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return patientUpdate;
-            }
-            "Practitioner" => {
-                record {|anydata...;|} practitionerUpdate = {
-                    "ADDRESS_COUNTRY": extractedValues.hasKey("address-country") ? extractedValues.get("address-country").toString() : "",
-                    "ADDRESS_POSTALCODE": extractedValues.hasKey("address-postalcode") ? extractedValues.get("address-postalcode").toString() : "",
-                    "ACTIVE": extractedValues.hasKey("active") ? extractedValues.get("active").toString() : "",
-                    "PHONE": extractedValues.hasKey("phone") ? extractedValues.get("phone").toString() : "",
-                    "ADDRESS_CITY": extractedValues.hasKey("address-city") ? extractedValues.get("address-city").toString() : "",
-                    "EMAIL": extractedValues.hasKey("email") ? extractedValues.get("email").toString() : "",
-                    "ADDRESS_STATE": extractedValues.hasKey("address-state") ? extractedValues.get("address-state").toString() : "",
-                    "TELECOM": extractedValues.hasKey("telecom") ? extractedValues.get("telecom").toString() : "",
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : "",
-                    "FAMILY": extractedValues.hasKey("family") ? extractedValues.get("family").toString() : "",
-                    "ADDRESS_USE": extractedValues.hasKey("address-use") ? extractedValues.get("address-use").toString() : "",
-                    "GIVEN": extractedValues.hasKey("given") ? extractedValues.get("given").toString() : "",
-                    "ADDRESS": extractedValues.hasKey("address") ? extractedValues.get("address").toString() : "",
-                    "GENDER": extractedValues.hasKey("gender") ? extractedValues.get("gender").toString() : "",
-                    "PHONETIC": extractedValues.hasKey("phonetic") ? extractedValues.get("phonetic").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "COMMUNICATION": extractedValues.hasKey("communication") ? extractedValues.get("communication").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return practitionerUpdate;
-            }
-            "Device" => {
-                record {|anydata...;|} deviceUpdate = {
-                    "MANUFACTURER": extractedValues.hasKey("manufacturer") ? extractedValues.get("manufacturer").toString() : "",
-                    "MODEL": extractedValues.hasKey("model") ? extractedValues.get("model").toString() : "",
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "TYPE": extractedValues.hasKey("type") ? extractedValues.get("type").toString() : "",
-                    "UDI_CARRIER": extractedValues.hasKey("udi-carrier") ? extractedValues.get("udi-carrier").toString() : "",
-                    "UDI_DI": extractedValues.hasKey("udi-di") ? extractedValues.get("udi-di").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return deviceUpdate;
-            }
-            "HealthcareService" => {
-                record {|anydata...;|} healthcareServiceUpdate = {
-                    "ACTIVE": extractedValues.hasKey("active") ? extractedValues.get("active").toString() : "",
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "SERVICE_CATEGORY": extractedValues.hasKey("service-category") ? extractedValues.get("service-category").toString() : "",
-                    "SERVICE_TYPE": extractedValues.hasKey("service-type") ? extractedValues.get("service-type").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return healthcareServiceUpdate;
-            }
-            "PractitionerRole" => {
-                record {|anydata...;|} practitionerRoleUpdate = {
-                    "ACTIVE": extractedValues.hasKey("active") ? extractedValues.get("active").toString() : "",
-                    "DATE": extractedValues.hasKey("date") ? check time:civilFromString(extractedValues.get("date").toString()) : (),
-                    "EMAIL": extractedValues.hasKey("email") ? extractedValues.get("email").toString() : "",
-                    "PHONE": extractedValues.hasKey("phone") ? extractedValues.get("phone").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "ROLE": extractedValues.hasKey("role") ? extractedValues.get("role").toString() : "",
-                    "SPECIALTY": extractedValues.hasKey("specialty") ? extractedValues.get("specialty").toString() : "",
-                    "TELECOM": extractedValues.hasKey("telecom") ? extractedValues.get("telecom").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return practitionerRoleUpdate;
-            }
-            "RelatedPerson" => {
-                record {|anydata...;|} relatedPersonUpdate = {
-                    "ADDRESS_COUNTRY": extractedValues.hasKey("address-country") ? extractedValues.get("address-country").toString() : "",
-                    "ADDRESS_POSTALCODE": extractedValues.hasKey("address-postalcode") ? extractedValues.get("address-postalcode").toString() : "",
-                    "ACTIVE": extractedValues.hasKey("active") ? extractedValues.get("active").toString() : "",
-                    "PHONE": extractedValues.hasKey("phone") ? extractedValues.get("phone").toString() : "",
-                    "BIRTHDATE": extractedValues.hasKey("birthdate") ? check mapperUtils:parseDateString(extractedValues.get("birthdate").toString()) : (),
-                    "ADDRESS_CITY": extractedValues.hasKey("address-city") ? extractedValues.get("address-city").toString() : "",
-                    "EMAIL": extractedValues.hasKey("email") ? extractedValues.get("email").toString() : "",
-                    "ADDRESS_STATE": extractedValues.hasKey("address-state") ? extractedValues.get("address-state").toString() : "",
-                    "TELECOM": extractedValues.hasKey("telecom") ? extractedValues.get("telecom").toString() : "",
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : "",
-                    "ADDRESS_USE": extractedValues.hasKey("address-use") ? extractedValues.get("address-use").toString() : "",
-                    "ADDRESS": extractedValues.hasKey("address") ? extractedValues.get("address").toString() : "",
-                    "GENDER": extractedValues.hasKey("gender") ? extractedValues.get("gender").toString() : "",
-                    "PHONETIC": extractedValues.hasKey("phonetic") ? extractedValues.get("phonetic").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "RELATIONSHIP": extractedValues.hasKey("relationship") ? extractedValues.get("relationship").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return relatedPersonUpdate;
-            }
-            "Location" => {
-                record {|anydata...;|} locationUpdate = {
-                    "ADDRESS_COUNTRY": extractedValues.hasKey("address-country") ? extractedValues.get("address-country").toString() : "",
-                    "ADDRESS_POSTALCODE": extractedValues.hasKey("address-postalcode") ? extractedValues.get("address-postalcode").toString() : "",
-                    "ADDRESS_CITY": extractedValues.hasKey("address-city") ? extractedValues.get("address-city").toString() : "",
-                    "ADDRESS_STATE": extractedValues.hasKey("address-state") ? extractedValues.get("address-state").toString() : "",
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : "",
-                    "ADDRESS_USE": extractedValues.hasKey("address-use") ? extractedValues.get("address-use").toString() : "",
-                    "ADDRESS": extractedValues.hasKey("address") ? extractedValues.get("address").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "OPERATIONAL_STATUS": extractedValues.hasKey("operational-status") ? extractedValues.get("operational-status").toString() : "",
-                    "TYPE": extractedValues.hasKey("type") ? extractedValues.get("type").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return locationUpdate;
-            }
-            "ServiceRequest" => {
-                record {|anydata...;|} serviceRequestUpdate = {
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "INTENT": extractedValues.hasKey("intent") ? extractedValues.get("intent").toString() : "",
-                    "CATEGORY": extractedValues.hasKey("category") ? extractedValues.get("category").toString() : "",
-                    "PRIORITY": extractedValues.hasKey("priority") ? extractedValues.get("priority").toString() : "",
-                    "CODE": extractedValues.hasKey("code") ? extractedValues.get("code").toString() : "",
-                    "AUTHORED": extractedValues.hasKey("authored") ? check time:civilFromString(extractedValues.get("authored").toString()) : (),
-                    "BODY_SITE": extractedValues.hasKey("body-site") ? extractedValues.get("body-site").toString() : "",
-                    "INSTANTIATES_URI": extractedValues.hasKey("instantiates-uri") ? extractedValues.get("instantiates-uri").toString() : "",
-                    "OCCURRENCE": extractedValues.hasKey("occurrence") ? check time:civilFromString(extractedValues.get("occurrence").toString()) : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "REQUISITION": extractedValues.hasKey("requisition") ? extractedValues.get("requisition").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return serviceRequestUpdate;
-            }
-            "Condition" => {
-                record {|anydata...;|} conditionUpdate = {
-                    "ABATEMENT_AGE": extractedValues.hasKey("abatement-age") ? extractedValues.get("abatement-age").toString() : "",
-                    "ABATEMENT_DATE": extractedValues.hasKey("abatement-date") ? check mapperUtils:parseDateString(extractedValues.get("abatement-date").toString()) : (),
-                    "ABATEMENT_STRING": extractedValues.hasKey("abatement-string") ? extractedValues.get("abatement-string").toString() : "",
-                    "BODY_SITE": extractedValues.hasKey("body-site") ? extractedValues.get("body-site").toString() : "",
-                    "CATEGORY": extractedValues.hasKey("category") ? extractedValues.get("category").toString() : "",
-                    "CLINICAL_STATUS": extractedValues.hasKey("clinical-status") ? extractedValues.get("clinical-status").toString() : "",
-                    "CODE": extractedValues.hasKey("code") ? extractedValues.get("code").toString() : "",
-                    "EVIDENCE": extractedValues.hasKey("evidence") ? extractedValues.get("evidence").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "ONSET_AGE": extractedValues.hasKey("onset-age") ? extractedValues.get("onset-age").toString() : "",
-                    "ONSET_DATE": extractedValues.hasKey("onset-date") ? check mapperUtils:parseDateString(extractedValues.get("onset-date").toString()) : (),
-                    "ONSET_INFO": extractedValues.hasKey("onset-info") ? extractedValues.get("onset-info").toString() : "",
-                    "RECORDED_DATE": extractedValues.hasKey("recorded-date") ? check mapperUtils:parseDateString(extractedValues.get("recorded-date").toString()) : (),
-                    "SEVERITY": extractedValues.hasKey("severity") ? extractedValues.get("severity").toString() : "",
-                    "STAGE": extractedValues.hasKey("stage") ? extractedValues.get("stage").toString() : "",
-                    "VERIFICATION_STATUS": extractedValues.hasKey("verification-status") ? extractedValues.get("verification-status").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return conditionUpdate;
-            }
-            "Observation" => {
-                record {|anydata...;|} observationUpdate = {
-                    "CATEGORY": extractedValues.hasKey("category") ? extractedValues.get("category").toString() : "",
-                    "CODE": extractedValues.hasKey("code") ? extractedValues.get("code").toString() : "",
-                    "COMBO_CODE": extractedValues.hasKey("combo-code") ? extractedValues.get("combo-code").toString() : "",
-                    "COMBO_DATA_ABSENT_REASON": extractedValues.hasKey("combo-data-absent-reason") ? extractedValues.get("combo-data-absent-reason").toString() : "",
-                    "COMBO_VALUE_CONCEPT": extractedValues.hasKey("combo-value-concept") ? extractedValues.get("combo-value-concept").toString() : "",
-                    "COMBO_VALUE_QUANTITY": extractedValues.hasKey("combo-value-quantity") ? extractedValues.get("combo-value-quantity").toString() : "",
-                    "COMPONENT_CODE": extractedValues.hasKey("component-code") ? extractedValues.get("component-code").toString() : "",
-                    "COMPONENT_DATA_ABSENT_REASON": extractedValues.hasKey("component-data-absent-reason") ? extractedValues.get("component-data-absent-reason").toString() : "",
-                    "COMPONENT_VALUE_CONCEPT": extractedValues.hasKey("component-value-concept") ? extractedValues.get("component-value-concept").toString() : "",
-                    "COMPONENT_VALUE_QUANTITY": extractedValues.hasKey("component-value-quantity") ? extractedValues.get("component-value-quantity").toString() : "",
-                    "DATA_ABSENT_REASON": extractedValues.hasKey("data-absent-reason") ? extractedValues.get("data-absent-reason").toString() : "",
-                    "DATE": extractedValues.hasKey("date") ? check time:civilFromString(extractedValues.get("date").toString()) : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "METHOD": extractedValues.hasKey("method") ? extractedValues.get("method").toString() : "",
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "VALUE_CONCEPT": extractedValues.hasKey("value-concept") ? extractedValues.get("value-concept").toString() : "",
-                    "VALUE_DATE": extractedValues.hasKey("value-date") ? check mapperUtils:parseDateString(extractedValues.get("value-date").toString()) : (),
-                    "VALUE_QUANTITY": extractedValues.hasKey("value-quantity") ? extractedValues.get("value-quantity").toString() : "",
-                    "VALUE_STRING": extractedValues.hasKey("value-string") ? extractedValues.get("value-string").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return observationUpdate;
-            }
-            "Procedure" => {
-                record {|anydata...;|} procedureUpdate = {
-                    "CATEGORY": extractedValues.hasKey("category") ? extractedValues.get("category").toString() : "",
-                    "CODE": extractedValues.hasKey("code") ? extractedValues.get("code").toString() : "",
-                    "DATE": extractedValues.hasKey("date") ? check time:civilFromString(extractedValues.get("date").toString()) : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "INSTANTIATES_URI": extractedValues.hasKey("instantiates-uri") ? extractedValues.get("instantiates-uri").toString() : "",
-                    "REASON_CODE": extractedValues.hasKey("reason-code") ? extractedValues.get("reason-code").toString() : "",
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return procedureUpdate;
-            }
-            "ImmunizationRecommendation" => {
-                record {|anydata...;|} immunizationUpdate = {
-                    "DATE": extractedValues.hasKey("date") ? check time:civilFromString(extractedValues.get("date").toString()) : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "TARGET_DISEASE": extractedValues.hasKey("target-disease") ? extractedValues.get("target-disease").toString() : "",
-                    "VACCINE_TYPE": extractedValues.hasKey("vaccine-type") ? extractedValues.get("vaccine-type").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return immunizationUpdate;
-            }
-            "Slot" => {
-                record {|anydata...;|} slotUpdate = {
-                    "APPOINTMENT_TYPE": extractedValues.hasKey("appointment-type") ? extractedValues.get("appointment-type").toString() : "",
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : "",
-                    "SERVICE_CATEGORY": extractedValues.hasKey("service-category") ? extractedValues.get("service-category").toString() : "",
-                    "SERVICE_TYPE": extractedValues.hasKey("service-type") ? extractedValues.get("service-type").toString() : "",
-                    "SPECIALTY": extractedValues.hasKey("specialty") ? extractedValues.get("specialty").toString() : "",
-                    "START": extractedValues.hasKey("start") ? check time:civilFromString(extractedValues.get("start").toString()) : (),
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : "",
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return slotUpdate;
-            }
-            "Invoice" => {
-                time:Date? dateValue = ();
-                if extractedValues.hasKey("date") {
-                    string dateStr = extractedValues.get("date").toString();
-                    if dateStr.trim().length() > 0 {
-                        dateValue = check mapperUtils:parseDateString(dateStr);
-                    }
-                }
-                
-                record {|anydata...;|} invoiceUpdate = {
-                    "DATE": dateValue,
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
-                    "TOTALNET": extractedValues.hasKey("totalnet") ? extractedValues.get("totalnet").toString() : (),
-                    "PARTICIPANT_ROLE": extractedValues.hasKey("participant-role") ? extractedValues.get("participant-role").toString() : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "TYPE": extractedValues.hasKey("type") ? extractedValues.get("type").toString() : (),
-                    "TOTALGROSS": extractedValues.hasKey("totalgross") ? extractedValues.get("totalgross").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return invoiceUpdate;
-            }
-            "DocumentManifest" => {
-                time:Date? createdValue = ();
-                if extractedValues.hasKey("created") {
-                    string createdStr = extractedValues.get("created").toString();
-                    if createdStr.trim().length() > 0 {
-                        createdValue = check mapperUtils:parseDateString(createdStr);
-                    }
-                }
-                
-                record {|anydata...;|} documentManifestUpdate = {
-                    "CREATED": createdValue,
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "TYPE": extractedValues.hasKey("type") ? extractedValues.get("type").toString() : (),
-                    "DESCRIPTION": extractedValues.hasKey("description") ? extractedValues.get("description").toString() : (),
-                    "SOURCE": extractedValues.hasKey("source") ? extractedValues.get("source").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return documentManifestUpdate;
-            }
-            "Consent" => {
-                time:Date? periodValue = ();
-                if extractedValues.hasKey("period") {
-                    json periodJson = extractedValues.get("period");
-                    if periodJson is map<json> && periodJson.hasKey("start") {
-                        string startDateStr = periodJson.get("start").toString();
-                        if startDateStr.trim().length() > 0 {
-                            periodValue = check mapperUtils:parseDateString(startDateStr);
-                        }
-                    } else if periodJson is string {
-                        string periodStr = periodJson;
-                        if periodStr.trim().length() > 0 {
-                            periodValue = check mapperUtils:parseDateString(periodStr);
-                        }
-                    }
-                }
-                
-                record {|anydata...;|} consentUpdate = {
-                    "PERIOD": periodValue,
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return consentUpdate;
-            }
-            "Goal" => {
-                time:Date? startDateValue = ();
-                if extractedValues.hasKey("start-date") {
-                    string startDateStr = extractedValues.get("start-date").toString();
-                    if startDateStr.trim().length() > 0 {
-                        startDateValue = check mapperUtils:parseDateString(startDateStr);
-                    }
-                }
-                
-                time:Date? targetDateValue = ();
-                if extractedValues.hasKey("target-date") {
-                    string targetDateStr = extractedValues.get("target-date").toString();
-                    if targetDateStr.trim().length() > 0 {
-                        targetDateValue = check mapperUtils:parseDateString(targetDateStr);
-                    }
-                }
-                
-                record {|anydata...;|} goalUpdate = {
-                    "TARGET_DATE": targetDateValue,
-                    "ACHIEVEMENT_STATUS": extractedValues.hasKey("achievement-status") ? extractedValues.get("achievement-status").toString() : (),
-                    "CATEGORY": extractedValues.hasKey("category") ? extractedValues.get("category").toString() : (),
-                    "LIFECYCLE_STATUS": extractedValues.hasKey("lifecycle-status") ? extractedValues.get("lifecycle-status").toString() : (),
-                    "START_DATE": startDateValue,
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return goalUpdate;
-            }
-            "MedicinalProductPackaged" => {
-                record {|anydata...;|} medicinalProductUpdate = {
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return medicinalProductUpdate;
-            }
-            "MessageDefinition" => {
-                record {|anydata...;|} messageDefinitionUpdate = {
-                    "PUBLISHER": extractedValues.hasKey("publisher") ? extractedValues.get("publisher").toString() : (),
-                    "JURISDICTION": extractedValues.hasKey("jurisdiction") ? extractedValues.get("jurisdiction").toString() : (),
-                    "CONTEXT": extractedValues.hasKey("context") ? extractedValues.get("context").toString() : (),
-                    "URL": extractedValues.hasKey("url") ? extractedValues.get("url").toString() : (),
-                    "EVENT": extractedValues.hasKey("event") ? extractedValues.get("event").toString() : (),
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : (),
-                    "DESCRIPTION": extractedValues.hasKey("description") ? extractedValues.get("description").toString() : (),
-                    "VERSION": extractedValues.hasKey("version") ? extractedValues.get("version").toString() : (),
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "CONTEXT_QUANTITY": extractedValues.hasKey("context-quantity") ? extractedValues.get("context-quantity").toString() : (),
-                    "CONTEXT_TYPE": extractedValues.hasKey("context-type") ? extractedValues.get("context-type").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return messageDefinitionUpdate;
-            }
-            "Endpoint" => {
-                record {|anydata...;|} endpointUpdate = {
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : (),
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return endpointUpdate;
-            }
-            "EnrollmentRequest" => {
-                record {|anydata...;|} enrollmentRequestUpdate = {
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return enrollmentRequestUpdate;
-            }
-            "EventDefinition" => {
-                time:Date? dateValue = ();
-                if extractedValues.hasKey("date") {
-                    string dateStr = extractedValues.get("date").toString();
-                    if dateStr.trim().length() > 0 {
-                        dateValue = check mapperUtils:parseDateString(dateStr);
-                    }
-                }
-                
-                time:Date? effectiveValue = ();
-                if extractedValues.hasKey("effective") {
-                    string effectiveStr = extractedValues.get("effective").toString();
-                    if effectiveStr.trim().length() > 0 {
-                        effectiveValue = check mapperUtils:parseDateString(effectiveStr);
-                    }
-                }
-                
-                record {|anydata...;|} eventDefinitionUpdate = {
-                    "PUBLISHER": extractedValues.hasKey("publisher") ? extractedValues.get("publisher").toString() : (),
-                    "JURISDICTION": extractedValues.hasKey("jurisdiction") ? extractedValues.get("jurisdiction").toString() : (),
-                    "EFFECTIVE": effectiveValue,
-                    "TOPIC": extractedValues.hasKey("topic") ? extractedValues.get("topic").toString() : (),
-                    "CONTEXT": extractedValues.hasKey("context") ? extractedValues.get("context").toString() : (),
-                    "URL": extractedValues.hasKey("url") ? extractedValues.get("url").toString() : (),
-                    "NAME": extractedValues.hasKey("name") ? extractedValues.get("name").toString() : (),
-                    "DATE": dateValue,
-                    "DESCRIPTION": extractedValues.hasKey("description") ? extractedValues.get("description").toString() : (),
-                    "VERSION": extractedValues.hasKey("version") ? extractedValues.get("version").toString() : (),
-                    "STATUS": extractedValues.hasKey("status") ? extractedValues.get("status").toString() : (),
-                    "IDENTIFIER": extractedValues.hasKey("identifier") ? extractedValues.get("identifier").toString() : (),
-                    "CONTEXT_QUANTITY": extractedValues.hasKey("context-quantity") ? extractedValues.get("context-quantity").toString() : (),
-                    "CONTEXT_TYPE": extractedValues.hasKey("context-type") ? extractedValues.get("context-type").toString() : (),
-                    "VERSION_ID": newVersion,
-                    "UPDATED_AT": time:utcToCivil(time:utcNow()),
-                    "LAST_UPDATED": time:utcToCivil(time:utcNow()),
-                    "RESOURCE_JSON": resourceJson.toString().toBytes()
-                };
-
-                return eventDefinitionUpdate;
-            }
-            _ => {
-                return error(string `Resource type ${resourceType} is not supported for update operations`);
-            }
+        // Use fully generic database-driven approach for all resources
+        jdbc:Client? jdbcConn = self.jdbcClient;
+        if jdbcConn is () {
+            return error("JDBC client is required for resource mapping");
         }
+
+        log:printInfo(string `Using generic mapping for ${resourceType} update`);
+        log:printDebug(string `Extracted values: ${extractedValues.toString()}`);
+
+        map<anydata> updateRecord = check self.buildUpdateRecord(
+            resourceType,
+            extractedValues,
+            resourceJson.toJsonString().toBytes(),
+            newVersion
+        );
+
+        return updateRecord;
     }
 
     public isolated function getReferences() returns json[] {
