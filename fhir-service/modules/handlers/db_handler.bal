@@ -1,3 +1,5 @@
+import ballerina_fhir_server.utils;
+
 import ballerina/io;
 import ballerina/sql;
 import ballerinax/java.jdbc;
@@ -153,7 +155,7 @@ public class DBHandler {
                 string expression = data[3];
 
                 string sqlQuery = string `INSERT INTO "SEARCH_PARAM_RES_EXPRESSIONS" (SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION) VALUES ('${searchParamName}', '${searchParamType}', '${'resource}', '${expression}')`;
-                sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+                sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
                 sql:ExecutionResult result = check jdbcConn->execute(query);
                 if result.lastInsertId is int {

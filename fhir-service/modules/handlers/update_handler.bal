@@ -289,8 +289,8 @@ public class UpdateHandler {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT * FROM "${tableName}" WHERE ${primaryKey} = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT * FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|anydata...;|}, sql:Error?> resultStream = jdbcConn->query(query);
 
@@ -315,8 +315,8 @@ public class UpdateHandler {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${tableName}" WHERE ${primaryKey} = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON;|}, sql:Error?> resultStream = jdbcConn->query(query);
 
@@ -366,8 +366,8 @@ public class UpdateHandler {
             return error("JDBC client not initialized");
         }
 
-        string sqlQuery = string `SELECT ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${resourceType}' AND SOURCE_RESOURCE_ID = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND SOURCE_RESOURCE_ID = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|int ID;|}, sql:Error?> resultStream = jdbcConn->query(query);
 
@@ -402,8 +402,8 @@ public class UpdateHandler {
         }
 
         string setClause = string:'join(", ", ...setClauses);
-        string sqlQuery = string `UPDATE "${tableName}" SET ${setClause} WHERE ${primaryKey} = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `UPDATE "${tableName}" SET ${setClause} WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         sql:ExecutionResult|sql:Error result = jdbcConn->execute(query);
 

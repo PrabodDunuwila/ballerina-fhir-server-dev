@@ -5,22 +5,78 @@ import ballerina/time;
 
 import ballerinax/java.jdbc;
 
+// Common constants
+const string JDBC_NOT_INITIALIZED = "JDBC Client is not initialized";
+const string RESOURCE_JSON_COLUMN = "RESOURCE_JSON";
+const string VERSION_ID_COLUMN = "VERSION_ID";
+const string CREATED_AT_COLUMN = "CREATED_AT";
+const string UPDATED_AT_COLUMN = "UPDATED_AT";
+const string LAST_UPDATED_COLUMN = "LAST_UPDATED";
+
+// Escape single quotes in SQL string values to prevent SQL injection
+public isolated function escapeSql(string value) returns string {
+    return regex:replaceAll(value, "'", "''");
+}
+
+// Validate and return JDBC client or throw error
+// Use this instead of repeating validation logic in every method
+public isolated function getValidatedJdbcClient(jdbc:Client? jdbcClient) returns jdbc:Client|error {
+    if jdbcClient is () {
+        return error(JDBC_NOT_INITIALIZED);
+    }
+    return jdbcClient;
+}
+
+// Format a value for SQL INSERT/UPDATE statements
+public isolated function formatSqlValue(anydata value) returns string {
+    if value is () {
+        return "NULL";
+    } else if value is string {
+        string escaped = escapeSql(value);
+        return string `'${escaped}'`;
+    } else if value is int|float|decimal {
+        return value.toString();
+    } else if value is boolean {
+        return value ? "TRUE" : "FALSE";
+    } else if value is time:Date {
+        time:Date dateVal = <time:Date>value;
+        return string `'${dateVal.year}-${padZero(dateVal.month)}-${padZero(dateVal.day)}'`;
+    } else if value is time:Civil {
+        return string `'${formatTimestamp(value)}'`;
+    } else if value is byte[] {
+        byte[] bytes = <byte[]>value;
+        return string `X'${bytes.toBase16()}'`;
+    } else {
+        string escaped = escapeSql(value.toString());
+        return string `'${escaped}'`;
+    }
+}
+
+// Pad numbers with leading zero
+public isolated function padZero(int value) returns string {
+    return value < 10 ? string `0${value}` : value.toString();
+}
+
+// Format timestamp to SQL DATETIME format
+public isolated function formatTimestamp(time:Civil timestamp) returns string {
+    decimal seconds = timestamp.second ?: 0.0d;
+    return string `${timestamp.year}-${padZero(timestamp.month)}-${padZero(timestamp.day)} ${padZero(timestamp.hour)}:${padZero(timestamp.minute)}:${formatSeconds(seconds)}`;
+}
+
 // Validate if a referenced resource exists in the database using generic JDBC query
 public isolated function validateReferenceExists(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns boolean|error {
-    // Validate JDBC client
-    if jdbcClient is () {
-        return error("JDBC Client is not initialized.");
-    }
+    jdbc:Client validatedClient = check getValidatedJdbcClient(jdbcClient);
+    
     // Get table name and primary key column using functions from mapper_utils.bal
     string tableName = getTableName(resourceType);
     string primaryKeyColumn = getPrimaryKeyColumn(resourceType);
     
-    // Build SELECT COUNT query
-    string countQuery = string `SELECT COUNT(*) as count FROM "${tableName}" WHERE ${primaryKeyColumn} = '${resourceId}'`;
+    // Build SELECT COUNT query with escaped resourceId
+    string countQuery = string `SELECT COUNT(*) as count FROM "${tableName}" WHERE ${primaryKeyColumn} = '${escapeSql(resourceId)}'`;
     
     // Execute query using RawSQLQuery
     RawSQLQuery query = new(countQuery);
-    stream<record {int count;}, sql:Error?> resultStream = jdbcClient->query(query);
+    stream<record {int count;}, sql:Error?> resultStream = validatedClient->query(query);
     
     // Get the count
     record {int count;}[] results = check from var result in resultStream select result;
@@ -99,21 +155,18 @@ isolated function validateSingleReference(jdbc:Client? jdbcClient, json fhirRefe
 
 // Delete main resource using generic JDBC query
 public isolated function deleteResource(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns error? {
-    // Validate JDBC client
-    if jdbcClient is () {
-        return error("JDBC Client is not initialized.");
-    }
+    jdbc:Client validatedClient = check getValidatedJdbcClient(jdbcClient);
 
     // Get table name and primary key column
     string tableName = getTableName(resourceType);
     string primaryKeyColumn = getPrimaryKeyColumn(resourceType);
     
-    // Build DELETE query
-    string deleteQuery = string `DELETE FROM "${tableName}" WHERE ${primaryKeyColumn} = '${resourceId}'`;
+    // Build DELETE query with escaped resourceId
+    string deleteQuery = string `DELETE FROM "${tableName}" WHERE ${primaryKeyColumn} = '${escapeSql(resourceId)}'`;
     
     // Execute query using RawSQLQuery
     RawSQLQuery query = new(deleteQuery);
-    sql:ExecutionResult result = check jdbcClient->execute(query);
+    sql:ExecutionResult result = check validatedClient->execute(query);
     
     // Check if resource was deleted
     if result.affectedRowCount == 0 {
@@ -125,10 +178,7 @@ public isolated function deleteResource(jdbc:Client? jdbcClient, string resource
 
 // Delete references using generic JDBC query
 public isolated function deleteReferences(jdbc:Client? jdbcClient, int[] referenceIds, TransactionContext 'transaction) returns error? {
-    // Validate JDBC client
-    if jdbcClient is () {
-        return error("JDBC Client is not initialized.");
-    }
+    jdbc:Client validatedClient = check getValidatedJdbcClient(jdbcClient);
 
     foreach int refId in referenceIds {
         // Build DELETE query for REFERENCES table
@@ -136,7 +186,7 @@ public isolated function deleteReferences(jdbc:Client? jdbcClient, int[] referen
         
         // Execute query using RawSQLQuery
         RawSQLQuery query = new(deleteQuery);
-        sql:ExecutionResult result = check jdbcClient->execute(query);
+        sql:ExecutionResult result = check validatedClient->execute(query);
         
         if result.affectedRowCount > 0 {
             'transaction.deletedReferenceIds.push(refId);
@@ -185,10 +235,7 @@ public isolated function saveReferences(jdbc:Client? jdbcClient, json[] referenc
 }
 
 public isolated function saveSingleReference(jdbc:Client? jdbcClient, string sourceResType, string sourceResId, string sourceExpression, json fhirReference, TransactionContext 'transaction) returns error? {
-    // Validate JDBC client
-    if jdbcClient is () {
-        return error("JDBC Client is not initialized.");
-    }
+    jdbc:Client validatedClient = check getValidatedJdbcClient(jdbcClient);
 
     // Extract reference details
     if !(fhirReference is map<json>) {
@@ -219,12 +266,12 @@ public isolated function saveSingleReference(jdbc:Client? jdbcClient, string sou
     string displayValue = displayJson is string ? displayJson : "";
     
     // Escape single quotes in string values
-    string escapedSourceResType = regex:replaceAll(sourceResType, "'", "''");
-    string escapedSourceResId = regex:replaceAll(sourceResId, "'", "''");
-    string escapedSourceExpression = regex:replaceAll(sourceExpression, "'", "''");
-    string escapedTargetResourceType = regex:replaceAll(targetResourceType, "'", "''");
-    string escapedTargetResourceId = regex:replaceAll(targetResourceId, "'", "''");
-    string escapedDisplayValue = regex:replaceAll(displayValue, "'", "''");
+    string escapedSourceResType = escapeSql(sourceResType);
+    string escapedSourceResId = escapeSql(sourceResId);
+    string escapedSourceExpression = escapeSql(sourceExpression);
+    string escapedTargetResourceType = escapeSql(targetResourceType);
+    string escapedTargetResourceId = escapeSql(targetResourceId);
+    string escapedDisplayValue = escapeSql(displayValue);
     
     // Get current timestamp
     time:Civil currentTime = time:utcToCivil(time:utcNow());
@@ -237,7 +284,7 @@ public isolated function saveSingleReference(jdbc:Client? jdbcClient, string sou
     
     // Execute query using RawSQLQuery
     RawSQLQuery query = new(insertQuery);
-    sql:ExecutionResult result = check jdbcClient->execute(query);
+    sql:ExecutionResult result = check validatedClient->execute(query);
     
     // Get the generated ID
     int|string? generatedId = result.lastInsertId;

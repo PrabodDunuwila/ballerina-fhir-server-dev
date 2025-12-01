@@ -18,8 +18,8 @@ public class ReadMapper {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${tableName}" WHERE ${primaryKey} = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON;|}, sql:Error?> resultStream = jdbcClient->query(query);
 
@@ -64,8 +64,8 @@ public class ReadMapper {
                     string targetType = parts[0];
                     string targetId = parts[1];
 
-                    string refQuery = string `SELECT DISTINCT SOURCE_RESOURCE_ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${resourceType}' AND TARGET_RESOURCE_TYPE = '${targetType}' AND TARGET_RESOURCE_ID = '${targetId}'`;
-                    sql:ParameterizedQuery query = new RawSQLQuery(refQuery);
+                    string refQuery = string `SELECT DISTINCT SOURCE_RESOURCE_ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND TARGET_RESOURCE_TYPE = '${utils:escapeSql(targetType)}' AND TARGET_RESOURCE_ID = '${utils:escapeSql(targetId)}'`;
+                    sql:ParameterizedQuery query = new utils:RawSQLQuery(refQuery);
 
                     stream<record {|string SOURCE_RESOURCE_ID;|}, sql:Error?> refStream = jdbcClient->query(query);
                     record {|string SOURCE_RESOURCE_ID;|}[] refResults = check from var ref in refStream
@@ -226,8 +226,8 @@ public class ReadMapper {
             return error("JDBC client is not initialized");
         }
 
-        string sqlQuery = string `SELECT ID, SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID, SOURCE_EXPRESSION, TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID, DISPLAY_VALUE FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${resourceType}' AND SOURCE_RESOURCE_ID = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT ID, SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID, SOURCE_EXPRESSION, TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID, DISPLAY_VALUE FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND SOURCE_RESOURCE_ID = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|string ID; string SOURCE_RESOURCE_TYPE; string SOURCE_RESOURCE_ID; string SOURCE_EXPRESSION; string? TARGET_RESOURCE_TYPE; string? TARGET_RESOURCE_ID; string? DISPLAY_VALUE;|}, sql:Error?> resultStream = jdbcClient->query(query);
 
@@ -290,8 +290,8 @@ public class ReadMapper {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT ${primaryKey}, VERSION_ID, LAST_UPDATED, CREATED_AT FROM "${tableName}" WHERE ${primaryKey} = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT ${primaryKey}, VERSION_ID, LAST_UPDATED, CREATED_AT FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|anydata...;|}, sql:Error?> resultStream = jdbcClient->query(query);
 

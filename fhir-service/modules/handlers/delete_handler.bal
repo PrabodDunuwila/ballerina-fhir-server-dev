@@ -108,8 +108,8 @@ public class DeleteHandler {
             return error("JDBC client not initialized");
         }
 
-        string sqlQuery = string `SELECT ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${resourceType}' AND SOURCE_RESOURCE_ID = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND SOURCE_RESOURCE_ID = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|int ID;|}, sql:Error?> resultStream = jdbcConn->query(query);
 
@@ -133,8 +133,8 @@ public class DeleteHandler {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT * FROM "${tableName}" WHERE ${primaryKey} = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT * FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|anydata...;|}, sql:Error?> resultStream = jdbcConn->query(query);
 
@@ -155,8 +155,8 @@ public class DeleteHandler {
             return error("JDBC client not initialized");
         }
 
-        string sqlQuery = string `SELECT * FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${resourceType}' AND SOURCE_RESOURCE_ID = '${resourceId}'`;
-        sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
+        string sqlQuery = string `SELECT * FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND SOURCE_RESOURCE_ID = '${utils:escapeSql(resourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|anydata...;|}, sql:Error?> resultStream = jdbcConn->query(query);
 

@@ -17,10 +17,7 @@ public class HistoryHandler {
     // Save current version to history before update/delete
     public isolated function saveToHistory(string resourceType, string resourceId, 
                                           record {|anydata...;|} currentVersion, string operation) returns error? {
-        jdbc:Client? jdbcConn = self.jdbcClient;
-        if jdbcConn is () {
-            return error("JDBC client not initialized");
-        }
+        jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
         string tableName = utils:getTableName(resourceType);
         string historyTableName = tableName + "History";
@@ -59,7 +56,7 @@ public class HistoryHandler {
         
         columns.push("CREATED_AT");
         time:Civil now = time:utcToCivil(time:utcNow());
-        string timestamp = string `'${now.year}-${self.pad(now.month)}-${self.pad(now.day)} ${self.pad(now.hour)}:${self.pad(now.minute)}:${self.pad(<int>now.second)}'`;
+        string timestamp = string `'${now.year}-${utils:padZero(now.month)}-${utils:padZero(now.day)} ${utils:padZero(now.hour)}:${utils:padZero(now.minute)}:${utils:padZero(<int>now.second)}'`;
         values.push(timestamp);
         
         string columnList = string:'join(", ", ...columns);
@@ -76,16 +73,13 @@ public class HistoryHandler {
     
     // Get a specific version of a resource from history
     public isolated function getResourceVersion(string resourceType, string resourceId, int versionId) returns json|error {
-        jdbc:Client? jdbcConn = self.jdbcClient;
-        if jdbcConn is () {
-            return error("JDBC client not initialized");
-        }
+        jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
         string tableName = utils:getTableName(resourceType);
         string historyTableName = tableName + "History";
         string historyResourceIdColumn = string `${tableName}_ID`;
 
-        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${historyTableName}" WHERE ${historyResourceIdColumn} = '${resourceId}' AND VERSION_ID = ${versionId}`;
+        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${historyTableName}" WHERE ${historyResourceIdColumn} = '${utils:escapeSql(resourceId)}' AND VERSION_ID = ${versionId}`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON;|}, sql:Error?> resultStream = jdbcConn->query(query);
@@ -106,16 +100,13 @@ public class HistoryHandler {
     
     // Get all history versions of a specific resource
     public isolated function getResourceHistory(string resourceType, string resourceId) returns json[]|error {
-        jdbc:Client? jdbcConn = self.jdbcClient;
-        if jdbcConn is () {
-            return error("JDBC client not initialized");
-        }
+        jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
         string tableName = utils:getTableName(resourceType);
         string historyTableName = tableName + "History";
         string historyResourceIdColumn = string `${tableName}_ID`;
 
-        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${historyTableName}" WHERE ${historyResourceIdColumn} = '${resourceId}' ORDER BY VERSION_ID DESC`;
+        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${historyTableName}" WHERE ${historyResourceIdColumn} = '${utils:escapeSql(resourceId)}' ORDER BY VERSION_ID DESC`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON;|}, sql:Error?> resultStream = jdbcConn->query(query);
@@ -135,10 +126,7 @@ public class HistoryHandler {
     
     // Get all history for all resources of a type
     public isolated function getAllHistory(string resourceType) returns json[]|error {
-        jdbc:Client? jdbcConn = self.jdbcClient;
-        if jdbcConn is () {
-            return error("JDBC client not initialized");
-        }
+        jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
         string tableName = utils:getTableName(resourceType);
         string historyTableName = tableName + "History";
@@ -159,10 +147,5 @@ public class HistoryHandler {
         }
 
         return versions;
-    }
-    
-    // Helper function to pad numbers with leading zero
-    private isolated function pad(int num) returns string {
-        return num < 10 ? string `0${num}` : num.toString();
     }
 }

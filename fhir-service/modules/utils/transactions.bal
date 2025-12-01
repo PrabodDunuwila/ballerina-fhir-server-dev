@@ -39,11 +39,15 @@ public class TransactionHandler {
         int deletedRefs = 0;
         int failedRefs = 0;
 
-        // Delete references
-        int[] referenceIds = 'transaction.savedReferenceIds.reverse();
-        error? refDeleteResult = deleteReferences(jdbcClient, referenceIds, 'transaction);
-        if (refDeleteResult is error) {
-            log:printError(refDeleteResult.toString());
+        // Delete newly created references using JDBC
+        if jdbcClient is jdbc:Client {
+            foreach int refId in 'transaction.savedReferenceIds.reverse() {
+                string deleteQuery = string `DELETE FROM "REFERENCES" WHERE ID = ${refId}`;
+                sql:ExecutionResult|error result = jdbcClient->execute(new RawSQLQuery(deleteQuery));
+                if result is error {
+                    log:printError(string `Failed to delete reference ${refId}: ${result.message()}`);
+                }
+            }
         }
 
         // Delete main resource if it was saved
@@ -213,9 +217,9 @@ public class TransactionHandler {
         anydata updatedAtData = ref.get("UPDATED_AT");
         anydata lastUpdatedData = ref.get("LAST_UPDATED");
         
-        string createdAt = createdAtData is time:Civil ? self.formatTimestamp(createdAtData) : createdAtData.toString();
-        string updatedAt = updatedAtData is time:Civil ? self.formatTimestamp(updatedAtData) : updatedAtData.toString();
-        string lastUpdated = lastUpdatedData is time:Civil ? self.formatTimestamp(lastUpdatedData) : lastUpdatedData.toString();
+        string createdAt = createdAtData is time:Civil ? formatTimestamp(createdAtData) : createdAtData.toString();
+        string updatedAt = updatedAtData is time:Civil ? formatTimestamp(updatedAtData) : updatedAtData.toString();
+        string lastUpdated = lastUpdatedData is time:Civil ? formatTimestamp(lastUpdatedData) : lastUpdatedData.toString();
 
         // Get reference ID
         int refId = check int:fromString(ref.get("ID").toString());
@@ -226,39 +230,8 @@ public class TransactionHandler {
         _ = check jdbcClient->execute(new RawSQLQuery(insertQuery));
     }
 
-    // Helper to format a value for SQL
+    // Helper to format a value for SQL (delegates to commons utility)
     public isolated function formatValue(anydata value) returns string {
-        if value is () {
-            return "NULL";
-        } else if value is string {
-            string escaped = regex:replaceAll(value, "'", "''");
-            return string `'${escaped}'`;
-        } else if value is int|float|decimal {
-            return value.toString();
-        } else if value is boolean {
-            return value ? "TRUE" : "FALSE";
-        } else if value is time:Date {
-            time:Date dateVal = <time:Date>value;
-            return string `'${dateVal.year}-${self.padZero(dateVal.month)}-${self.padZero(dateVal.day)}'`;
-        } else if value is time:Civil {
-            return string `'${self.formatTimestamp(value)}'`;
-        } else if value is byte[] {
-            byte[] bytes = <byte[]>value;
-            return string `X'${bytes.toBase16()}'`;
-        } else {
-            string escaped = regex:replaceAll(value.toString(), "'", "''");
-            return string `'${escaped}'`;
-        }
-    }
-
-    // Helper to format timestamp
-    private isolated function formatTimestamp(time:Civil timestamp) returns string {
-        decimal seconds = timestamp.second ?: 0.0d;
-        return string `${timestamp.year}-${self.padZero(timestamp.month)}-${self.padZero(timestamp.day)} ${self.padZero(timestamp.hour)}:${self.padZero(timestamp.minute)}:${formatSeconds(seconds)}`;
-    }
-
-    // Helper to pad numbers with zero
-    private isolated function padZero(int value) returns string {
-        return value < 10 ? string `0${value}` : value.toString();
+        return formatSqlValue(value);
     }
 }
