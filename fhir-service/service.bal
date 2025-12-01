@@ -437,6 +437,11 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                 }
                 log:printError("Resource save failed: " + errorMsg);
 
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
+
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2942,6 +2947,11 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
                 }
                 log:printError("Resource save failed: " + errorMsg);
 
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
+
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -3137,6 +3147,11 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
                 }
                 log:printError("Resource save failed: " + errorMsg);
 
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
+
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -3331,6 +3346,11 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
                     errorMsg = result.message();
                 }
                 log:printError("Resource save failed: " + errorMsg);
+
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
 
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
@@ -3576,6 +3596,11 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
                     errorMsg = result.message();
                 }
                 log:printError("Resource save failed: " + errorMsg);
+
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
 
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
@@ -3943,6 +3968,11 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
                     errorMsg = result.message();
                 }
                 log:printError("Resource save failed: " + errorMsg);
+
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
 
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
@@ -5589,6 +5619,11 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
                 }
                 log:printError("Resource save failed: " + errorMsg);
 
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
+
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -6384,6 +6419,11 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
                 }
                 log:printError("Resource save failed: " + errorMsg);
 
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
+
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -6928,6 +6968,11 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
                     errorMsg = result.message();
                 }
                 log:printError("Resource save failed: " + errorMsg);
+
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
 
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
@@ -7823,6 +7868,11 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
                     errorMsg = result.message();
                 }
                 log:printError("Resource save failed: " + errorMsg);
+
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
 
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
@@ -8769,6 +8819,11 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
                 }
                 log:printError("Resource save failed: " + errorMsg);
 
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
+
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -9263,6 +9318,11 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
                     errorMsg = result.message();
                 }
                 log:printError("Resource save failed: " + errorMsg);
+
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
 
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
@@ -10539,6 +10599,11 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
                     errorMsg = result.message();
                 }
                 log:printError("Resource save failed: " + errorMsg);
+
+                // Check if resource already exists (duplicate ID)
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
 
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {

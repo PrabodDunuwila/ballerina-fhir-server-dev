@@ -100,6 +100,17 @@ public class CreateHandler {
         // Validate JDBC client
         jdbc:Client jdbcClient = check utils:getValidatedJdbcClient(self.jdbcClient);
         
+        // Get primary key value to check for duplicates
+        string primaryKeyColumn = mapperUtils:getPrimaryKeyColumn(resourceType);
+        any resourceIdValue = insertModel[primaryKeyColumn];
+        string resourceId = resourceIdValue is string ? resourceIdValue : resourceIdValue.toString();
+        
+        // Check if resource already exists
+        boolean exists = check utils:validateReferenceExists(self.jdbcClient, resourceType, resourceId);
+        if exists {
+            return error(string `Resource already exists: ${resourceType}/${resourceId}. Use PUT to update the resource.`);
+        }
+        
         // Extract column names and values from insertModel
         string[] columnNames = insertModel.keys();
         anydata[] columnValues = insertModel.toArray();
@@ -138,11 +149,6 @@ public class CreateHandler {
         }
         
         log:printInfo(string `Insert successful`);
-
-        // 5. Get primary key value
-        string primaryKeyColumn = mapperUtils:getPrimaryKeyColumn(resourceType);
-        any resourceIdValue = insertModel[primaryKeyColumn];
-        string resourceId = resourceIdValue is string ? resourceIdValue : resourceIdValue.toString();
 
         log:printInfo(string `Successfully inserted ${resourceType} with ID: ${resourceId}`);
         return resourceId;
