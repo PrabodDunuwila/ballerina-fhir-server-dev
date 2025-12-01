@@ -25,7 +25,8 @@ This FHIR R4 server implements the HL7 FHIR (Fast Healthcare Interoperability Re
 ## Features
 
 - ✅ Full FHIR R4 resource support (145+ resource types)
-- ✅ RESTful CRUD operations (Create, Read, Update, Delete)
+- ✅ RESTful CRUD operations (Create, Read, Update, Patch, Delete)
+- ✅ Resource search with FHIR search parameters
 - ✅ Resource reference validation and management
 - ✅ Version history tracking (`_history` endpoint)
 - ✅ Transaction management with automatic rollback
@@ -75,9 +76,212 @@ The server will start on `http://localhost:9090/fhir/r4`.
 | **Create** | POST | `/{resourceType}` | Create a new resource |
 | **Read** | GET | `/{resourceType}/{id}` | Retrieve a resource by ID |
 | **Update** | PUT | `/{resourceType}/{id}` | Update an existing resource |
+| **Patch** | PATCH | `/{resourceType}/{id}` | Partially update a resource |
 | **Delete** | DELETE | `/{resourceType}/{id}` | Delete a resource |
+| **Search** | GET | `/{resourceType}?[params]` | Search for resources using query parameters |
+| **Version Read** | GET | `/{resourceType}/{id}/_history/{vid}` | Retrieve a specific version of a resource |
 | **History (Instance)** | GET | `/{resourceType}/{id}/_history` | Get version history for a resource |
 | **History (Type)** | GET | `/fhir/r4/{resourceType}/_history` | Get history for all resources of a type |
+
+### Search Functionality
+
+The server supports searching resources using FHIR search parameters. Search queries are performed using HTTP GET requests with query parameters.
+
+**Basic Search Format:**
+```
+GET /{resourceType}?{parameter}={value}
+```
+
+**Search Examples:**
+
+1. **Search all Patients:**
+```bash
+GET http://localhost:9090/fhir/r4/Patient
+```
+
+2. **Search Patients by name:**
+```bash
+GET http://localhost:9090/fhir/r4/Patient?name=John
+```
+
+3. **Search Patients by birthdate:**
+```bash
+GET http://localhost:9090/fhir/r4/Patient?birthdate=1985-06-15
+```
+
+4. **Search Appointments by date:**
+```bash
+GET http://localhost:9090/fhir/r4/Appointment?date=2024-12-01
+```
+
+5. **Search Practitioners by identifier:**
+```bash
+GET http://localhost:9090/fhir/r4/Practitioner?identifier=MD-12345
+```
+
+6. **Search with date/time prefixes (using _lastUpdated):**
+```bash
+# Resources updated after a specific date
+GET http://localhost:9090/fhir/r4/Patient?_lastUpdated=gt2024-11-01
+
+# Resources updated on or before a specific date
+GET http://localhost:9090/fhir/r4/Patient?_lastUpdated=le2024-12-01T10:00:00Z
+```
+
+7. **Multiple search parameters:**
+```bash
+GET http://localhost:9090/fhir/r4/Patient?name=John&gender=male
+```
+
+**Date/Time Search Prefixes:**
+
+When searching with date/time parameters like `_lastUpdated`, you can use prefixes to specify comparisons:
+
+| Prefix | Meaning | Example |
+|--------|---------|---------|
+| `eq` | Equal (default) | `?_lastUpdated=eq2024-12-01` |
+| `ne` | Not equal | `?_lastUpdated=ne2024-12-01` |
+| `gt` | Greater than | `?_lastUpdated=gt2024-11-01` |
+| `ge` | Greater than or equal | `?_lastUpdated=ge2024-11-01` |
+| `lt` | Less than | `?_lastUpdated=lt2024-12-31` |
+| `le` | Less than or equal | `?_lastUpdated=le2024-12-31` |
+| `sa` | Starts after | `?_lastUpdated=sa2024-11-01` |
+| `eb` | Ends before | `?_lastUpdated=eb2024-12-31` |
+
+**Examples:**
+```bash
+# Get resources updated after November 1, 2024
+GET http://localhost:9090/fhir/r4/Patient?_lastUpdated=gt2024-11-01
+
+# Get resources updated before December 1, 2024 at 10:00 AM
+GET http://localhost:9090/fhir/r4/Appointment?_lastUpdated=lt2024-12-01T10:00:00Z
+
+# Get resources updated on or after a specific timestamp
+GET http://localhost:9090/fhir/r4/Patient?_lastUpdated=ge2024-11-15T14:30:00Z
+```
+
+**Resource-Specific Column Searches:**
+
+You can search by any indexed column in the resource tables. The server automatically maps FHIR search parameters to database columns:
+
+```bash
+# Search Appointments by status
+GET http://localhost:9090/fhir/r4/Appointment?status=booked
+
+# Search Patients by gender
+GET http://localhost:9090/fhir/r4/Patient?gender=male
+
+# Search Patients by birthdate with comparison
+GET http://localhost:9090/fhir/r4/Patient?birthdate=gt1990-01-01
+
+# Search by multiple criteria
+GET http://localhost:9090/fhir/r4/Appointment?status=booked&date=ge2024-12-01
+
+# Search Practitioners by specialty
+GET http://localhost:9090/fhir/r4/Practitioner?specialty=cardiology
+```
+
+**Common Searchable Parameters by Resource:**
+
+- **Patient**: `name`, `family`, `given`, `gender`, `birthdate`, `active`, `identifier`
+- **Appointment**: `date`, `status`, `specialty`, `service-category`, `service-type`, `appointment-type`, `part-status`
+- **Practitioner**: `name`, `family`, `given`, `gender`, `active`, `identifier`, `specialty`
+- **Observation**: `date`, `status`, `code`, `category`, `identifier`
+- **Medication**: `code`, `status`, `identifier`
+
+Date and numeric parameters support prefixes (`gt`, `ge`, `lt`, `le`, etc.) for range queries. String parameters use partial matching (LIKE search).
+
+**Search Response Format:**
+
+Search operations return a FHIR Bundle resource containing matching results:
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 2,
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-001",
+        "name": [{"family": "Doe", "given": ["John"]}]
+        // ... rest of resource
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-002",
+        "name": [{"family": "Smith", "given": ["John"]}]
+        // ... rest of resource
+      }
+    }
+  ]
+}
+```
+
+**Supported Search Parameters:**
+
+The server supports searching by:
+- **Common parameters**: `_id`, `_lastUpdated` (with date prefixes), `_count` (pagination control - automatically skipped)
+- **Resource-specific parameters**: Any indexed column in the resource table (e.g., `name`, `status`, `date`, `gender`, `identifier`)
+- **Reference parameters**: Search by related resources (e.g., `patient=Patient/123`, `subject=Patient/456`)
+- **Token parameters**: Search coded values with system|code format (e.g., `identifier=http://example.org/mrn|12345`, `status=active`)
+- **String matching**: Partial text matching for string fields
+- **Date/numeric ranges**: Use prefixes (`gt`, `ge`, `lt`, `le`) for range queries
+- **Multiple parameters**: Combine multiple search criteria with `&`
+
+**Reference Search Parameters:**
+
+Reference parameters allow you to search for resources that reference other resources. The server automatically queries the reference table to find matching resources.
+
+Format: `?{referenceParam}={ResourceType}/{id}`
+
+Examples:
+```bash
+# Search Appointments by patient
+GET http://localhost:9090/fhir/r4/Appointment?patient=Patient/patient-001
+
+# Search Observations by subject
+GET http://localhost:9090/fhir/r4/Observation?subject=Patient/patient-001
+
+# Search by multiple references
+GET http://localhost:9090/fhir/r4/Appointment?patient=Patient/patient-001&practitioner=Practitioner/prac-001
+
+# Combine reference with other parameters
+GET http://localhost:9090/fhir/r4/Appointment?patient=Patient/patient-001&status=booked&date=ge2024-12-01
+```
+
+**Note**: Reference searches work regardless of how the reference was stored internally. For example, searching `?patient=Patient/123` will find the appointment even if the reference was stored with a different expression name (like "actor" or "subject"), as long as it points to the same Patient resource.
+
+**Token Search Parameters:**
+
+Token parameters are used for coded values like `identifier`, `status`, `code`, etc. They support the following formats:
+
+1. **Simple value**: `?status=active`
+2. **System and code**: `?identifier=http://example.org/mrn|12345` or `?code=http://loinc.org|8867-4`
+3. **Code only (any system)**: `?identifier=|12345`
+
+The server searches for both `"system"` and `"code"` fields in the JSON structure, handling optional whitespace after colons.
+
+Examples:
+```bash
+# Search by identifier with system
+GET http://localhost:9090/fhir/r4/Patient?identifier=http://example.org/mrn|12345
+
+# Search by service category with system and code
+GET http://localhost:9090/fhir/r4/Appointment?service-category=http://terminology.hl7.org/CodeSystem/service-category|17
+
+# Search by identifier code only
+GET http://localhost:9090/fhir/r4/Patient?identifier=|12345
+
+# Search by status (simple token)
+GET http://localhost:9090/fhir/r4/Appointment?status=booked
+
+# Search by code with system
+GET http://localhost:9090/fhir/r4/Observation?code=http://loinc.org|8867-4
+```
 
 ## Reference Management
 

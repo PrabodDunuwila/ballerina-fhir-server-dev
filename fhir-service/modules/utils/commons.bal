@@ -316,6 +316,12 @@ isolated function formatTwoDigits(int value) returns string {
 isolated function formatSeconds(decimal seconds) returns string {
     // Ensure seconds is non-negative
     decimal absSeconds = seconds < 0.0d ? 0.0d : seconds;
+    
+    // Handle edge case where seconds might round to 60
+    if absSeconds >= 60.0d {
+        absSeconds = 59.999d;
+    }
+    
     int wholePart = <int>absSeconds;
     decimal fractionalPart = absSeconds - <decimal>wholePart;
     int millis = <int>(fractionalPart * 1000.0d);
@@ -323,6 +329,9 @@ isolated function formatSeconds(decimal seconds) returns string {
     // Ensure millis is non-negative and within valid range
     if millis < 0 {
         millis = 0;
+    }
+    if millis >= 1000 {
+        millis = 999;
     }
     
     string secondStr = wholePart < 10 ? string `0${wholePart}` : wholePart.toString();
