@@ -65,17 +65,14 @@ public class ReadMapper {
             if isReferenceParam {
                 hasReferenceParams = true;
                 string refValue = "";
-                string refParamName = "";
                 
                 // Case 1: paramName is "Patient/123" (old format)
                 if paramName.includes("/") {
                     refValue = paramName;
-                    refParamName = ""; // Unknown which field it maps to
                 } 
                 // Case 2: patient=Patient/123 (proper FHIR search format)
                 else {
                     refValue = paramValue;
-                    refParamName = paramName;
                 }
                 
                 string[] parts = regexp:split(re `/`, refValue);

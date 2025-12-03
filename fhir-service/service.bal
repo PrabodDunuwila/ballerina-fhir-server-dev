@@ -355,7 +355,7 @@ isolated function performResourceSearch(string resourceType, r4:FHIRContext fhir
         } else {
             string errorMsg = searchResult.message();
             log:printError("Search failed: " + errorMsg);
-            return r4:createFHIRError(string `Failed to search ${resourceType}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Failed to search ${resourceType}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
         
     } on fail error e {
@@ -387,7 +387,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                 string errorMsg = result.message();
                 log:printError("Database save failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch appointment: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch appointment. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -478,7 +478,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                 }
 
                 // Otherwise it's a server/database error
-                return r4:createFHIRError(string `Failed to update Appointment/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Appointment/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -508,7 +508,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                 }
 
                 // Otherwise it's a server/database error
-                return r4:createFHIRError(string `Failed to patch Appointment/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Appointment/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -540,12 +540,12 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
 
-                return r4:createFHIRError(string `Failed to delete Appointment/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Appointment/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
             log:printError(string `Error deleting Appointment/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -637,7 +637,7 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
             } else {
                 string errorMsg = result.message();
                 log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read Account/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read Account/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -679,7 +679,7 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create Account: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create Account`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -704,7 +704,7 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update Account/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Account/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -729,7 +729,7 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch Account/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Account/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -750,12 +750,12 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
             } else {
                 string errorMsg = result is error ? result.message() : "Delete failed";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Account/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Account/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
             log:printError(string `Error deleting Account/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -812,7 +812,7 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
             } else {
                 string errorMsg = result.message();
                 log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read Invoice/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read Invoice/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError("Error processing invoice: " + e.message());
@@ -851,7 +851,7 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create Invoice: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create Invoice`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError("Error processing invoice: " + e.message());
@@ -873,7 +873,7 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update Invoice/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Invoice/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Invoice/${id}: ${e.message()}`);
@@ -896,7 +896,7 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch Invoice/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Invoice/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Invoice/${id}: ${e.message()}`);
@@ -915,11 +915,11 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
             } else {
                 string errorMsg = result is error ? result.message() : "Delete failed";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Invoice/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Invoice/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting Invoice/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -976,7 +976,7 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
             } else {
                 string errorMsg = result.message();
                 log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read CatalogEntry/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read CatalogEntry/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError("Error processing catalogentry: " + e.message());
@@ -1015,7 +1015,7 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create CatalogEntry: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create CatalogEntry`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError("Error processing catalogentry: " + e.message());
@@ -1037,7 +1037,7 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update CatalogEntry/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update CatalogEntry/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating CatalogEntry/${id}: ${e.message()}`);
@@ -1060,7 +1060,7 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch CatalogEntry/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch CatalogEntry/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching CatalogEntry/${id}: ${e.message()}`);
@@ -1079,11 +1079,11 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
             } else {
                 string errorMsg = result is error ? result.message() : "Delete failed";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete CatalogEntry/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete CatalogEntry/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting CatalogEntry/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1140,7 +1140,7 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
             } else {
                 string errorMsg = result.message();
                 log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read EventDefinition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read EventDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError("Error processing eventdefinition: " + e.message());
@@ -1179,7 +1179,7 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create EventDefinition: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create EventDefinition`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError("Error processing eventdefinition: " + e.message());
@@ -1201,7 +1201,7 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update EventDefinition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update EventDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating EventDefinition/${id}: ${e.message()}`);
@@ -1224,7 +1224,7 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch EventDefinition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch EventDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching EventDefinition/${id}: ${e.message()}`);
@@ -1243,11 +1243,11 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
             } else {
                 string errorMsg = result is error ? result.message() : "Delete failed";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete EventDefinition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete EventDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting EventDefinition/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1304,7 +1304,7 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
             } else {
                 string errorMsg = result.message();
                 log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read DocumentManifest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read DocumentManifest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError("Error processing documentmanifest: " + e.message());
@@ -1343,7 +1343,7 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create DocumentManifest: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create DocumentManifest`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError("Error processing documentmanifest: " + e.message());
@@ -1365,7 +1365,7 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update DocumentManifest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update DocumentManifest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating DocumentManifest/${id}: ${e.message()}`);
@@ -1388,7 +1388,7 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch DocumentManifest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch DocumentManifest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching DocumentManifest/${id}: ${e.message()}`);
@@ -1407,11 +1407,11 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
             } else {
                 string errorMsg = result is error ? result.message() : "Delete failed";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete DocumentManifest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete DocumentManifest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting DocumentManifest/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1466,7 +1466,7 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
             } else {
                 string errorMsg = result.message();
                 log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read MessageDefinition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read MessageDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1501,7 +1501,7 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create MessageDefinition: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create MessageDefinition`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1520,7 +1520,7 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update MessageDefinition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update MessageDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1540,7 +1540,7 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch MessageDefinition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch MessageDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1555,11 +1555,10 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
                 log:printInfo("MessageDefinition: DELETE - Execution Success!");
                 return r4:createFHIRError(string `MessageDefinition/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
             } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                return r4:createFHIRError(string `Failed to delete MessageDefinition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete MessageDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
-        } on fail error e {
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        } on fail {
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1612,8 +1611,7 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
                 log:printInfo("Goal: GET - Execution Success!");
                 return goal;
             } else {
-                string errorMsg = result.message();
-                return r4:createFHIRError(string `Failed to read Goal/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read Goal/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1648,7 +1646,7 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create Goal: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create Goal`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1667,7 +1665,7 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update Goal/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Goal/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1687,7 +1685,7 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch Goal/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Goal/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1702,11 +1700,10 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
                 log:printInfo("Goal: DELETE - Execution Success!");
                 return r4:createFHIRError(string `Goal/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
             } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                return r4:createFHIRError(string `Failed to delete Goal/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Goal/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
-        } on fail error e {
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        } on fail {
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1759,8 +1756,7 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
                 log:printInfo("MedicinalProductPackaged: GET - Execution Success!");
                 return medicinalproductpackaged;
             } else {
-                string errorMsg = result.message();
-                return r4:createFHIRError(string `Failed to read MedicinalProductPackaged/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read MedicinalProductPackaged/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1795,7 +1791,7 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create MedicinalProductPackaged: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create MedicinalProductPackaged`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1814,7 +1810,7 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update MedicinalProductPackaged/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update MedicinalProductPackaged/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1834,7 +1830,7 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch MedicinalProductPackaged/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch MedicinalProductPackaged/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1849,11 +1845,10 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
                 log:printInfo("MedicinalProductPackaged: DELETE - Execution Success!");
                 return r4:createFHIRError(string `MedicinalProductPackaged/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
             } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                return r4:createFHIRError(string `Failed to delete MedicinalProductPackaged/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete MedicinalProductPackaged/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
-        } on fail error e {
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        } on fail {
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1906,8 +1901,7 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
                 log:printInfo("Endpoint: GET - Execution Success!");
                 return endpoint;
             } else {
-                string errorMsg = result.message();
-                return r4:createFHIRError(string `Failed to read Endpoint/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read Endpoint/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1942,7 +1936,7 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create Endpoint: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create Endpoint`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1961,7 +1955,7 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update Endpoint/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Endpoint/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1981,7 +1975,7 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch Endpoint/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Endpoint/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -1996,11 +1990,10 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
                 log:printInfo("Endpoint: DELETE - Execution Success!");
                 return r4:createFHIRError(string `Endpoint/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
             } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                return r4:createFHIRError(string `Failed to delete Endpoint/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Endpoint/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
-        } on fail error e {
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        } on fail {
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -2053,8 +2046,7 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
                 log:printInfo("EnrollmentRequest: GET - Execution Success!");
                 return enrollmentrequest;
             } else {
-                string errorMsg = result.message();
-                return r4:createFHIRError(string `Failed to read EnrollmentRequest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read EnrollmentRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2089,7 +2081,7 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create EnrollmentRequest: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create EnrollmentRequest`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2108,7 +2100,7 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update EnrollmentRequest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update EnrollmentRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2128,7 +2120,7 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch EnrollmentRequest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch EnrollmentRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2143,11 +2135,10 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
                 log:printInfo("EnrollmentRequest: DELETE - Execution Success!");
                 return r4:createFHIRError(string `EnrollmentRequest/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
             } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                return r4:createFHIRError(string `Failed to delete EnrollmentRequest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete EnrollmentRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
-        } on fail error e {
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        } on fail {
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -2200,8 +2191,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
                 log:printInfo("Consent: GET - Execution Success!");
                 return consent;
             } else {
-                string errorMsg = result.message();
-                return r4:createFHIRError(string `Failed to read Consent/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to read Consent/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2236,7 +2226,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to create Consent: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to create Consent`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2255,7 +2245,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to update Consent/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Consent/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2275,7 +2265,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
-                return r4:createFHIRError(string `Failed to patch Consent/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Consent/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -2290,11 +2280,10 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
                 log:printInfo("Consent: DELETE - Execution Success!");
                 return r4:createFHIRError(string `Consent/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
             } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                return r4:createFHIRError(string `Failed to delete Consent/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Consent/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
-        } on fail error e {
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        } on fail {
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -2899,7 +2888,7 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch practitioner role: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch practitioner role. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -2985,7 +2974,7 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update PractitionerRole/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update PractitionerRole/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating PractitionerRole/${id}: ${e.message()}`);
@@ -3011,7 +3000,7 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch PractitionerRole/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch PractitionerRole/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching PractitionerRole/${id}: ${e.message()}`);
@@ -3040,11 +3029,11 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete PractitionerRole/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete PractitionerRole/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting PractitionerRole/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -3099,7 +3088,7 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch related person: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch related person. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -3185,7 +3174,7 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update RelatedPerson/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update RelatedPerson/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating RelatedPerson/${id}: ${e.message()}`);
@@ -3211,7 +3200,7 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch RelatedPerson/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch RelatedPerson/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching RelatedPerson/${id}: ${e.message()}`);
@@ -3240,11 +3229,11 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete RelatedPerson/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete RelatedPerson/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting RelatedPerson/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -3299,7 +3288,7 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch service request: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch service request. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -3385,7 +3374,7 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update ServiceRequest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update ServiceRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating ServiceRequest/${id}: ${e.message()}`);
@@ -3411,7 +3400,7 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch ServiceRequest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch ServiceRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching ServiceRequest/${id}: ${e.message()}`);
@@ -3440,11 +3429,11 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete ServiceRequest/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete ServiceRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting ServiceRequest/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -3549,7 +3538,7 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch practitioner: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch practitioner. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -3635,7 +3624,7 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update Practitioner/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Practitioner/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Practitioner/${id}: ${e.message()}`);
@@ -3661,7 +3650,7 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch Practitioner/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Practitioner/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Practitioner/${id}: ${e.message()}`);
@@ -3690,11 +3679,11 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Practitioner/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Practitioner/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting Practitioner/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -3921,7 +3910,7 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch slot: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch slot. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -4007,7 +3996,7 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update Slot/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Slot/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Slot/${id}: ${e.message()}`);
@@ -4033,7 +4022,7 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch Slot/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Slot/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Slot/${id}: ${e.message()}`);
@@ -4062,11 +4051,11 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Slot/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Slot/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting Slot/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -5571,7 +5560,7 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch immunization recommendation: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch immunization recommendation. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -5657,7 +5646,7 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update ImmunizationRecommendation/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update ImmunizationRecommendation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating ImmunizationRecommendation/${id}: ${e.message()}`);
@@ -5683,7 +5672,7 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch ImmunizationRecommendation/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch ImmunizationRecommendation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching ImmunizationRecommendation/${id}: ${e.message()}`);
@@ -5712,11 +5701,11 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete ImmunizationRecommendation/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete ImmunizationRecommendation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting ImmunizationRecommendation/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -6371,7 +6360,7 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch procedure: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch procedure. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -6457,7 +6446,7 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update Procedure/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Procedure/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Procedure/${id}: ${e.message()}`);
@@ -6483,7 +6472,7 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch Procedure/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Procedure/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Procedure/${id}: ${e.message()}`);
@@ -6512,11 +6501,11 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Procedure/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Procedure/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting Procedure/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -6921,7 +6910,7 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch device: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch device. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -7007,7 +6996,7 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update Device/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Device/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Device/${id}: ${e.message()}`);
@@ -7033,7 +7022,7 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch Device/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Device/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Device/${id}: ${e.message()}`);
@@ -7062,11 +7051,11 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Device/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Device/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting Device/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -7821,7 +7810,7 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch observation: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch observation. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -7907,7 +7896,7 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update Observation/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Observation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Observation/${id}: ${e.message()}`);
@@ -7933,7 +7922,7 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch Observation/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Observation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Observation/${id}: ${e.message()}`);
@@ -7962,11 +7951,11 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Observation/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Observation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting Observation/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -8771,7 +8760,7 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch healthcare service: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch healthcare service. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -8857,7 +8846,7 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update HealthcareService/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update HealthcareService/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating HealthcareService/${id}: ${e.message()}`);
@@ -8883,7 +8872,7 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch HealthcareService/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch HealthcareService/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching HealthcareService/${id}: ${e.message()}`);
@@ -8912,11 +8901,11 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete HealthcareService/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete HealthcareService/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting HealthcareService/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -9271,7 +9260,7 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch condition: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch condition. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -9357,7 +9346,7 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update Condition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Condition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Condition/${id}: ${e.message()}`);
@@ -9383,7 +9372,7 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch Condition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Condition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Condition/${id}: ${e.message()}`);
@@ -9412,11 +9401,11 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Condition/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Condition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting Condition/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -9771,7 +9760,7 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch patient: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch patient. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -9846,7 +9835,7 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update Patient/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Patient/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Patient/${id}: ${e.message()}`);
@@ -9872,7 +9861,7 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch Patient/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Patient/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Patient/${id}: ${e.message()}`);
@@ -10564,7 +10553,7 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
-                return r4:createFHIRError("Failed to fetch location: " + errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError("Failed to fetch location. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
         } on fail error e {
@@ -10638,7 +10627,7 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to update Location/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to update Location/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error updating Location/${id}: ${e.message()}`);
@@ -10664,7 +10653,7 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
-                return r4:createFHIRError(string `Failed to patch Location/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to patch Location/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error patching Location/${id}: ${e.message()}`);
@@ -10693,11 +10682,11 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Location/${id}: ${errorMsg}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                return r4:createFHIRError(string `Failed to delete Location/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
             log:printError(string `Error deleting Location/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
     }
 

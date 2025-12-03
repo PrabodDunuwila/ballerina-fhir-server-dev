@@ -24,7 +24,7 @@ This FHIR R4 server implements the HL7 FHIR (Fast Healthcare Interoperability Re
 
 ## Features
 
-- ✅ Full FHIR R4 resource support (145+ resource types)
+- ✅ Full FHIR R4 resource support (130+ resource types)
 - ✅ RESTful CRUD operations (Create, Read, Update, Patch, Delete)
 - ✅ Resource search with FHIR search parameters
 - ✅ Resource reference validation and management
@@ -34,12 +34,11 @@ This FHIR R4 server implements the HL7 FHIR (Fast Healthcare Interoperability Re
 ## Prerequisites
 
 - Ballerina Swan Lake 2201.12.3 or higher
-- H2 Database (or any JDBC-compatible database)
 - Java 17 or higher
 
 ## Configuration
 
-Configure the database connection in `Config.toml`:
+Configure the database connection in `Config.toml` for the in-memory database:
 
 ```toml
 [ballerina_fhir_server.handlers]
