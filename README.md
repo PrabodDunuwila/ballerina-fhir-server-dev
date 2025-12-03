@@ -15,6 +15,7 @@ A RESTful FHIR R4 server implementation built with Ballerina, supporting CRUD op
   - [Creating a Practitioner](#1-creating-a-practitioner)
   - [Creating a Patient](#2-creating-a-patient)
   - [Creating an Appointment](#3-creating-an-appointment)
+- [Testing](#testing)
 - [API Reference](#api-reference)
 - [Error Handling](#error-handling)
 
@@ -29,7 +30,6 @@ This FHIR R4 server implements the HL7 FHIR (Fast Healthcare Interoperability Re
 - ✅ Resource search with FHIR search parameters
 - ✅ Resource reference validation and management
 - ✅ Version history tracking (`_history` endpoint)
-- ✅ Transaction management with automatic rollback
 
 ## Prerequisites
 
@@ -937,6 +937,10 @@ The server uses the following core tables:
 - **Resource Tables**: One table per FHIR resource type (e.g., `PATIENT`, `PRACTITIONER`, `APPOINTMENT`)
 - **REFERENCES Table**: Tracks all resource references for validation and cascade operations
 - **History Tables**: Store version history for each resource
+
+## Testing
+
+For testing instructions and documentation, see `fhir-service/tests/README.md`.
 
 ## FHIR Specification
 

@@ -1,0 +1,8 @@
+# Test Configuration for FHIR Server
+# This configuration is used when running tests
+
+# Database Configuration
+[ballerinax.ballerina_fhir_server.handlers]
+dbUrl = "jdbc:h2:./tests/fhir-test-db"
+dbUser = "sa"
+dbPassword = ""

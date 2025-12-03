@@ -385,7 +385,12 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                 return appointment;
             } else {
                 string errorMsg = result.message();
-                log:printError("Database save failed: " + errorMsg);
+                log:printError("Read failed: " + errorMsg);
+
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Appointment/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
 
                 return r4:createFHIRError("Failed to fetch appointment. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
@@ -447,6 +452,11 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
 
+                // Check for missing required fields (KeyNotFound typically means missing 'id')
+                if errorMsg.includes("KeyNotFound") {
+                    return r4:createFHIRError("Required field missing in resource (resource must have an 'id' field)", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
                 // Otherwise it's a server/database error
                 return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
@@ -471,6 +481,11 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
             } else {
                 string errorMsg = result.message();
                 log:printError(string `Update failed: ${errorMsg}`);
+
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Appointment/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
 
                 // Check if error is related to invalid references (validation failure)
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
@@ -539,6 +554,11 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
+
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Appointment/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
 
                 return r4:createFHIRError(string `Failed to delete Appointment/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
@@ -2426,47 +2446,252 @@ service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medica
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:ReadHandler readHandler = new handlers:ReadHandler();
+            json|error result = readHandler.readResource(jdbcClient, "Medication", id);
+
+            if result is json {
+                log:printInfo(string `Successfully read Medication resource with id: ${id}`);
+                Medication medication = check fhirParser:parse(result).ensureType();
+                return medication;
+            } else {
+                string errorMsg = result.message();
+                log:printError(string `Failed to read Medication/${id}: ${errorMsg}`);
+                
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Medication/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+                
+                return r4:createFHIRError("Failed to fetch medication", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error reading Medication/${id}: ${e.message()}`, e);
+            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+            int versionId = check int:fromString(vid);
+            json|error result = historyHandler.getResourceVersion("Medication", id, versionId);
+
+            if result is json {
+                Medication medication = check fhirParser:parse(result).ensureType();
+                log:printInfo(string `Retrieved Medication/${id}/_history/${vid}`);
+                return medication;
+            } else {
+                string errorMsg = result.message();
+                log:printError(string `Failed to retrieve version: ${errorMsg}`);
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+            }
+        } on fail error e {
+            log:printError(string `Error retrieving Medication/${id}/_history/${vid}: ${e.message()}`);
+            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Search for resources based on a set of criteria.
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceSearch("Medication", fhirContext);
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Medication medication) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
+            string|error? result = createHandler.saveResourceWithTransaction("Medication", medication.toJson());
+
+            if result is string {
+                log:printInfo(string `Medication: POST - Execution Success!`);
+                return medication;
+            } else {
+                string errorMsg = "";
+                if result is error {
+                    errorMsg = result.message();
+                }
+                log:printError(string `Resource save failed: ${errorMsg}`);
+
+                if errorMsg.includes("already exists") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+                }
+
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error processing Medication: ${e.message()}`);
+            return r4:createFHIRError(string `Invalid Medication data: ${e.message()}`, r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Medication medication) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
+            string|error? result = updateHandler.updateResourceWithTransaction("Medication", id, medication.toJson());
+
+            if result is string {
+                log:printInfo(string `Medication: PUT - Execution Success!`);
+                return medication;
+            } else {
+                string errorMsg = "";
+                if result is error {
+                    errorMsg = result.message();
+                }
+                log:printError(string `Resource update failed: ${errorMsg}`);
+
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Medication/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error updating Medication: ${e.message()}`);
+            return r4:createFHIRError(string `Invalid Medication data: ${e.message()}`, r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
+            json|error result = updateHandler.patchResourceWithTransaction("Medication", id, patch);
+
+            if result is json {
+                log:printInfo(string `Medication: PATCH - Execution Success!`);
+                handlers:ReadHandler readHandler = new handlers:ReadHandler();
+                json|error updatedResource = readHandler.readResource(jdbcClient, "Medication", id);
+                
+                if updatedResource is json {
+                    Medication medication = check fhirParser:parse(updatedResource).ensureType();
+                    return medication;
+                } else {
+                    return r4:createFHIRError(string `Failed to read updated resource`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+                }
+            } else {
+                string errorMsg = "";
+                if result is error {
+                    errorMsg = result.message();
+                }
+                log:printError(string `Resource patch failed: ${errorMsg}`);
+
+                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error patching Medication: ${e.message()}`);
+            return r4:createFHIRError(string `Invalid Medication patch data: ${e.message()}`, r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
+            boolean|error result = deleteHandler.deleteResourceWithTransaction("Medication", id);
+
+            if result is boolean {
+                log:printInfo(string `Medication/${id} deleted successfully`);
+                return r4:createFHIRError(string `Medication/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
+            } else {
+                string errorMsg = "";
+                if result is error {
+                    errorMsg = result.message();
+                }
+                log:printError(string `Resource delete failed: ${errorMsg}`);
+
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Medication/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Medication/${id}: ${e.message()}`);
+            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+            log:printInfo(string `Retrieving history for Medication resource with id: ${id}`);
+            json[]|error result = historyHandler.getResourceHistory("Medication", id);
+
+            if result is json[] {
+                r4:BundleEntry[] entries = [];
+                foreach json res in result {
+                    r4:BundleEntry entry = {'resource: res};
+                    entries.push(entry);
+                }
+
+                r4:Bundle bundle = {
+                    resourceType: "Bundle",
+                    'type: "history",
+                    total: entries.length(),
+                    entry: entries
+                };
+
+                log:printInfo(string `Successfully retrieved ${entries.length()} history entries for Medication/${id}`);
+                return bundle;
+            } else {
+                log:printError(string `Error retrieving history for Medication/${id}: ${result.message()}`);
+                return r4:createFHIRError(string `Error retrieving history for Medication/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error in history endpoint for Medication/${id}: ${e.message()}`, e);
+            return r4:createFHIRError(string `Error retrieving history: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+            log:printInfo(string `Retrieving all history for Medication resources`);
+            json[]|error result = historyHandler.getAllHistory("Medication");
+
+            if result is json[] {
+                r4:BundleEntry[] entries = [];
+                foreach json res in result {
+                    r4:BundleEntry entry = {'resource: res};
+                    entries.push(entry);
+                }
+
+                r4:Bundle bundle = {
+                    resourceType: "Bundle",
+                    'type: "history",
+                    total: entries.length(),
+                    entry: entries
+                };
+
+                log:printInfo(string `Successfully retrieved ${entries.length()} total history entries for all Medication resources`);
+                return bundle;
+            } else {
+                log:printError(string `Error retrieving all Medication history: ${result.message()}`);
+                return r4:createFHIRError(string `Error retrieving all Medication history`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error in system-wide history endpoint for Medication: ${e.message()}`, e);
+            return r4:createFHIRError(string `Error retrieving history: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 }
 
@@ -3538,6 +3763,11 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Practitioner/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+
                 return r4:createFHIRError("Failed to fetch practitioner. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
@@ -3620,6 +3850,11 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
                 string errorMsg = result.message();
                 log:printError(string `Update failed: ${errorMsg}`);
 
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Practitioner/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
@@ -3663,22 +3898,18 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
         do {
             handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
             boolean|error result = deleteHandler.deleteResourceWithTransaction("Practitioner", id);
-
             if result is boolean && result {
-                log:printInfo(string `Practitioner: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `Practitioner/${id} deleted successfully`
-                        }
-                    ]
-                };
+                log:printInfo("Practitioner: DELETE - Execution Success!");
+                return r4:createFHIRError(string `Practitioner/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
             } else {
                 string errorMsg = result is error ? result.message() : "Unknown error";
                 log:printError(string `Delete failed: ${errorMsg}`);
+
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Practitioner/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+
                 return r4:createFHIRError(string `Failed to delete Practitioner/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
         } on fail error e {
@@ -3716,7 +3947,35 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+            json[]|error result = historyHandler.getAllHistory("Practitioner");
+
+            if result is json[] {
+                r4:BundleEntry[] entries = [];
+                foreach json res in result {
+                    r4:BundleEntry entry = {'resource: res};
+                    entries.push(entry);
+                }
+
+                r4:Bundle bundle = {
+                    resourceType: "Bundle",
+                    'type: "history",
+                    total: entries.length(),
+                    entry: entries
+                };
+
+                log:printInfo(string `Retrieved ${entries.length()} total Practitioner history entries`);
+                return bundle;
+            } else {
+                string errorMsg = result.message();
+                log:printError(string `Failed to retrieve all history: ${errorMsg}`);
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error retrieving Practitioner/_history: ${e.message()}`);
+            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 }
 
@@ -9760,6 +10019,11 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
                 string errorMsg = result.message();
                 log:printError("Database fetch failed: " + errorMsg);
 
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Patient/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+
                 return r4:createFHIRError("Failed to fetch patient. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
             }
 
@@ -9831,6 +10095,11 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
                 string errorMsg = result.message();
                 log:printError(string `Update failed: ${errorMsg}`);
 
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Patient/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+
                 if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
                     return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
@@ -9871,17 +10140,87 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
+            boolean|error result = deleteHandler.deleteResourceWithTransaction("Patient", id);
+            if result is boolean && result {
+                log:printInfo("Patient: DELETE - Execution Success!");
+                return r4:createFHIRError(string `Patient/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
+            } else {
+                string errorMsg = result is error ? result.message() : "Unknown error";
+                log:printError(string `Delete failed: ${errorMsg}`);
+
+                // Check if resource was not found
+                if errorMsg.includes("not found") {
+                    return r4:createFHIRError(string `Patient/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+                }
+
+                return r4:createFHIRError(string `Failed to delete Patient/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error deleting Patient/${id}: ${e.message()}`);
+            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+            json[]|error historyResult = historyHandler.getResourceHistory("Patient", id);
+            if historyResult is json[] {
+                r4:BundleEntry[] entries = [];
+                foreach json item in historyResult {
+                    r4:BundleEntry entry = {
+                        'resource: check item.cloneWithType()
+                    };
+                    entries.push(entry);
+                }
+                r4:Bundle bundle = {
+                    resourceType: "Bundle",
+                    'type: "history",
+                    entry: entries
+                };
+                return bundle;
+            } else {
+                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        do {
+            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+            json[]|error result = historyHandler.getAllHistory("Patient");
+
+            if result is json[] {
+                r4:BundleEntry[] entries = [];
+                foreach json res in result {
+                    r4:BundleEntry entry = {'resource: res};
+                    entries.push(entry);
+                }
+
+                r4:Bundle bundle = {
+                    resourceType: "Bundle",
+                    'type: "history",
+                    total: entries.length(),
+                    entry: entries
+                };
+
+                log:printInfo(string `Retrieved ${entries.length()} total Patient history entries`);
+                return bundle;
+            } else {
+                string errorMsg = result.message();
+                log:printError(string `Failed to retrieve all history: ${errorMsg}`);
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+            }
+        } on fail error e {
+            log:printError(string `Error retrieving Patient/_history: ${e.message()}`);
+            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
     }
 }
 
