@@ -470,6 +470,159 @@ isolated function performAllResourceHistory(string resourceType) returns r4:Bund
     }
 }
 
+// Utility function to handle resource read by ID operations
+isolated function performResourceRead(string resourceType, string id) returns any|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Read - Start Execution for ID: ${id}`);
+    do {
+        handlers:ReadHandler readHandler = new handlers:ReadHandler();
+        json|error result = readHandler.readResource(jdbcClient, resourceType, id);
+
+        if result is json {
+            log:printInfo(string `${resourceType}: READ - Execution Success!`);
+            any parsedResource = check fhirParser:parse(result).ensureType();
+            return parsedResource;
+        } else {
+            string errorMsg = result.message();
+            log:printError(string `Read failed: ${errorMsg}`);
+
+            // Check if resource was not found
+            if errorMsg.includes("not found") {
+                return r4:createFHIRError(string `${resourceType}/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+            }
+
+            return r4:createFHIRError(string `Failed to fetch ${resourceType}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+    } on fail error e {
+        log:printError(string `Error processing ${resourceType}: ${e.message()}`);
+        return r4:createFHIRError(string `Invalid ${resourceType} data`, r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+}
+
+// Utility function to handle resource version read by ID and version ID operations
+isolated function performResourceVersionRead(string resourceType, string id, string vid) returns any|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Version Read - Start Execution for ID: ${id}, Version: ${vid}`);
+    do {
+        handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+        int versionId = check int:fromString(vid);
+        json|error result = historyHandler.getResourceVersion(resourceType, id, versionId);
+
+        if result is json {
+            log:printInfo(string `${resourceType}: VERSION READ - Execution Success! Retrieved ${resourceType}/${id}/_history/${vid}`);
+            any parsedResource = check fhirParser:parse(result).ensureType();
+            return parsedResource;
+        } else {
+            string errorMsg = result.message();
+            log:printError(string `Failed to retrieve version: ${errorMsg}`);
+            return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+        }
+    } on fail error e {
+        log:printError(string `Error retrieving ${resourceType}/${id}/_history/${vid}: ${e.message()}`);
+        return r4:createFHIRError("Error retrieving history", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+}
+
+// Utility function to handle resource creation operations
+isolated function performResourceCreate(string resourceType, json resourceJson) returns any|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Create - Start Execution`);
+    do {
+        handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
+        string|error? result = createHandler.saveResourceWithTransaction(resourceType, resourceJson);
+
+        if result is string {
+            log:printInfo(string `${resourceType}: POST - Execution Success!`);
+            any parsedResource = check fhirParser:parse(resourceJson).ensureType();
+            return parsedResource;
+        } else {
+            string errorMsg = result is error ? result.message() : "Unknown error";
+            log:printError(string `Resource save failed: ${errorMsg}`);
+
+            // Check if resource already exists (duplicate ID)
+            if errorMsg.includes("already exists") {
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
+            }
+
+            // Check if error is related to invalid references (validation failure)
+            if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+            }
+
+            // Check for missing required fields (KeyNotFound typically means missing 'id')
+            if errorMsg.includes("KeyNotFound") {
+                return r4:createFHIRError("Required field missing in resource (resource must have an 'id' field)", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+            }
+
+            // Otherwise it's a server/database error
+            return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+    } on fail error e {
+        log:printError(string `Error processing ${resourceType}: ${e.message()}`);
+        return r4:createFHIRError(string `Invalid ${resourceType} data: ${e.message()}`, r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+}
+
+// Utility function to handle resource update operations
+isolated function performResourceUpdate(string resourceType, string id, json resourceJson) returns any|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Update - Start Execution for ID: ${id}`);
+    do {
+        handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
+        string|error result = updateHandler.updateResourceWithTransaction(resourceType, id, resourceJson);
+
+        if result is string {
+            log:printInfo(string `${resourceType}: PUT - Execution Success!`);
+            any parsedResource = check fhirParser:parse(resourceJson).ensureType();
+            return parsedResource;
+        } else {
+            string errorMsg = result.message();
+            log:printError(string `Update failed: ${errorMsg}`);
+
+            // Check if resource was not found
+            if errorMsg.includes("not found") {
+                return r4:createFHIRError(string `${resourceType}/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+            }
+
+            // Check if error is related to invalid references (validation failure)
+            if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+            }
+
+            // Otherwise it's a server/database error
+            return r4:createFHIRError(string `Failed to update ${resourceType}/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+    } on fail error e {
+        log:printError(string `Error updating ${resourceType}/${id}: ${e.message()}`);
+        return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+}
+
+// Utility function to handle resource patch operations
+isolated function performResourcePatch(string resourceType, string id, json patch) returns any|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Patch - Start Execution for ID: ${id}`);
+    do {
+        handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
+        json|error result = updateHandler.patchResourceWithTransaction(resourceType, id, patch);
+
+        if result is json {
+            log:printInfo(string `${resourceType}: PATCH - Execution Success!`);
+            any parsedResource = check fhirParser:parse(result).ensureType();
+            return parsedResource;
+        } else {
+            string errorMsg = result.message();
+            log:printError(string `Patch failed: ${errorMsg}`);
+
+            // Check if error is related to invalid references (validation failure)
+            if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
+                return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+            }
+
+            // Otherwise it's a server/database error
+            return r4:createFHIRError(string `Failed to patch ${resourceType}/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+    } on fail error e {
+        log:printError(string `Error patching ${resourceType}/${id}: ${e.message()}`);
+        return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+}
+
 // // # Appointment API                                                                                                          #
 // 
 service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appointmentApiConfig) {
@@ -480,161 +633,47 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Appointment|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Appointment", id);
-
-            if result is json {
-                log:printInfo("Appointment: READ - Execution Success!");
-                international401:Appointment appointment = check fhirParser:parse(result).ensureType();
-                return appointment;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Read failed: " + errorMsg);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Appointment/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                return r4:createFHIRError("Failed to fetch appointment. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing appointment: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid appointment data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Appointment", id);
+        if result is any {
+            return <Appointment>result;
         }
-        
-        // return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Appointment|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionId = check int:fromString(vid);
-            json|error result = historyHandler.getResourceVersion("Appointment", id, versionId);
-
-            if result is json {
-                Appointment appointment = check fhirParser:parse(result).ensureType();
-                log:printInfo(string `Retrieved Appointment/${id}/_history/${vid}`);
-                return appointment;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Failed to retrieve version: ${errorMsg}`);
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            log:printError(string `Error retrieving Appointment/${id}/_history/${vid}: ${e.message()}`);
-            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Appointment", id, vid);
+        if result is any {
+            return <Appointment>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Appointment appointment) returns Appointment|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Appointment", appointment.toJson());
-
-            if result is string {
-                log:printInfo("Appointment: POST - Execution Success!");
-                return appointment;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Check for missing required fields (KeyNotFound typically means missing 'id')
-                if errorMsg.includes("KeyNotFound") {
-                    return r4:createFHIRError("Required field missing in resource (resource must have an 'id' field)", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing appointment: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid appointment data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Appointment", appointment.toJson());
+        if result is any {
+            return <Appointment>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Appointment appointment) returns Appointment|r4:OperationOutcome|r4:FHIRError {
-
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Appointment", id, appointment.toJson());
-
-            if result is string {
-                log:printInfo("Appointment: PUT - Execution Success!");
-                return appointment;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Appointment/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(string `Failed to update Appointment/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError(string `Error updating Appointment/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Appointment", id, appointment.toJson());
+        if result is any {
+            return <Appointment>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Appointment|r4:OperationOutcome|r4:FHIRError {
-
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Appointment", id, patch);
-
-            if result is json {
-                log:printInfo("Appointment: PATCH - Execution Success!");
-                Appointment appointment = check fhirParser:parse(result).ensureType();
-                return appointment;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(string `Failed to patch Appointment/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError(string `Error patching Appointment/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Appointment", id, patch);
+        if result is any {
+            return <Appointment>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -663,91 +702,38 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Account|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Account", id);
-
-            if result is json {
-                Account account = check fhirParser:parse(result).ensureType();
-                log:printInfo("Account: GET - Execution Success!");
-                return account;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read Account/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing account: " + e.message());
-            return r4:createFHIRError(
-                    "Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Account", id);
+        if result is any {
+            return <Account>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Account|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Account", id, versionIdInt);
-            if versionResult is json {
-                Account account = check fhirParser:parse(versionResult).ensureType();
-                return account;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Account", id, vid);
+        if result is any {
+            return <Account>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Account account) returns Account|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Account", account.toJson());
-
-            if result is string {
-                log:printInfo("Account: POST - Execution Success!");
-                return account;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError("Create failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create Account`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing account: " + e.message());
-            return r4:createFHIRError(
-                    "Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Account", account.toJson());
+        if result is any {
+            return <Account>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Account account) returns Account|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Account", id, account.toJson());
-
-            if result is string {
-                log:printInfo("Account: PUT - Execution Success!");
-                return account;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Update failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update Account/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError(string `Error updating Account/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Account", id, account.toJson());
+        if result is any {
+            return <Account>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -801,83 +787,38 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Invoice|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Invoice", id);
-            if result is json {
-                Invoice invoice = check fhirParser:parse(result).ensureType();
-                log:printInfo("Invoice: GET - Execution Success!");
-                return invoice;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read Invoice/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError("Error processing invoice: " + e.message());
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Invoice", id);
+        if result is any {
+            return <Invoice>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Invoice|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Invoice", id, versionIdInt);
-            if versionResult is json {
-                Invoice invoice = check fhirParser:parse(versionResult).ensureType();
-                return invoice;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Invoice", id, vid);
+        if result is any {
+            return <Invoice>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Invoice invoice) returns Invoice|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Invoice", invoice.toJson());
-            if result is string {
-                log:printInfo("Invoice: POST - Execution Success!");
-                return invoice;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError("Create failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create Invoice`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError("Error processing invoice: " + e.message());
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Invoice", invoice.toJson());
+        if result is any {
+            return <Invoice>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Invoice invoice) returns Invoice|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Invoice", id, invoice.toJson());
-            if result is string {
-                log:printInfo("Invoice: PUT - Execution Success!");
-                return invoice;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Update failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update Invoice/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Invoice/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Invoice", id, invoice.toJson());
+        if result is any {
+            return <Invoice>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -929,83 +870,38 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CatalogEntry|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "CatalogEntry", id);
-            if result is json {
-                CatalogEntry catalogentry = check fhirParser:parse(result).ensureType();
-                log:printInfo("CatalogEntry: GET - Execution Success!");
-                return catalogentry;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read CatalogEntry/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError("Error processing catalogentry: " + e.message());
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("CatalogEntry", id);
+        if result is any {
+            return <CatalogEntry>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CatalogEntry|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("CatalogEntry", id, versionIdInt);
-            if versionResult is json {
-                CatalogEntry catalogentry = check fhirParser:parse(versionResult).ensureType();
-                return catalogentry;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CatalogEntry", id, vid);
+        if result is any {
+            return <CatalogEntry>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CatalogEntry catalogentry) returns CatalogEntry|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("CatalogEntry", catalogentry.toJson());
-            if result is string {
-                log:printInfo("CatalogEntry: POST - Execution Success!");
-                return catalogentry;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError("Create failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create CatalogEntry`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError("Error processing catalogentry: " + e.message());
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("CatalogEntry", catalogentry.toJson());
+        if result is any {
+            return <CatalogEntry>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CatalogEntry catalogentry) returns CatalogEntry|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("CatalogEntry", id, catalogentry.toJson());
-            if result is string {
-                log:printInfo("CatalogEntry: PUT - Execution Success!");
-                return catalogentry;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Update failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update CatalogEntry/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating CatalogEntry/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("CatalogEntry", id, catalogentry.toJson());
+        if result is any {
+            return <CatalogEntry>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -1057,83 +953,38 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EventDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "EventDefinition", id);
-            if result is json {
-                EventDefinition eventdefinition = check fhirParser:parse(result).ensureType();
-                log:printInfo("EventDefinition: GET - Execution Success!");
-                return eventdefinition;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read EventDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError("Error processing eventdefinition: " + e.message());
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("EventDefinition", id);
+        if result is any {
+            return <EventDefinition>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns EventDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("EventDefinition", id, versionIdInt);
-            if versionResult is json {
-                EventDefinition eventdefinition = check fhirParser:parse(versionResult).ensureType();
-                return eventdefinition;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("EventDefinition", id, vid);
+        if result is any {
+            return <EventDefinition>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EventDefinition eventdefinition) returns EventDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("EventDefinition", eventdefinition.toJson());
-            if result is string {
-                log:printInfo("EventDefinition: POST - Execution Success!");
-                return eventdefinition;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError("Create failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create EventDefinition`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError("Error processing eventdefinition: " + e.message());
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("EventDefinition", eventdefinition.toJson());
+        if result is any {
+            return <EventDefinition>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, EventDefinition eventdefinition) returns EventDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("EventDefinition", id, eventdefinition.toJson());
-            if result is string {
-                log:printInfo("EventDefinition: PUT - Execution Success!");
-                return eventdefinition;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Update failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update EventDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating EventDefinition/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("EventDefinition", id, eventdefinition.toJson());
+        if result is any {
+            return <EventDefinition>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -1185,83 +1036,38 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DocumentManifest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "DocumentManifest", id);
-            if result is json {
-                DocumentManifest documentmanifest = check fhirParser:parse(result).ensureType();
-                log:printInfo("DocumentManifest: GET - Execution Success!");
-                return documentmanifest;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read DocumentManifest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError("Error processing documentmanifest: " + e.message());
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("DocumentManifest", id);
+        if result is any {
+            return <DocumentManifest>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns DocumentManifest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("DocumentManifest", id, versionIdInt);
-            if versionResult is json {
-                DocumentManifest documentmanifest = check fhirParser:parse(versionResult).ensureType();
-                return documentmanifest;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("DocumentManifest", id, vid);
+        if result is any {
+            return <DocumentManifest>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DocumentManifest documentmanifest) returns DocumentManifest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("DocumentManifest", documentmanifest.toJson());
-            if result is string {
-                log:printInfo("DocumentManifest: POST - Execution Success!");
-                return documentmanifest;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError("Create failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create DocumentManifest`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError("Error processing documentmanifest: " + e.message());
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("DocumentManifest", documentmanifest.toJson());
+        if result is any {
+            return <DocumentManifest>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DocumentManifest documentmanifest) returns DocumentManifest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("DocumentManifest", id, documentmanifest.toJson());
-            if result is string {
-                log:printInfo("DocumentManifest: PUT - Execution Success!");
-                return documentmanifest;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Update failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update DocumentManifest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating DocumentManifest/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("DocumentManifest", id, documentmanifest.toJson());
+        if result is any {
+            return <DocumentManifest>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -1311,75 +1117,35 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
     }
 
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "MessageDefinition", id);
-            if result is json {
-                MessageDefinition messagedefinition = check fhirParser:parse(result).ensureType();
-                log:printInfo("MessageDefinition: GET - Execution Success!");
-                return messagedefinition;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Read failed: " + errorMsg);
-                return r4:createFHIRError(string `Failed to read MessageDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MessageDefinition", id);
+        if result is any {
+            return <MessageDefinition>result;
         }
+        return result;
     }
 
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("MessageDefinition", id, versionIdInt);
-            if versionResult is json {
-                MessageDefinition messagedefinition = check fhirParser:parse(versionResult).ensureType();
-                return messagedefinition;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MessageDefinition", id, vid);
+        if result is any {
+            return <MessageDefinition>result;
         }
+        return result;
     }
 
     isolated resource function post .(r4:FHIRContext fhirContext, MessageDefinition messagedefinition) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("MessageDefinition", messagedefinition.toJson());
-            if result is string {
-                log:printInfo("MessageDefinition: POST - Execution Success!");
-                return messagedefinition;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create MessageDefinition`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MessageDefinition", messagedefinition.toJson());
+        if result is any {
+            return <MessageDefinition>result;
         }
+        return result;
     }
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, MessageDefinition messagedefinition) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("MessageDefinition", id, messagedefinition.toJson());
-            if result is string {
-                log:printInfo("MessageDefinition: PUT - Execution Success!");
-                return messagedefinition;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update MessageDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MessageDefinition", id, messagedefinition.toJson());
+        if result is any {
+            return <MessageDefinition>result;
         }
+        return result;
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -1425,73 +1191,35 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
     }
 
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Goal|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Goal", id);
-            if result is json {
-                Goal goal = check fhirParser:parse(result).ensureType();
-                log:printInfo("Goal: GET - Execution Success!");
-                return goal;
-            } else {
-                return r4:createFHIRError(string `Failed to read Goal/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Goal", id);
+        if result is any {
+            return <Goal>result;
         }
+        return result;
     }
 
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Goal|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Goal", id, versionIdInt);
-            if versionResult is json {
-                Goal goal = check fhirParser:parse(versionResult).ensureType();
-                return goal;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Goal", id, vid);
+        if result is any {
+            return <Goal>result;
         }
+        return result;
     }
 
     isolated resource function post .(r4:FHIRContext fhirContext, Goal goal) returns Goal|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Goal", goal.toJson());
-            if result is string {
-                log:printInfo("Goal: POST - Execution Success!");
-                return goal;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create Goal`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Goal", goal.toJson());
+        if result is any {
+            return <Goal>result;
         }
+        return result;
     }
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, Goal goal) returns Goal|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Goal", id, goal.toJson());
-            if result is string {
-                log:printInfo("Goal: PUT - Execution Success!");
-                return goal;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update Goal/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Goal", id, goal.toJson());
+        if result is any {
+            return <Goal>result;
         }
+        return result;
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Goal|r4:OperationOutcome|r4:FHIRError {
@@ -1537,73 +1265,35 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
     }
 
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "MedicinalProductPackaged", id);
-            if result is json {
-                MedicinalProductPackaged medicinalproductpackaged = check fhirParser:parse(result).ensureType();
-                log:printInfo("MedicinalProductPackaged: GET - Execution Success!");
-                return medicinalproductpackaged;
-            } else {
-                return r4:createFHIRError(string `Failed to read MedicinalProductPackaged/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductPackaged", id);
+        if result is any {
+            return <MedicinalProductPackaged>result;
         }
+        return result;
     }
 
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("MedicinalProductPackaged", id, versionIdInt);
-            if versionResult is json {
-                MedicinalProductPackaged medicinalproductpackaged = check fhirParser:parse(versionResult).ensureType();
-                return medicinalproductpackaged;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductPackaged", id, vid);
+        if result is any {
+            return <MedicinalProductPackaged>result;
         }
+        return result;
     }
 
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductPackaged medicinalproductpackaged) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("MedicinalProductPackaged", medicinalproductpackaged.toJson());
-            if result is string {
-                log:printInfo("MedicinalProductPackaged: POST - Execution Success!");
-                return medicinalproductpackaged;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create MedicinalProductPackaged`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductPackaged", medicinalproductpackaged.toJson());
+        if result is any {
+            return <MedicinalProductPackaged>result;
         }
+        return result;
     }
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductPackaged medicinalproductpackaged) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("MedicinalProductPackaged", id, medicinalproductpackaged.toJson());
-            if result is string {
-                log:printInfo("MedicinalProductPackaged: PUT - Execution Success!");
-                return medicinalproductpackaged;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update MedicinalProductPackaged/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductPackaged", id, medicinalproductpackaged.toJson());
+        if result is any {
+            return <MedicinalProductPackaged>result;
         }
+        return result;
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
@@ -1649,73 +1339,35 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
     }
 
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Endpoint", id);
-            if result is json {
-                Endpoint endpoint = check fhirParser:parse(result).ensureType();
-                log:printInfo("Endpoint: GET - Execution Success!");
-                return endpoint;
-            } else {
-                return r4:createFHIRError(string `Failed to read Endpoint/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Endpoint", id);
+        if result is any {
+            return <Endpoint>result;
         }
+        return result;
     }
 
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Endpoint", id, versionIdInt);
-            if versionResult is json {
-                Endpoint endpoint = check fhirParser:parse(versionResult).ensureType();
-                return endpoint;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Endpoint", id, vid);
+        if result is any {
+            return <Endpoint>result;
         }
+        return result;
     }
 
     isolated resource function post .(r4:FHIRContext fhirContext, Endpoint endpoint) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Endpoint", endpoint.toJson());
-            if result is string {
-                log:printInfo("Endpoint: POST - Execution Success!");
-                return endpoint;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create Endpoint`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Endpoint", endpoint.toJson());
+        if result is any {
+            return <Endpoint>result;
         }
+        return result;
     }
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, Endpoint endpoint) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Endpoint", id, endpoint.toJson());
-            if result is string {
-                log:printInfo("Endpoint: PUT - Execution Success!");
-                return endpoint;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update Endpoint/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Endpoint", id, endpoint.toJson());
+        if result is any {
+            return <Endpoint>result;
         }
+        return result;
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
@@ -1761,73 +1413,35 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
     }
 
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "EnrollmentRequest", id);
-            if result is json {
-                EnrollmentRequest enrollmentrequest = check fhirParser:parse(result).ensureType();
-                log:printInfo("EnrollmentRequest: GET - Execution Success!");
-                return enrollmentrequest;
-            } else {
-                return r4:createFHIRError(string `Failed to read EnrollmentRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("EnrollmentRequest", id);
+        if result is any {
+            return <EnrollmentRequest>result;
         }
+        return result;
     }
 
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("EnrollmentRequest", id, versionIdInt);
-            if versionResult is json {
-                EnrollmentRequest enrollmentrequest = check fhirParser:parse(versionResult).ensureType();
-                return enrollmentrequest;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("EnrollmentRequest", id, vid);
+        if result is any {
+            return <EnrollmentRequest>result;
         }
+        return result;
     }
 
     isolated resource function post .(r4:FHIRContext fhirContext, EnrollmentRequest enrollmentrequest) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("EnrollmentRequest", enrollmentrequest.toJson());
-            if result is string {
-                log:printInfo("EnrollmentRequest: POST - Execution Success!");
-                return enrollmentrequest;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create EnrollmentRequest`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("EnrollmentRequest", enrollmentrequest.toJson());
+        if result is any {
+            return <EnrollmentRequest>result;
         }
+        return result;
     }
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, EnrollmentRequest enrollmentrequest) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("EnrollmentRequest", id, enrollmentrequest.toJson());
-            if result is string {
-                log:printInfo("EnrollmentRequest: PUT - Execution Success!");
-                return enrollmentrequest;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update EnrollmentRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("EnrollmentRequest", id, enrollmentrequest.toJson());
+        if result is any {
+            return <EnrollmentRequest>result;
         }
+        return result;
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
@@ -1873,73 +1487,35 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
     }
 
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Consent|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Consent", id);
-            if result is json {
-                Consent consent = check fhirParser:parse(result).ensureType();
-                log:printInfo("Consent: GET - Execution Success!");
-                return consent;
-            } else {
-                return r4:createFHIRError(string `Failed to read Consent/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Read operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Consent", id);
+        if result is any {
+            return <Consent>result;
         }
+        return result;
     }
 
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Consent|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Consent", id, versionIdInt);
-            if versionResult is json {
-                Consent consent = check fhirParser:parse(versionResult).ensureType();
-                return consent;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Consent", id, vid);
+        if result is any {
+            return <Consent>result;
         }
+        return result;
     }
 
     isolated resource function post .(r4:FHIRContext fhirContext, Consent consent) returns Consent|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Consent", consent.toJson());
-            if result is string {
-                log:printInfo("Consent: POST - Execution Success!");
-                return consent;
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to create Consent`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Create operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Consent", consent.toJson());
+        if result is any {
+            return <Consent>result;
         }
+        return result;
     }
 
     isolated resource function put [string id](r4:FHIRContext fhirContext, Consent consent) returns Consent|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Consent", id, consent.toJson());
-            if result is string {
-                log:printInfo("Consent: PUT - Execution Success!");
-                return consent;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to update Consent/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Consent", id, consent.toJson());
+        if result is any {
+            return <Consent>result;
         }
+        return result;
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Consent|r4:OperationOutcome|r4:FHIRError {
@@ -1988,22 +1564,38 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("CapabilityStatement", id);
+        if result is any {
+            return <CapabilityStatement>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CapabilityStatement", id, vid);
+        if result is any {
+            return <CapabilityStatement>result;
+        }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CapabilityStatement capabilitystatement) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("CapabilityStatement", capabilitystatement.toJson());
+        if result is any {
+            return <CapabilityStatement>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CapabilityStatement capabilitystatement) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("CapabilityStatement", id, capabilitystatement.toJson());
+        if result is any {
+            return <CapabilityStatement>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2038,22 +1630,38 @@ service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureAp
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Measure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Measure", id);
+        if result is any {
+            return <Measure>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Measure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Measure", id, vid);
+        if result is any {
+            return <Measure>result;
+        }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Measure measure) returns Measure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Measure", measure.toJson());
+        if result is any {
+            return <Measure>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Measure measure) returns Measure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Measure", id, measure.toJson());
+        if result is any {
+            return <Measure>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2087,116 +1695,38 @@ service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medica
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Medication", id);
-
-            if result is json {
-                log:printInfo(string `Successfully read Medication resource with id: ${id}`);
-                Medication medication = check fhirParser:parse(result).ensureType();
-                return medication;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Failed to read Medication/${id}: ${errorMsg}`);
-                
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Medication/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-                
-                return r4:createFHIRError("Failed to fetch medication", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error reading Medication/${id}: ${e.message()}`, e);
-            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Medication", id);
+        if result is any {
+            return <Medication>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionId = check int:fromString(vid);
-            json|error result = historyHandler.getResourceVersion("Medication", id, versionId);
-
-            if result is json {
-                Medication medication = check fhirParser:parse(result).ensureType();
-                log:printInfo(string `Retrieved Medication/${id}/_history/${vid}`);
-                return medication;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Failed to retrieve version: ${errorMsg}`);
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            log:printError(string `Error retrieving Medication/${id}/_history/${vid}: ${e.message()}`);
-            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Medication", id, vid);
+        if result is any {
+            return <Medication>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Medication medication) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Medication", medication.toJson());
-
-            if result is string {
-                log:printInfo(string `Medication: POST - Execution Success!`);
-                return medication;
-            } else {
-                string errorMsg = "";
-                if result is error {
-                    errorMsg = result.message();
-                }
-                log:printError(string `Resource save failed: ${errorMsg}`);
-
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error processing Medication: ${e.message()}`);
-            return r4:createFHIRError(string `Invalid Medication data: ${e.message()}`, r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Medication", medication.toJson());
+        if result is any {
+            return <Medication>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Medication medication) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error? result = updateHandler.updateResourceWithTransaction("Medication", id, medication.toJson());
-
-            if result is string {
-                log:printInfo(string `Medication: PUT - Execution Success!`);
-                return medication;
-            } else {
-                string errorMsg = "";
-                if result is error {
-                    errorMsg = result.message();
-                }
-                log:printError(string `Resource update failed: ${errorMsg}`);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Medication/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Medication: ${e.message()}`);
-            return r4:createFHIRError(string `Invalid Medication data: ${e.message()}`, r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Medication", id, medication.toJson());
+        if result is any {
+            return <Medication>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2261,23 +1791,39 @@ service /fhir/r4/ResearchSubject on new fhirr4:Listener(config = r4_api_config:r
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ResearchSubject|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ResearchSubject", id);
+        if result is any {
+            return <ResearchSubject>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ResearchSubject|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ResearchSubject", id, vid);
+        if result is any {
+            return <ResearchSubject>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ResearchSubject researchsubject) returns ResearchSubject|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ResearchSubject", researchsubject.toJson());
+        if result is any {
+            return <ResearchSubject>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ResearchSubject researchsubject) returns ResearchSubject|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ResearchSubject", id, researchsubject.toJson());
+        if result is any {
+            return <ResearchSubject>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2311,23 +1857,39 @@ service /fhir/r4/Subscription on new fhirr4:Listener(config = r4_api_config:subs
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Subscription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Subscription", id);
+        if result is any {
+            return <Subscription>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Subscription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Subscription", id, vid);
+        if result is any {
+            return <Subscription>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Subscription subscription) returns Subscription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Subscription", subscription.toJson());
+        if result is any {
+            return <Subscription>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Subscription subscription) returns Subscription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Subscription", id, subscription.toJson());
+        if result is any {
+            return <Subscription>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2361,23 +1923,39 @@ service /fhir/r4/GraphDefinition on new fhirr4:Listener(config = r4_api_config:g
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns GraphDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("GraphDefinition", id);
+        if result is any {
+            return <GraphDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns GraphDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("GraphDefinition", id, vid);
+        if result is any {
+            return <GraphDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, GraphDefinition graphdefinition) returns GraphDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("GraphDefinition", graphdefinition.toJson());
+        if result is any {
+            return <GraphDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, GraphDefinition graphdefinition) returns GraphDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("GraphDefinition", id, graphdefinition.toJson());
+        if result is any {
+            return <GraphDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2411,23 +1989,39 @@ service /fhir/r4/DocumentReference on new fhirr4:Listener(config = r4_api_config
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DocumentReference|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("DocumentReference", id);
+        if result is any {
+            return <DocumentReference>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns DocumentReference|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("DocumentReference", id, vid);
+        if result is any {
+            return <DocumentReference>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DocumentReference documentreference) returns DocumentReference|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("DocumentReference", documentreference.toJson());
+        if result is any {
+            return <DocumentReference>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DocumentReference documentreference) returns DocumentReference|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("DocumentReference", id, documentreference.toJson());
+        if result is any {
+            return <DocumentReference>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2461,23 +2055,39 @@ service /fhir/r4/Parameters on new fhirr4:Listener(config = r4_api_config:parame
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Parameters|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Parameters", id);
+        if result is any {
+            return <Parameters>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Parameters|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Parameters", id, vid);
+        if result is any {
+            return <Parameters>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Parameters parameters) returns Parameters|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Parameters", parameters.toJson());
+        if result is any {
+            return <Parameters>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Parameters parameters) returns Parameters|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Parameters", id, parameters.toJson());
+        if result is any {
+            return <Parameters>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2511,23 +2121,39 @@ service /fhir/r4/CoverageEligibilityResponse on new fhirr4:Listener(config = r4_
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CoverageEligibilityResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("CoverageEligibilityResponse", id);
+        if result is any {
+            return <CoverageEligibilityResponse>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CoverageEligibilityResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CoverageEligibilityResponse", id, vid);
+        if result is any {
+            return <CoverageEligibilityResponse>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CoverageEligibilityResponse coverageeligibilityresponse) returns CoverageEligibilityResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("CoverageEligibilityResponse", coverageeligibilityresponse.toJson());
+        if result is any {
+            return <CoverageEligibilityResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CoverageEligibilityResponse coverageeligibilityresponse) returns CoverageEligibilityResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("CoverageEligibilityResponse", id, coverageeligibilityresponse.toJson());
+        if result is any {
+            return <CoverageEligibilityResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2561,23 +2187,39 @@ service /fhir/r4/MeasureReport on new fhirr4:Listener(config = r4_api_config:mea
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MeasureReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MeasureReport", id);
+        if result is any {
+            return <MeasureReport>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MeasureReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MeasureReport", id, vid);
+        if result is any {
+            return <MeasureReport>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MeasureReport measurereport) returns MeasureReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MeasureReport", measurereport.toJson());
+        if result is any {
+            return <MeasureReport>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MeasureReport measurereport) returns MeasureReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MeasureReport", id, measurereport.toJson());
+        if result is any {
+            return <MeasureReport>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2611,23 +2253,39 @@ service /fhir/r4/SubstanceReferenceInformation on new fhirr4:Listener(config = r
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceReferenceInformation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SubstanceReferenceInformation", id);
+        if result is any {
+            return <SubstanceReferenceInformation>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SubstanceReferenceInformation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SubstanceReferenceInformation", id, vid);
+        if result is any {
+            return <SubstanceReferenceInformation>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceReferenceInformation substancereferenceinformation) returns SubstanceReferenceInformation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SubstanceReferenceInformation", substancereferenceinformation.toJson());
+        if result is any {
+            return <SubstanceReferenceInformation>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SubstanceReferenceInformation substancereferenceinformation) returns SubstanceReferenceInformation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SubstanceReferenceInformation", id, substancereferenceinformation.toJson());
+        if result is any {
+            return <SubstanceReferenceInformation>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2661,105 +2319,38 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "PractitionerRole", id);
-
-            if result is json {
-                log:printInfo("PractitionerRole: READ - Execution Success!");
-                international401:PractitionerRole practitionerRole = check fhirParser:parse(result).ensureType();
-                return practitionerRole;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch practitioner role. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing practitioner role: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid practitioner role data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("PractitionerRole", id);
+        if result is any {
+            return <PractitionerRole>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("PractitionerRole", id, versionIdInt);
-            if versionResult is json {
-                PractitionerRole practitionerrole = check fhirParser:parse(versionResult).ensureType();
-                return practitionerrole;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("PractitionerRole", id, vid);
+        if result is any {
+            return <PractitionerRole>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PractitionerRole practitionerrole) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("PractitionerRole", practitionerrole.toJson());
-
-            if result is string {
-                log:printInfo("PractitionerRole: POST - Execution Success!");
-                return practitionerrole;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing practitioner role: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid practitioner role data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("PractitionerRole", practitionerrole.toJson());
+        if result is any {
+            return <PractitionerRole>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, PractitionerRole practitionerrole) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("PractitionerRole", id, practitionerrole.toJson());
-
-            if result is string {
-                log:printInfo("PractitionerRole: PUT - Execution Success!");
-                return practitionerrole;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update PractitionerRole/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating PractitionerRole/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("PractitionerRole", id, practitionerrole.toJson());
+        if result is any {
+            return <PractitionerRole>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2814,105 +2405,38 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "RelatedPerson", id);
-
-            if result is json {
-                log:printInfo("RelatedPerson: READ - Execution Success!");
-                international401:RelatedPerson relatedPerson = check fhirParser:parse(result).ensureType();
-                return relatedPerson;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch related person. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing related person: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid related person data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("RelatedPerson", id);
+        if result is any {
+            return <RelatedPerson>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("RelatedPerson", id, versionIdInt);
-            if versionResult is json {
-                RelatedPerson relatedperson = check fhirParser:parse(versionResult).ensureType();
-                return relatedperson;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("RelatedPerson", id, vid);
+        if result is any {
+            return <RelatedPerson>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RelatedPerson relatedperson) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("RelatedPerson", relatedperson.toJson());
-
-            if result is string {
-                log:printInfo("RelatedPerson: POST - Execution Success!");
-                return relatedperson;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing related person: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid related person data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("RelatedPerson", relatedperson.toJson());
+        if result is any {
+            return <RelatedPerson>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, RelatedPerson relatedperson) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("RelatedPerson", id, relatedperson.toJson());
-
-            if result is string {
-                log:printInfo("RelatedPerson: PUT - Execution Success!");
-                return relatedperson;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update RelatedPerson/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating RelatedPerson/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("RelatedPerson", id, relatedperson.toJson());
+        if result is any {
+            return <RelatedPerson>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -2967,105 +2491,38 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "ServiceRequest", id);
-
-            if result is json {
-                log:printInfo("ServiceRequest: READ - Execution Success!");
-                international401:ServiceRequest serviceRequest = check fhirParser:parse(result).ensureType();
-                return serviceRequest;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch service request. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing service request: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid service request data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ServiceRequest", id);
+        if result is any {
+            return <ServiceRequest>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("ServiceRequest", id, versionIdInt);
-            if versionResult is json {
-                ServiceRequest servicerequest = check fhirParser:parse(versionResult).ensureType();
-                return servicerequest;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ServiceRequest", id, vid);
+        if result is any {
+            return <ServiceRequest>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ServiceRequest servicerequest) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("ServiceRequest", servicerequest.toJson());
-
-            if result is string {
-                log:printInfo("ServiceRequest: POST - Execution Success!");
-                return servicerequest;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing service request: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid service request data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ServiceRequest", servicerequest.toJson());
+        if result is any {
+            return <ServiceRequest>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ServiceRequest servicerequest) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("ServiceRequest", id, servicerequest.toJson());
-
-            if result is string {
-                log:printInfo("ServiceRequest: PUT - Execution Success!");
-                return servicerequest;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update ServiceRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating ServiceRequest/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ServiceRequest", id, servicerequest.toJson());
+        if result is any {
+            return <ServiceRequest>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3120,23 +2577,39 @@ service /fhir/r4/SupplyRequest on new fhirr4:Listener(config = r4_api_config:sup
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SupplyRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SupplyRequest", id);
+        if result is any {
+            return <SupplyRequest>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SupplyRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SupplyRequest", id, vid);
+        if result is any {
+            return <SupplyRequest>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SupplyRequest supplyrequest) returns SupplyRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SupplyRequest", supplyrequest.toJson());
+        if result is any {
+            return <SupplyRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SupplyRequest supplyrequest) returns SupplyRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SupplyRequest", id, supplyrequest.toJson());
+        if result is any {
+            return <SupplyRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3170,115 +2643,38 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Practitioner", id);
-
-            if result is json {
-                log:printInfo("Practitioner: READ - Execution Success!");
-                international401:Practitioner practitioner = check fhirParser:parse(result).ensureType();
-                return practitioner;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Practitioner/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                return r4:createFHIRError("Failed to fetch practitioner. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing practitioner: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid practitioner data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Practitioner", id);
+        if result is any {
+            return <Practitioner>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Practitioner", id, versionIdInt);
-            if versionResult is json {
-                Practitioner practitioner = check fhirParser:parse(versionResult).ensureType();
-                return practitioner;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Practitioner", id, vid);
+        if result is any {
+            return <Practitioner>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Practitioner practitioner) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Practitioner", practitioner.toJson());
-
-            if result is string {
-                log:printInfo("Practitioner: POST - Execution Success!");
-                return practitioner;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing practitioner: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid practitioner data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Practitioner", practitioner.toJson());
+        if result is any {
+            return <Practitioner>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Practitioner practitioner) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Practitioner", id, practitioner.toJson());
-
-            if result is string {
-                log:printInfo("Practitioner: PUT - Execution Success!");
-                return practitioner;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Practitioner/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update Practitioner/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Practitioner/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Practitioner", id, practitioner.toJson());
+        if result is any {
+            return <Practitioner>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3333,23 +2729,39 @@ service /fhir/r4/VerificationResult on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns VerificationResult|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("VerificationResult", id);
+        if result is any {
+            return <VerificationResult>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns VerificationResult|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("VerificationResult", id, vid);
+        if result is any {
+            return <VerificationResult>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, VerificationResult verificationresult) returns VerificationResult|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("VerificationResult", verificationresult.toJson());
+        if result is any {
+            return <VerificationResult>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, VerificationResult verificationresult) returns VerificationResult|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("VerificationResult", id, verificationresult.toJson());
+        if result is any {
+            return <VerificationResult>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3383,23 +2795,39 @@ service /fhir/r4/SubstanceProtein on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceProtein|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SubstanceProtein", id);
+        if result is any {
+            return <SubstanceProtein>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SubstanceProtein|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SubstanceProtein", id, vid);
+        if result is any {
+            return <SubstanceProtein>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceProtein substanceprotein) returns SubstanceProtein|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SubstanceProtein", substanceprotein.toJson());
+        if result is any {
+            return <SubstanceProtein>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SubstanceProtein substanceprotein) returns SubstanceProtein|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SubstanceProtein", id, substanceprotein.toJson());
+        if result is any {
+            return <SubstanceProtein>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3433,23 +2861,39 @@ service /fhir/r4/BodyStructure on new fhirr4:Listener(config = r4_api_config:bod
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns BodyStructure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("BodyStructure", id);
+        if result is any {
+            return <BodyStructure>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns BodyStructure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("BodyStructure", id, vid);
+        if result is any {
+            return <BodyStructure>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, BodyStructure bodystructure) returns BodyStructure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("BodyStructure", bodystructure.toJson());
+        if result is any {
+            return <BodyStructure>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, BodyStructure bodystructure) returns BodyStructure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("BodyStructure", id, bodystructure.toJson());
+        if result is any {
+            return <BodyStructure>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3483,105 +2927,38 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Slot|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Slot", id);
-
-            if result is json {
-                log:printInfo("Slot: READ - Execution Success!");
-                international401:Slot slot = check fhirParser:parse(result).ensureType();
-                return slot;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch slot. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing slot: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid slot data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Slot", id);
+        if result is any {
+            return <Slot>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Slot|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Slot", id, versionIdInt);
-            if versionResult is json {
-                Slot slot = check fhirParser:parse(versionResult).ensureType();
-                return slot;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Slot", id, vid);
+        if result is any {
+            return <Slot>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Slot slot) returns Slot|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Slot", slot.toJson());
-
-            if result is string {
-                log:printInfo("Slot: POST - Execution Success!");
-                return slot;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing slot: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid slot data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Slot", slot.toJson());
+        if result is any {
+            return <Slot>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Slot slot) returns Slot|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Slot", id, slot.toJson());
-
-            if result is string {
-                log:printInfo("Slot: PUT - Execution Success!");
-                return slot;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update Slot/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Slot/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Slot", id, slot.toJson());
+        if result is any {
+            return <Slot>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3636,23 +3013,39 @@ service /fhir/r4/Contract on new fhirr4:Listener(config = r4_api_config:contract
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Contract|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Contract", id);
+        if result is any {
+            return <Contract>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Contract|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Contract", id, vid);
+        if result is any {
+            return <Contract>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Contract contract) returns Contract|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Contract", contract.toJson());
+        if result is any {
+            return <Contract>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Contract contract) returns Contract|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Contract", id, contract.toJson());
+        if result is any {
+            return <Contract>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3686,23 +3079,39 @@ service /fhir/r4/Person on new fhirr4:Listener(config = r4_api_config:personApiC
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Person|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Person", id);
+        if result is any {
+            return <Person>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Person|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Person", id, vid);
+        if result is any {
+            return <Person>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Person person) returns Person|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Person", person.toJson());
+        if result is any {
+            return <Person>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Person person) returns Person|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Person", id, person.toJson());
+        if result is any {
+            return <Person>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3736,23 +3145,39 @@ service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:ri
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RiskAssessment|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("RiskAssessment", id);
+        if result is any {
+            return <RiskAssessment>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns RiskAssessment|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("RiskAssessment", id, vid);
+        if result is any {
+            return <RiskAssessment>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RiskAssessment riskassessment) returns RiskAssessment|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("RiskAssessment", riskassessment.toJson());
+        if result is any {
+            return <RiskAssessment>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, RiskAssessment riskassessment) returns RiskAssessment|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("RiskAssessment", id, riskassessment.toJson());
+        if result is any {
+            return <RiskAssessment>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3786,23 +3211,39 @@ service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiCon
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Group|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Group", id);
+        if result is any {
+            return <Group>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Group|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Group", id, vid);
+        if result is any {
+            return <Group>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Group group) returns Group|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Group", group.toJson());
+        if result is any {
+            return <Group>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Group group) returns Group|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Group", id, group.toJson());
+        if result is any {
+            return <Group>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3836,23 +3277,39 @@ service /fhir/r4/ResearchDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ResearchDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ResearchDefinition", id);
+        if result is any {
+            return <ResearchDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ResearchDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ResearchDefinition", id, vid);
+        if result is any {
+            return <ResearchDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ResearchDefinition researchdefinition) returns ResearchDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ResearchDefinition", researchdefinition.toJson());
+        if result is any {
+            return <ResearchDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ResearchDefinition researchdefinition) returns ResearchDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ResearchDefinition", id, researchdefinition.toJson());
+        if result is any {
+            return <ResearchDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3886,23 +3343,39 @@ service /fhir/r4/PaymentNotice on new fhirr4:Listener(config = r4_api_config:pay
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PaymentNotice|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("PaymentNotice", id);
+        if result is any {
+            return <PaymentNotice>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns PaymentNotice|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("PaymentNotice", id, vid);
+        if result is any {
+            return <PaymentNotice>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PaymentNotice paymentnotice) returns PaymentNotice|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("PaymentNotice", paymentnotice.toJson());
+        if result is any {
+            return <PaymentNotice>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, PaymentNotice paymentnotice) returns PaymentNotice|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("PaymentNotice", id, paymentnotice.toJson());
+        if result is any {
+            return <PaymentNotice>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3936,23 +3409,39 @@ service /fhir/r4/MedicinalProductManufactured on new fhirr4:Listener(config = r4
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductManufactured|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductManufactured", id);
+        if result is any {
+            return <MedicinalProductManufactured>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductManufactured|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductManufactured", id, vid);
+        if result is any {
+            return <MedicinalProductManufactured>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductManufactured medicinalproductmanufactured) returns MedicinalProductManufactured|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductManufactured", medicinalproductmanufactured.toJson());
+        if result is any {
+            return <MedicinalProductManufactured>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductManufactured medicinalproductmanufactured) returns MedicinalProductManufactured|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductManufactured", id, medicinalproductmanufactured.toJson());
+        if result is any {
+            return <MedicinalProductManufactured>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -3986,23 +3475,39 @@ service /fhir/r4/Organization on new fhirr4:Listener(config = r4_api_config:orga
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Organization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Organization", id);
+        if result is any {
+            return <Organization>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Organization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Organization", id, vid);
+        if result is any {
+            return <Organization>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Organization organization) returns Organization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Organization", organization.toJson());
+        if result is any {
+            return <Organization>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Organization organization) returns Organization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Organization", id, organization.toJson());
+        if result is any {
+            return <Organization>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4036,23 +3541,39 @@ service /fhir/r4/ImplementationGuide on new fhirr4:Listener(config = r4_api_conf
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImplementationGuide|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ImplementationGuide", id);
+        if result is any {
+            return <ImplementationGuide>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ImplementationGuide|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ImplementationGuide", id, vid);
+        if result is any {
+            return <ImplementationGuide>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImplementationGuide implementationguide) returns ImplementationGuide|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ImplementationGuide", implementationguide.toJson());
+        if result is any {
+            return <ImplementationGuide>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ImplementationGuide implementationguide) returns ImplementationGuide|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ImplementationGuide", id, implementationguide.toJson());
+        if result is any {
+            return <ImplementationGuide>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4086,23 +3607,39 @@ service /fhir/r4/CareTeam on new fhirr4:Listener(config = r4_api_config:careteam
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CareTeam|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("CareTeam", id);
+        if result is any {
+            return <CareTeam>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CareTeam|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CareTeam", id, vid);
+        if result is any {
+            return <CareTeam>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CareTeam careteam) returns CareTeam|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("CareTeam", careteam.toJson());
+        if result is any {
+            return <CareTeam>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CareTeam careteam) returns CareTeam|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("CareTeam", id, careteam.toJson());
+        if result is any {
+            return <CareTeam>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4136,23 +3673,39 @@ service /fhir/r4/ImagingStudy on new fhirr4:Listener(config = r4_api_config:imag
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImagingStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ImagingStudy", id);
+        if result is any {
+            return <ImagingStudy>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ImagingStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ImagingStudy", id, vid);
+        if result is any {
+            return <ImagingStudy>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImagingStudy imagingstudy) returns ImagingStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ImagingStudy", imagingstudy.toJson());
+        if result is any {
+            return <ImagingStudy>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ImagingStudy imagingstudy) returns ImagingStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ImagingStudy", id, imagingstudy.toJson());
+        if result is any {
+            return <ImagingStudy>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4186,23 +3739,39 @@ service /fhir/r4/FamilyMemberHistory on new fhirr4:Listener(config = r4_api_conf
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns FamilyMemberHistory|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("FamilyMemberHistory", id);
+        if result is any {
+            return <FamilyMemberHistory>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns FamilyMemberHistory|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("FamilyMemberHistory", id, vid);
+        if result is any {
+            return <FamilyMemberHistory>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, FamilyMemberHistory familymemberhistory) returns FamilyMemberHistory|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("FamilyMemberHistory", familymemberhistory.toJson());
+        if result is any {
+            return <FamilyMemberHistory>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, FamilyMemberHistory familymemberhistory) returns FamilyMemberHistory|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("FamilyMemberHistory", id, familymemberhistory.toJson());
+        if result is any {
+            return <FamilyMemberHistory>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4236,23 +3805,39 @@ service /fhir/r4/ChargeItem on new fhirr4:Listener(config = r4_api_config:charge
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ChargeItem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ChargeItem", id);
+        if result is any {
+            return <ChargeItem>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ChargeItem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ChargeItem", id, vid);
+        if result is any {
+            return <ChargeItem>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ChargeItem chargeitem) returns ChargeItem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ChargeItem", chargeitem.toJson());
+        if result is any {
+            return <ChargeItem>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ChargeItem chargeitem) returns ChargeItem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ChargeItem", id, chargeitem.toJson());
+        if result is any {
+            return <ChargeItem>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4286,23 +3871,39 @@ service /fhir/r4/ResearchElementDefinition on new fhirr4:Listener(config = r4_ap
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ResearchElementDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ResearchElementDefinition", id);
+        if result is any {
+            return <ResearchElementDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ResearchElementDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ResearchElementDefinition", id, vid);
+        if result is any {
+            return <ResearchElementDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ResearchElementDefinition researchelementdefinition) returns ResearchElementDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ResearchElementDefinition", researchelementdefinition.toJson());
+        if result is any {
+            return <ResearchElementDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ResearchElementDefinition researchelementdefinition) returns ResearchElementDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ResearchElementDefinition", id, researchelementdefinition.toJson());
+        if result is any {
+            return <ResearchElementDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4336,23 +3937,39 @@ service /fhir/r4/ObservationDefinition on new fhirr4:Listener(config = r4_api_co
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ObservationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ObservationDefinition", id);
+        if result is any {
+            return <ObservationDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ObservationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ObservationDefinition", id, vid);
+        if result is any {
+            return <ObservationDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ObservationDefinition observationdefinition) returns ObservationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ObservationDefinition", observationdefinition.toJson());
+        if result is any {
+            return <ObservationDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ObservationDefinition observationdefinition) returns ObservationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ObservationDefinition", id, observationdefinition.toJson());
+        if result is any {
+            return <ObservationDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4386,23 +4003,39 @@ service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_c
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceSpecification|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SubstanceSpecification", id);
+        if result is any {
+            return <SubstanceSpecification>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SubstanceSpecification|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SubstanceSpecification", id, vid);
+        if result is any {
+            return <SubstanceSpecification>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceSpecification substancespecification) returns SubstanceSpecification|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SubstanceSpecification", substancespecification.toJson());
+        if result is any {
+            return <SubstanceSpecification>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SubstanceSpecification substancespecification) returns SubstanceSpecification|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SubstanceSpecification", id, substancespecification.toJson());
+        if result is any {
+            return <SubstanceSpecification>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4436,18 +4069,30 @@ service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encount
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Encounter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Encounter", id);
+        if result is any {
+            return <Encounter>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Encounter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Encounter", id, vid);
+        if result is any {
+            return <Encounter>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Encounter encounter) returns Encounter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Encounter", encounter.toJson());
+        if result is any {
+            return <Encounter>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
@@ -4486,23 +4131,39 @@ service /fhir/r4/Substance on new fhirr4:Listener(config = r4_api_config:substan
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Substance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Substance", id);
+        if result is any {
+            return <Substance>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Substance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Substance", id, vid);
+        if result is any {
+            return <Substance>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Substance substance) returns Substance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Substance", substance.toJson());
+        if result is any {
+            return <Substance>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Substance substance) returns Substance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Substance", id, substance.toJson());
+        if result is any {
+            return <Substance>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4536,23 +4197,39 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SearchParameter", id);
+        if result is any {
+            return <SearchParameter>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SearchParameter", id, vid);
+        if result is any {
+            return <SearchParameter>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SearchParameter searchparameter) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SearchParameter", searchparameter.toJson());
+        if result is any {
+            return <SearchParameter>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SearchParameter searchparameter) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SearchParameter", id, searchparameter.toJson());
+        if result is any {
+            return <SearchParameter>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4586,23 +4263,39 @@ service /fhir/r4/Communication on new fhirr4:Listener(config = r4_api_config:com
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Communication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Communication", id);
+        if result is any {
+            return <Communication>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Communication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Communication", id, vid);
+        if result is any {
+            return <Communication>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Communication communication) returns Communication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Communication", communication.toJson());
+        if result is any {
+            return <Communication>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Communication communication) returns Communication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Communication", id, communication.toJson());
+        if result is any {
+            return <Communication>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4636,23 +4329,39 @@ service /fhir/r4/InsurancePlan on new fhirr4:Listener(config = r4_api_config:ins
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns InsurancePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("InsurancePlan", id);
+        if result is any {
+            return <InsurancePlan>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns InsurancePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("InsurancePlan", id, vid);
+        if result is any {
+            return <InsurancePlan>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, InsurancePlan insuranceplan) returns InsurancePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("InsurancePlan", insuranceplan.toJson());
+        if result is any {
+            return <InsurancePlan>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, InsurancePlan insuranceplan) returns InsurancePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("InsurancePlan", id, insuranceplan.toJson());
+        if result is any {
+            return <InsurancePlan>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4686,23 +4395,39 @@ service /fhir/r4/ActivityDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ActivityDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ActivityDefinition", id);
+        if result is any {
+            return <ActivityDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ActivityDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ActivityDefinition", id, vid);
+        if result is any {
+            return <ActivityDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ActivityDefinition activitydefinition) returns ActivityDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ActivityDefinition", activitydefinition.toJson());
+        if result is any {
+            return <ActivityDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ActivityDefinition activitydefinition) returns ActivityDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ActivityDefinition", id, activitydefinition.toJson());
+        if result is any {
+            return <ActivityDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4736,23 +4461,39 @@ service /fhir/r4/Linkage on new fhirr4:Listener(config = r4_api_config:linkageAp
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Linkage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Linkage", id);
+        if result is any {
+            return <Linkage>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Linkage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Linkage", id, vid);
+        if result is any {
+            return <Linkage>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Linkage linkage) returns Linkage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Linkage", linkage.toJson());
+        if result is any {
+            return <Linkage>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Linkage linkage) returns Linkage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Linkage", id, linkage.toJson());
+        if result is any {
+            return <Linkage>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4786,23 +4527,39 @@ service /fhir/r4/SubstanceSourceMaterial on new fhirr4:Listener(config = r4_api_
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceSourceMaterial|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SubstanceSourceMaterial", id);
+        if result is any {
+            return <SubstanceSourceMaterial>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SubstanceSourceMaterial|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SubstanceSourceMaterial", id, vid);
+        if result is any {
+            return <SubstanceSourceMaterial>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceSourceMaterial substancesourcematerial) returns SubstanceSourceMaterial|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SubstanceSourceMaterial", substancesourcematerial.toJson());
+        if result is any {
+            return <SubstanceSourceMaterial>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SubstanceSourceMaterial substancesourcematerial) returns SubstanceSourceMaterial|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SubstanceSourceMaterial", id, substancesourcematerial.toJson());
+        if result is any {
+            return <SubstanceSourceMaterial>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4836,23 +4593,39 @@ service /fhir/r4/ImmunizationEvaluation on new fhirr4:Listener(config = r4_api_c
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImmunizationEvaluation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ImmunizationEvaluation", id);
+        if result is any {
+            return <ImmunizationEvaluation>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ImmunizationEvaluation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ImmunizationEvaluation", id, vid);
+        if result is any {
+            return <ImmunizationEvaluation>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImmunizationEvaluation immunizationevaluation) returns ImmunizationEvaluation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ImmunizationEvaluation", immunizationevaluation.toJson());
+        if result is any {
+            return <ImmunizationEvaluation>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ImmunizationEvaluation immunizationevaluation) returns ImmunizationEvaluation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ImmunizationEvaluation", id, immunizationevaluation.toJson());
+        if result is any {
+            return <ImmunizationEvaluation>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4886,23 +4659,39 @@ service /fhir/r4/DeviceUseStatement on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DeviceUseStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("DeviceUseStatement", id);
+        if result is any {
+            return <DeviceUseStatement>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns DeviceUseStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("DeviceUseStatement", id, vid);
+        if result is any {
+            return <DeviceUseStatement>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DeviceUseStatement deviceusestatement) returns DeviceUseStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("DeviceUseStatement", deviceusestatement.toJson());
+        if result is any {
+            return <DeviceUseStatement>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DeviceUseStatement deviceusestatement) returns DeviceUseStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("DeviceUseStatement", id, deviceusestatement.toJson());
+        if result is any {
+            return <DeviceUseStatement>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4936,23 +4725,39 @@ service /fhir/r4/RequestGroup on new fhirr4:Listener(config = r4_api_config:requ
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RequestGroup|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("RequestGroup", id);
+        if result is any {
+            return <RequestGroup>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns RequestGroup|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("RequestGroup", id, vid);
+        if result is any {
+            return <RequestGroup>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RequestGroup requestgroup) returns RequestGroup|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("RequestGroup", requestgroup.toJson());
+        if result is any {
+            return <RequestGroup>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, RequestGroup requestgroup) returns RequestGroup|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("RequestGroup", id, requestgroup.toJson());
+        if result is any {
+            return <RequestGroup>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -4986,23 +4791,39 @@ service /fhir/r4/MessageHeader on new fhirr4:Listener(config = r4_api_config:mes
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MessageHeader|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MessageHeader", id);
+        if result is any {
+            return <MessageHeader>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MessageHeader|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MessageHeader", id, vid);
+        if result is any {
+            return <MessageHeader>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MessageHeader messageheader) returns MessageHeader|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MessageHeader", messageheader.toJson());
+        if result is any {
+            return <MessageHeader>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MessageHeader messageheader) returns MessageHeader|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MessageHeader", id, messageheader.toJson());
+        if result is any {
+            return <MessageHeader>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5036,23 +4857,39 @@ service /fhir/r4/DeviceRequest on new fhirr4:Listener(config = r4_api_config:dev
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DeviceRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("DeviceRequest", id);
+        if result is any {
+            return <DeviceRequest>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns DeviceRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("DeviceRequest", id, vid);
+        if result is any {
+            return <DeviceRequest>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DeviceRequest devicerequest) returns DeviceRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("DeviceRequest", devicerequest.toJson());
+        if result is any {
+            return <DeviceRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DeviceRequest devicerequest) returns DeviceRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("DeviceRequest", id, devicerequest.toJson());
+        if result is any {
+            return <DeviceRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5086,105 +4923,38 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "ImmunizationRecommendation", id);
-
-            if result is json {
-                log:printInfo("ImmunizationRecommendation: READ - Execution Success!");
-                international401:ImmunizationRecommendation immunizationRecommendation = check fhirParser:parse(result).ensureType();
-                return immunizationRecommendation;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch immunization recommendation. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing immunization recommendation: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid immunization recommendation data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ImmunizationRecommendation", id);
+        if result is any {
+            return <ImmunizationRecommendation>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("ImmunizationRecommendation", id, versionIdInt);
-            if versionResult is json {
-                ImmunizationRecommendation immunizationrecommendation = check fhirParser:parse(versionResult).ensureType();
-                return immunizationrecommendation;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ImmunizationRecommendation", id, vid);
+        if result is any {
+            return <ImmunizationRecommendation>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImmunizationRecommendation immunizationrecommendation) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("ImmunizationRecommendation", immunizationrecommendation.toJson());
-
-            if result is string {
-                log:printInfo("ImmunizationRecommendation: POST - Execution Success!");
-                return immunizationrecommendation;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing immunization recommendation: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid immunization recommendation data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ImmunizationRecommendation", immunizationrecommendation.toJson());
+        if result is any {
+            return <ImmunizationRecommendation>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ImmunizationRecommendation immunizationrecommendation) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("ImmunizationRecommendation", id, immunizationrecommendation.toJson());
-
-            if result is string {
-                log:printInfo("ImmunizationRecommendation: PUT - Execution Success!");
-                return immunizationrecommendation;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update ImmunizationRecommendation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating ImmunizationRecommendation/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ImmunizationRecommendation", id, immunizationrecommendation.toJson());
+        if result is any {
+            return <ImmunizationRecommendation>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5239,23 +5009,39 @@ service /fhir/r4/Task on new fhirr4:Listener(config = r4_api_config:taskApiConfi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Task|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Task", id);
+        if result is any {
+            return <Task>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Task|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Task", id, vid);
+        if result is any {
+            return <Task>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Task task) returns Task|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Task", task.toJson());
+        if result is any {
+            return <Task>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Task task) returns Task|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Task", id, task.toJson());
+        if result is any {
+            return <Task>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5289,23 +5075,39 @@ service /fhir/r4/Provenance on new fhirr4:Listener(config = r4_api_config:proven
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Provenance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Provenance", id);
+        if result is any {
+            return <Provenance>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Provenance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Provenance", id, vid);
+        if result is any {
+            return <Provenance>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Provenance provenance) returns Provenance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Provenance", provenance.toJson());
+        if result is any {
+            return <Provenance>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Provenance provenance) returns Provenance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Provenance", id, provenance.toJson());
+        if result is any {
+            return <Provenance>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5339,23 +5141,39 @@ service /fhir/r4/Questionnaire on new fhirr4:Listener(config = r4_api_config:que
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Questionnaire|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Questionnaire", id);
+        if result is any {
+            return <Questionnaire>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Questionnaire|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Questionnaire", id, vid);
+        if result is any {
+            return <Questionnaire>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Questionnaire questionnaire) returns Questionnaire|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Questionnaire", questionnaire.toJson());
+        if result is any {
+            return <Questionnaire>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Questionnaire questionnaire) returns Questionnaire|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Questionnaire", id, questionnaire.toJson());
+        if result is any {
+            return <Questionnaire>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5389,23 +5207,39 @@ service /fhir/r4/ExplanationOfBenefit on new fhirr4:Listener(config = r4_api_con
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ExplanationOfBenefit", id);
+        if result is any {
+            return <ExplanationOfBenefit>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ExplanationOfBenefit", id, vid);
+        if result is any {
+            return <ExplanationOfBenefit>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ExplanationOfBenefit explanationofbenefit) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ExplanationOfBenefit", explanationofbenefit.toJson());
+        if result is any {
+            return <ExplanationOfBenefit>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ExplanationOfBenefit explanationofbenefit) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ExplanationOfBenefit", id, explanationofbenefit.toJson());
+        if result is any {
+            return <ExplanationOfBenefit>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5439,23 +5273,39 @@ service /fhir/r4/MedicinalProductPharmaceutical on new fhirr4:Listener(config = 
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductPharmaceutical|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductPharmaceutical", id);
+        if result is any {
+            return <MedicinalProductPharmaceutical>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductPharmaceutical|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductPharmaceutical", id, vid);
+        if result is any {
+            return <MedicinalProductPharmaceutical>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductPharmaceutical medicinalproductpharmaceutical) returns MedicinalProductPharmaceutical|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductPharmaceutical", medicinalproductpharmaceutical.toJson());
+        if result is any {
+            return <MedicinalProductPharmaceutical>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductPharmaceutical medicinalproductpharmaceutical) returns MedicinalProductPharmaceutical|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductPharmaceutical", id, medicinalproductpharmaceutical.toJson());
+        if result is any {
+            return <MedicinalProductPharmaceutical>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5489,23 +5339,39 @@ service /fhir/r4/ResearchStudy on new fhirr4:Listener(config = r4_api_config:res
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ResearchStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ResearchStudy", id);
+        if result is any {
+            return <ResearchStudy>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ResearchStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ResearchStudy", id, vid);
+        if result is any {
+            return <ResearchStudy>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ResearchStudy researchstudy) returns ResearchStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ResearchStudy", researchstudy.toJson());
+        if result is any {
+            return <ResearchStudy>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ResearchStudy researchstudy) returns ResearchStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ResearchStudy", id, researchstudy.toJson());
+        if result is any {
+            return <ResearchStudy>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5539,23 +5405,39 @@ service /fhir/r4/Specimen on new fhirr4:Listener(config = r4_api_config:specimen
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Specimen|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Specimen", id);
+        if result is any {
+            return <Specimen>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Specimen|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Specimen", id, vid);
+        if result is any {
+            return <Specimen>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Specimen specimen) returns Specimen|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Specimen", specimen.toJson());
+        if result is any {
+            return <Specimen>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Specimen specimen) returns Specimen|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Specimen", id, specimen.toJson());
+        if result is any {
+            return <Specimen>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5589,23 +5471,39 @@ service /fhir/r4/CarePlan on new fhirr4:Listener(config = r4_api_config:careplan
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CarePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("CarePlan", id);
+        if result is any {
+            return <CarePlan>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CarePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CarePlan", id, vid);
+        if result is any {
+            return <CarePlan>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CarePlan careplan) returns CarePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("CarePlan", careplan.toJson());
+        if result is any {
+            return <CarePlan>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CarePlan careplan) returns CarePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("CarePlan", id, careplan.toJson());
+        if result is any {
+            return <CarePlan>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5639,23 +5537,39 @@ service /fhir/r4/AllergyIntolerance on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns AllergyIntolerance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("AllergyIntolerance", id);
+        if result is any {
+            return <AllergyIntolerance>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns AllergyIntolerance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("AllergyIntolerance", id, vid);
+        if result is any {
+            return <AllergyIntolerance>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, AllergyIntolerance allergyintolerance) returns AllergyIntolerance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("AllergyIntolerance", allergyintolerance.toJson());
+        if result is any {
+            return <AllergyIntolerance>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, AllergyIntolerance allergyintolerance) returns AllergyIntolerance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("AllergyIntolerance", id, allergyintolerance.toJson());
+        if result is any {
+            return <AllergyIntolerance>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5689,23 +5603,39 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("StructureDefinition", id);
+        if result is any {
+            return <StructureDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("StructureDefinition", id, vid);
+        if result is any {
+            return <StructureDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, StructureDefinition structuredefinition) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("StructureDefinition", structuredefinition.toJson());
+        if result is any {
+            return <StructureDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, StructureDefinition structuredefinition) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("StructureDefinition", id, structuredefinition.toJson());
+        if result is any {
+            return <StructureDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5739,23 +5669,39 @@ service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_con
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ChargeItemDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ChargeItemDefinition", id);
+        if result is any {
+            return <ChargeItemDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ChargeItemDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ChargeItemDefinition", id, vid);
+        if result is any {
+            return <ChargeItemDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ChargeItemDefinition chargeitemdefinition) returns ChargeItemDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ChargeItemDefinition", chargeitemdefinition.toJson());
+        if result is any {
+            return <ChargeItemDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ChargeItemDefinition chargeitemdefinition) returns ChargeItemDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ChargeItemDefinition", id, chargeitemdefinition.toJson());
+        if result is any {
+            return <ChargeItemDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5789,23 +5735,39 @@ service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:epi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EpisodeOfCare|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("EpisodeOfCare", id);
+        if result is any {
+            return <EpisodeOfCare>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns EpisodeOfCare|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("EpisodeOfCare", id, vid);
+        if result is any {
+            return <EpisodeOfCare>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EpisodeOfCare episodeofcare) returns EpisodeOfCare|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("EpisodeOfCare", episodeofcare.toJson());
+        if result is any {
+            return <EpisodeOfCare>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, EpisodeOfCare episodeofcare) returns EpisodeOfCare|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("EpisodeOfCare", id, episodeofcare.toJson());
+        if result is any {
+            return <EpisodeOfCare>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5839,105 +5801,38 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Procedure|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Procedure", id);
-
-            if result is json {
-                log:printInfo("Procedure: READ - Execution Success!");
-                international401:Procedure procedure = check fhirParser:parse(result).ensureType();
-                return procedure;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch procedure. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing procedure: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid procedure data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Procedure", id);
+        if result is any {
+            return <Procedure>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Procedure|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Procedure", id, versionIdInt);
-            if versionResult is json {
-                Procedure procedure = check fhirParser:parse(versionResult).ensureType();
-                return procedure;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Procedure", id, vid);
+        if result is any {
+            return <Procedure>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Procedure procedure) returns Procedure|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Procedure", procedure.toJson());
-
-            if result is string {
-                log:printInfo("Procedure: POST - Execution Success!");
-                return procedure;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing procedure: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid procedure data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Procedure", procedure.toJson());
+        if result is any {
+            return <Procedure>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Procedure procedure) returns Procedure|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Procedure", id, procedure.toJson());
-
-            if result is string {
-                log:printInfo("Procedure: PUT - Execution Success!");
-                return procedure;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update Procedure/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Procedure/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Procedure", id, procedure.toJson());
+        if result is any {
+            return <Procedure>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -5992,23 +5887,39 @@ service /fhir/r4/List on new fhirr4:Listener(config = r4_api_config:listApiConfi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns List|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("List", id);
+        if result is any {
+            return <List>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns List|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("List", id, vid);
+        if result is any {
+            return <List>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, List list) returns List|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("List", list.toJson());
+        if result is any {
+            return <List>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, List list) returns List|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("List", id, list.toJson());
+        if result is any {
+            return <List>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6042,23 +5953,39 @@ service /fhir/r4/ConceptMap on new fhirr4:Listener(config = r4_api_config:concep
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ConceptMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ConceptMap", id);
+        if result is any {
+            return <ConceptMap>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ConceptMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ConceptMap", id, vid);
+        if result is any {
+            return <ConceptMap>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ConceptMap conceptmap) returns ConceptMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ConceptMap", conceptmap.toJson());
+        if result is any {
+            return <ConceptMap>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ConceptMap conceptmap) returns ConceptMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ConceptMap", id, conceptmap.toJson());
+        if result is any {
+            return <ConceptMap>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6092,23 +6019,39 @@ service /fhir/r4/OperationDefinition on new fhirr4:Listener(config = r4_api_conf
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns OperationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("OperationDefinition", id);
+        if result is any {
+            return <OperationDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns OperationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("OperationDefinition", id, vid);
+        if result is any {
+            return <OperationDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, OperationDefinition operationdefinition) returns OperationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("OperationDefinition", operationdefinition.toJson());
+        if result is any {
+            return <OperationDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, OperationDefinition operationdefinition) returns OperationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("OperationDefinition", id, operationdefinition.toJson());
+        if result is any {
+            return <OperationDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6142,23 +6085,39 @@ service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immu
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Immunization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Immunization", id);
+        if result is any {
+            return <Immunization>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Immunization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Immunization", id, vid);
+        if result is any {
+            return <Immunization>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Immunization immunization) returns Immunization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Immunization", immunization.toJson());
+        if result is any {
+            return <Immunization>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Immunization immunization) returns Immunization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Immunization", id, immunization.toJson());
+        if result is any {
+            return <Immunization>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6192,23 +6151,39 @@ service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicationRequest", id);
+        if result is any {
+            return <MedicationRequest>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicationRequest", id, vid);
+        if result is any {
+            return <MedicationRequest>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationRequest medicationrequest) returns MedicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicationRequest", medicationrequest.toJson());
+        if result is any {
+            return <MedicationRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicationRequest medicationrequest) returns MedicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicationRequest", id, medicationrequest.toJson());
+        if result is any {
+            return <MedicationRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6242,23 +6217,39 @@ service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EffectEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("EffectEvidenceSynthesis", id);
+        if result is any {
+            return <EffectEvidenceSynthesis>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns EffectEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("EffectEvidenceSynthesis", id, vid);
+        if result is any {
+            return <EffectEvidenceSynthesis>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EffectEvidenceSynthesis effectevidencesynthesis) returns EffectEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("EffectEvidenceSynthesis", effectevidencesynthesis.toJson());
+        if result is any {
+            return <EffectEvidenceSynthesis>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, EffectEvidenceSynthesis effectevidencesynthesis) returns EffectEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("EffectEvidenceSynthesis", id, effectevidencesynthesis.toJson());
+        if result is any {
+            return <EffectEvidenceSynthesis>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6292,23 +6283,39 @@ service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_a
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns BiologicallyDerivedProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("BiologicallyDerivedProduct", id);
+        if result is any {
+            return <BiologicallyDerivedProduct>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns BiologicallyDerivedProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("BiologicallyDerivedProduct", id, vid);
+        if result is any {
+            return <BiologicallyDerivedProduct>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, BiologicallyDerivedProduct biologicallyderivedproduct) returns BiologicallyDerivedProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("BiologicallyDerivedProduct", biologicallyderivedproduct.toJson());
+        if result is any {
+            return <BiologicallyDerivedProduct>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, BiologicallyDerivedProduct biologicallyderivedproduct) returns BiologicallyDerivedProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("BiologicallyDerivedProduct", id, biologicallyderivedproduct.toJson());
+        if result is any {
+            return <BiologicallyDerivedProduct>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6342,105 +6349,38 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Device|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Device", id);
-
-            if result is json {
-                log:printInfo("Device: READ - Execution Success!");
-                international401:Device device = check fhirParser:parse(result).ensureType();
-                return device;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch device. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing device: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid device data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Device", id);
+        if result is any {
+            return <Device>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Device|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Device", id, versionIdInt);
-            if versionResult is json {
-                Device device = check fhirParser:parse(versionResult).ensureType();
-                return device;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Device", id, vid);
+        if result is any {
+            return <Device>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Device device) returns Device|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Device", device.toJson());
-
-            if result is string {
-                log:printInfo("Device: POST - Execution Success!");
-                return device;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing device: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid device data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Device", device.toJson());
+        if result is any {
+            return <Device>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Device device) returns Device|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Device", id, device.toJson());
-
-            if result is string {
-                log:printInfo("Device: PUT - Execution Success!");
-                return device;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update Device/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Device/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Device", id, device.toJson());
+        if result is any {
+            return <Device>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6495,23 +6435,39 @@ service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns VisionPrescription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("VisionPrescription", id);
+        if result is any {
+            return <VisionPrescription>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns VisionPrescription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("VisionPrescription", id, vid);
+        if result is any {
+            return <VisionPrescription>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, VisionPrescription visionprescription) returns VisionPrescription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("VisionPrescription", visionprescription.toJson());
+        if result is any {
+            return <VisionPrescription>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, VisionPrescription visionprescription) returns VisionPrescription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("VisionPrescription", id, visionprescription.toJson());
+        if result is any {
+            return <VisionPrescription>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6545,23 +6501,39 @@ service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiCon
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Media|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Media", id);
+        if result is any {
+            return <Media>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Media|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Media", id, vid);
+        if result is any {
+            return <Media>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Media media) returns Media|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Media", media.toJson());
+        if result is any {
+            return <Media>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Media media) returns Media|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Media", id, media.toJson());
+        if result is any {
+            return <Media>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6595,23 +6567,39 @@ service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config 
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductContraindication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductContraindication", id);
+        if result is any {
+            return <MedicinalProductContraindication>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductContraindication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductContraindication", id, vid);
+        if result is any {
+            return <MedicinalProductContraindication>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductContraindication medicinalproductcontraindication) returns MedicinalProductContraindication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductContraindication", medicinalproductcontraindication.toJson());
+        if result is any {
+            return <MedicinalProductContraindication>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductContraindication medicinalproductcontraindication) returns MedicinalProductContraindication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductContraindication", id, medicinalproductcontraindication.toJson());
+        if result is any {
+            return <MedicinalProductContraindication>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6645,23 +6633,39 @@ service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EvidenceVariable|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("EvidenceVariable", id);
+        if result is any {
+            return <EvidenceVariable>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns EvidenceVariable|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("EvidenceVariable", id, vid);
+        if result is any {
+            return <EvidenceVariable>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EvidenceVariable evidencevariable) returns EvidenceVariable|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("EvidenceVariable", evidencevariable.toJson());
+        if result is any {
+            return <EvidenceVariable>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, EvidenceVariable evidencevariable) returns EvidenceVariable|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("EvidenceVariable", id, evidencevariable.toJson());
+        if result is any {
+            return <EvidenceVariable>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6695,23 +6699,39 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MolecularSequence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MolecularSequence", id);
+        if result is any {
+            return <MolecularSequence>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MolecularSequence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MolecularSequence", id, vid);
+        if result is any {
+            return <MolecularSequence>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MolecularSequence molecularsequence) returns MolecularSequence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MolecularSequence", molecularsequence.toJson());
+        if result is any {
+            return <MolecularSequence>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MolecularSequence molecularsequence) returns MolecularSequence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MolecularSequence", id, molecularsequence.toJson());
+        if result is any {
+            return <MolecularSequence>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6745,23 +6765,39 @@ service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProduct", id);
+        if result is any {
+            return <MedicinalProduct>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProduct", id, vid);
+        if result is any {
+            return <MedicinalProduct>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProduct medicinalproduct) returns MedicinalProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProduct", medicinalproduct.toJson());
+        if result is any {
+            return <MedicinalProduct>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProduct medicinalproduct) returns MedicinalProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProduct", id, medicinalproduct.toJson());
+        if result is any {
+            return <MedicinalProduct>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6795,23 +6831,39 @@ service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DeviceMetric|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("DeviceMetric", id);
+        if result is any {
+            return <DeviceMetric>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns DeviceMetric|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("DeviceMetric", id, vid);
+        if result is any {
+            return <DeviceMetric>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DeviceMetric devicemetric) returns DeviceMetric|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("DeviceMetric", devicemetric.toJson());
+        if result is any {
+            return <DeviceMetric>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DeviceMetric devicemetric) returns DeviceMetric|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("DeviceMetric", id, devicemetric.toJson());
+        if result is any {
+            return <DeviceMetric>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6845,23 +6897,39 @@ service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Flag|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Flag", id);
+        if result is any {
+            return <Flag>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Flag|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Flag", id, vid);
+        if result is any {
+            return <Flag>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Flag flag) returns Flag|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Flag", flag.toJson());
+        if result is any {
+            return <Flag>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Flag flag) returns Flag|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Flag", id, flag.toJson());
+        if result is any {
+            return <Flag>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6895,23 +6963,39 @@ service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_con
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceNucleicAcid|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SubstanceNucleicAcid", id);
+        if result is any {
+            return <SubstanceNucleicAcid>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SubstanceNucleicAcid|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SubstanceNucleicAcid", id, vid);
+        if result is any {
+            return <SubstanceNucleicAcid>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceNucleicAcid substancenucleicacid) returns SubstanceNucleicAcid|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SubstanceNucleicAcid", substancenucleicacid.toJson());
+        if result is any {
+            return <SubstanceNucleicAcid>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SubstanceNucleicAcid substancenucleicacid) returns SubstanceNucleicAcid|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SubstanceNucleicAcid", id, substancenucleicacid.toJson());
+        if result is any {
+            return <SubstanceNucleicAcid>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6945,23 +7029,39 @@ service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_co
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RiskEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("RiskEvidenceSynthesis", id);
+        if result is any {
+            return <RiskEvidenceSynthesis>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns RiskEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("RiskEvidenceSynthesis", id, vid);
+        if result is any {
+            return <RiskEvidenceSynthesis>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RiskEvidenceSynthesis riskevidencesynthesis) returns RiskEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("RiskEvidenceSynthesis", riskevidencesynthesis.toJson());
+        if result is any {
+            return <RiskEvidenceSynthesis>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, RiskEvidenceSynthesis riskevidencesynthesis) returns RiskEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("RiskEvidenceSynthesis", id, riskevidencesynthesis.toJson());
+        if result is any {
+            return <RiskEvidenceSynthesis>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -6995,23 +7095,39 @@ service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_conf
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns AppointmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("AppointmentResponse", id);
+        if result is any {
+            return <AppointmentResponse>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns AppointmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("AppointmentResponse", id, vid);
+        if result is any {
+            return <AppointmentResponse>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, AppointmentResponse appointmentresponse) returns AppointmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("AppointmentResponse", appointmentresponse.toJson());
+        if result is any {
+            return <AppointmentResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, AppointmentResponse appointmentresponse) returns AppointmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("AppointmentResponse", id, appointmentresponse.toJson());
+        if result is any {
+            return <AppointmentResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7045,23 +7161,39 @@ service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:stru
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns StructureMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("StructureMap", id);
+        if result is any {
+            return <StructureMap>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns StructureMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("StructureMap", id, vid);
+        if result is any {
+            return <StructureMap>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, StructureMap structuremap) returns StructureMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("StructureMap", structuremap.toJson());
+        if result is any {
+            return <StructureMap>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, StructureMap structuremap) returns StructureMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("StructureMap", id, structuremap.toJson());
+        if result is any {
+            return <StructureMap>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7095,23 +7227,39 @@ service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adve
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns AdverseEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("AdverseEvent", id);
+        if result is any {
+            return <AdverseEvent>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns AdverseEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("AdverseEvent", id, vid);
+        if result is any {
+            return <AdverseEvent>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, AdverseEvent adverseevent) returns AdverseEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("AdverseEvent", adverseevent.toJson());
+        if result is any {
+            return <AdverseEvent>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, AdverseEvent adverseevent) returns AdverseEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("AdverseEvent", id, adverseevent.toJson());
+        if result is any {
+            return <AdverseEvent>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7145,23 +7293,39 @@ service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns GuidanceResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("GuidanceResponse", id);
+        if result is any {
+            return <GuidanceResponse>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns GuidanceResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("GuidanceResponse", id, vid);
+        if result is any {
+            return <GuidanceResponse>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, GuidanceResponse guidanceresponse) returns GuidanceResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("GuidanceResponse", guidanceresponse.toJson());
+        if result is any {
+            return <GuidanceResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, GuidanceResponse guidanceresponse) returns GuidanceResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("GuidanceResponse", id, guidanceresponse.toJson());
+        if result is any {
+            return <GuidanceResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7195,105 +7359,38 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Observation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Observation", id);
-
-            if result is json {
-                log:printInfo("Observation: READ - Execution Success!");
-                international401:Observation observation = check fhirParser:parse(result).ensureType();
-                return observation;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch observation. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing observation: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid observation data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Observation", id);
+        if result is any {
+            return <Observation>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Observation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Observation", id, versionIdInt);
-            if versionResult is json {
-                Observation observation = check fhirParser:parse(versionResult).ensureType();
-                return observation;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Observation", id, vid);
+        if result is any {
+            return <Observation>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Observation observation) returns Observation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Observation", observation.toJson());
-
-            if result is string {
-                log:printInfo("Observation: POST - Execution Success!");
-                return observation;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing observation: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid observation data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Observation", observation.toJson());
+        if result is any {
+            return <Observation>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Observation observation) returns Observation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Observation", id, observation.toJson());
-
-            if result is string {
-                log:printInfo("Observation: PUT - Execution Success!");
-                return observation;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update Observation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Observation/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Observation", id, observation.toJson());
+        if result is any {
+            return <Observation>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7348,23 +7445,39 @@ service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationAdministration|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicationAdministration", id);
+        if result is any {
+            return <MedicationAdministration>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicationAdministration|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicationAdministration", id, vid);
+        if result is any {
+            return <MedicationAdministration>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationAdministration medicationadministration) returns MedicationAdministration|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicationAdministration", medicationadministration.toJson());
+        if result is any {
+            return <MedicationAdministration>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicationAdministration medicationadministration) returns MedicationAdministration|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicationAdministration", id, medicationadministration.toJson());
+        if result is any {
+            return <MedicationAdministration>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7398,23 +7511,39 @@ service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EnrollmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("EnrollmentResponse", id);
+        if result is any {
+            return <EnrollmentResponse>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns EnrollmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("EnrollmentResponse", id, vid);
+        if result is any {
+            return <EnrollmentResponse>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EnrollmentResponse enrollmentresponse) returns EnrollmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("EnrollmentResponse", enrollmentresponse.toJson());
+        if result is any {
+            return <EnrollmentResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, EnrollmentResponse enrollmentresponse) returns EnrollmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("EnrollmentResponse", id, enrollmentresponse.toJson());
+        if result is any {
+            return <EnrollmentResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7448,23 +7577,39 @@ service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryAp
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Library|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Library", id);
+        if result is any {
+            return <Library>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Library|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Library", id, vid);
+        if result is any {
+            return <Library>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Library library) returns Library|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Library", library.toJson());
+        if result is any {
+            return <Library>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Library library) returns Library|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Library", id, library.toJson());
+        if result is any {
+            return <Library>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7498,23 +7643,39 @@ service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiC
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Binary|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Binary", id);
+        if result is any {
+            return <Binary>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Binary|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Binary", id, vid);
+        if result is any {
+            return <Binary>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Binary binary) returns Binary|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Binary", binary.toJson());
+        if result is any {
+            return <Binary>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Binary binary) returns Binary|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Binary", id, binary.toJson());
+        if result is any {
+            return <Binary>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7548,23 +7709,39 @@ service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductInteraction|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductInteraction", id);
+        if result is any {
+            return <MedicinalProductInteraction>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductInteraction|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductInteraction", id, vid);
+        if result is any {
+            return <MedicinalProductInteraction>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductInteraction medicinalproductinteraction) returns MedicinalProductInteraction|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductInteraction", medicinalproductinteraction.toJson());
+        if result is any {
+            return <MedicinalProductInteraction>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductInteraction medicinalproductinteraction) returns MedicinalProductInteraction|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductInteraction", id, medicinalproductinteraction.toJson());
+        if result is any {
+            return <MedicinalProductInteraction>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7598,23 +7775,39 @@ service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicationStatement", id);
+        if result is any {
+            return <MedicationStatement>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicationStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicationStatement", id, vid);
+        if result is any {
+            return <MedicationStatement>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationStatement medicationstatement) returns MedicationStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicationStatement", medicationstatement.toJson());
+        if result is any {
+            return <MedicationStatement>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicationStatement medicationstatement) returns MedicationStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicationStatement", id, medicationstatement.toJson());
+        if result is any {
+            return <MedicationStatement>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7648,23 +7841,39 @@ service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_con
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CommunicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("CommunicationRequest", id);
+        if result is any {
+            return <CommunicationRequest>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CommunicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CommunicationRequest", id, vid);
+        if result is any {
+            return <CommunicationRequest>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CommunicationRequest communicationrequest) returns CommunicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("CommunicationRequest", communicationrequest.toJson());
+        if result is any {
+            return <CommunicationRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CommunicationRequest communicationrequest) returns CommunicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("CommunicationRequest", id, communicationrequest.toJson());
+        if result is any {
+            return <CommunicationRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7698,23 +7907,39 @@ service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testsc
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns TestScript|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("TestScript", id);
+        if result is any {
+            return <TestScript>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns TestScript|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("TestScript", id, vid);
+        if result is any {
+            return <TestScript>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, TestScript testscript) returns TestScript|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("TestScript", testscript.toJson());
+        if result is any {
+            return <TestScript>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, TestScript testscript) returns TestScript|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("TestScript", id, testscript.toJson());
+        if result is any {
+            return <TestScript>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7748,23 +7973,39 @@ service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstancePolymer|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SubstancePolymer", id);
+        if result is any {
+            return <SubstancePolymer>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SubstancePolymer|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SubstancePolymer", id, vid);
+        if result is any {
+            return <SubstancePolymer>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstancePolymer substancepolymer) returns SubstancePolymer|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SubstancePolymer", substancepolymer.toJson());
+        if result is any {
+            return <SubstancePolymer>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SubstancePolymer substancepolymer) returns SubstancePolymer|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SubstancePolymer", id, substancepolymer.toJson());
+        if result is any {
+            return <SubstancePolymer>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7798,23 +8039,39 @@ service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiCon
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Basic|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Basic", id);
+        if result is any {
+            return <Basic>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Basic|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Basic", id, vid);
+        if result is any {
+            return <Basic>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Basic basic) returns Basic|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Basic", basic.toJson());
+        if result is any {
+            return <Basic>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Basic basic) returns Basic|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Basic", id, basic.toJson());
+        if result is any {
+            return <Basic>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7848,23 +8105,39 @@ service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testre
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns TestReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("TestReport", id);
+        if result is any {
+            return <TestReport>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns TestReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("TestReport", id, vid);
+        if result is any {
+            return <TestReport>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, TestReport testreport) returns TestReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("TestReport", testreport.toJson());
+        if result is any {
+            return <TestReport>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, TestReport testreport) returns TestReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("TestReport", id, testreport.toJson());
+        if result is any {
+            return <TestReport>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7898,23 +8171,39 @@ service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:cla
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ClaimResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ClaimResponse", id);
+        if result is any {
+            return <ClaimResponse>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ClaimResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ClaimResponse", id, vid);
+        if result is any {
+            return <ClaimResponse>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ClaimResponse claimresponse) returns ClaimResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ClaimResponse", claimresponse.toJson());
+        if result is any {
+            return <ClaimResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ClaimResponse claimresponse) returns ClaimResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ClaimResponse", id, claimresponse.toJson());
+        if result is any {
+            return <ClaimResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7948,23 +8237,39 @@ service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationDispense|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicationDispense", id);
+        if result is any {
+            return <MedicationDispense>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicationDispense|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicationDispense", id, vid);
+        if result is any {
+            return <MedicationDispense>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationDispense medicationdispense) returns MedicationDispense|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicationDispense", medicationdispense.toJson());
+        if result is any {
+            return <MedicationDispense>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicationDispense medicationdispense) returns MedicationDispense|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicationDispense", id, medicationdispense.toJson());
+        if result is any {
+            return <MedicationDispense>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -7998,23 +8303,39 @@ service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DiagnosticReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("DiagnosticReport", id);
+        if result is any {
+            return <DiagnosticReport>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns DiagnosticReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("DiagnosticReport", id, vid);
+        if result is any {
+            return <DiagnosticReport>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DiagnosticReport diagnosticreport) returns DiagnosticReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("DiagnosticReport", diagnosticreport.toJson());
+        if result is any {
+            return <DiagnosticReport>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DiagnosticReport diagnosticreport) returns DiagnosticReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("DiagnosticReport", id, diagnosticreport.toJson());
+        if result is any {
+            return <DiagnosticReport>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8048,23 +8369,39 @@ service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns OrganizationAffiliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("OrganizationAffiliation", id);
+        if result is any {
+            return <OrganizationAffiliation>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns OrganizationAffiliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("OrganizationAffiliation", id, vid);
+        if result is any {
+            return <OrganizationAffiliation>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, OrganizationAffiliation organizationaffiliation) returns OrganizationAffiliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("OrganizationAffiliation", organizationaffiliation.toJson());
+        if result is any {
+            return <OrganizationAffiliation>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, OrganizationAffiliation organizationaffiliation) returns OrganizationAffiliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("OrganizationAffiliation", id, organizationaffiliation.toJson());
+        if result is any {
+            return <OrganizationAffiliation>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8098,105 +8435,38 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "HealthcareService", id);
-
-            if result is json {
-                log:printInfo("HealthcareService: READ - Execution Success!");
-                international401:HealthcareService healthcareService = check fhirParser:parse(result).ensureType();
-                return healthcareService;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch healthcare service. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing healthcare service: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid healthcare service data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("HealthcareService", id);
+        if result is any {
+            return <HealthcareService>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("HealthcareService", id, versionIdInt);
-            if versionResult is json {
-                HealthcareService healthcareservice = check fhirParser:parse(versionResult).ensureType();
-                return healthcareservice;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("HealthcareService", id, vid);
+        if result is any {
+            return <HealthcareService>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, HealthcareService healthcareservice) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("HealthcareService", healthcareservice.toJson());
-
-            if result is string {
-                log:printInfo("HealthcareService: POST - Execution Success!");
-                return healthcareservice;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing healthcare service: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid healthcare service data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("HealthcareService", healthcareservice.toJson());
+        if result is any {
+            return <HealthcareService>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, HealthcareService healthcareservice) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("HealthcareService", id, healthcareservice.toJson());
-
-            if result is string {
-                log:printInfo("HealthcareService: PUT - Execution Success!");
-                return healthcareservice;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update HealthcareService/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating HealthcareService/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("HealthcareService", id, healthcareservice.toJson());
+        if result is any {
+            return <HealthcareService>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8251,23 +8521,39 @@ service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_a
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductIndication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductIndication", id);
+        if result is any {
+            return <MedicinalProductIndication>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductIndication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductIndication", id, vid);
+        if result is any {
+            return <MedicinalProductIndication>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductIndication medicinalproductindication) returns MedicinalProductIndication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductIndication", medicinalproductindication.toJson());
+        if result is any {
+            return <MedicinalProductIndication>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductIndication medicinalproductindication) returns MedicinalProductIndication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductIndication", id, medicinalproductindication.toJson());
+        if result is any {
+            return <MedicinalProductIndication>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8301,23 +8587,39 @@ service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nu
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns NutritionOrder|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("NutritionOrder", id);
+        if result is any {
+            return <NutritionOrder>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns NutritionOrder|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("NutritionOrder", id, vid);
+        if result is any {
+            return <NutritionOrder>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, NutritionOrder nutritionorder) returns NutritionOrder|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("NutritionOrder", nutritionorder.toJson());
+        if result is any {
+            return <NutritionOrder>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, NutritionOrder nutritionorder) returns NutritionOrder|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("NutritionOrder", id, nutritionorder.toJson());
+        if result is any {
+            return <NutritionOrder>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8351,23 +8653,39 @@ service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns TerminologyCapabilities|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("TerminologyCapabilities", id);
+        if result is any {
+            return <TerminologyCapabilities>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns TerminologyCapabilities|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("TerminologyCapabilities", id, vid);
+        if result is any {
+            return <TerminologyCapabilities>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, TerminologyCapabilities terminologycapabilities) returns TerminologyCapabilities|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("TerminologyCapabilities", terminologycapabilities.toJson());
+        if result is any {
+            return <TerminologyCapabilities>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, TerminologyCapabilities terminologycapabilities) returns TerminologyCapabilities|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("TerminologyCapabilities", id, terminologycapabilities.toJson());
+        if result is any {
+            return <TerminologyCapabilities>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8401,23 +8719,39 @@ service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidence
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Evidence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Evidence", id);
+        if result is any {
+            return <Evidence>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Evidence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Evidence", id, vid);
+        if result is any {
+            return <Evidence>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Evidence evidence) returns Evidence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Evidence", evidence.toJson());
+        if result is any {
+            return <Evidence>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Evidence evidence) returns Evidence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Evidence", id, evidence.toJson());
+        if result is any {
+            return <Evidence>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8451,23 +8785,39 @@ service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:audite
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns AuditEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("AuditEvent", id);
+        if result is any {
+            return <AuditEvent>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns AuditEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("AuditEvent", id, vid);
+        if result is any {
+            return <AuditEvent>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, AuditEvent auditevent) returns AuditEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("AuditEvent", auditevent.toJson());
+        if result is any {
+            return <AuditEvent>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, AuditEvent auditevent) returns AuditEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("AuditEvent", id, auditevent.toJson());
+        if result is any {
+            return <AuditEvent>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8501,23 +8851,39 @@ service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_co
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PaymentReconciliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("PaymentReconciliation", id);
+        if result is any {
+            return <PaymentReconciliation>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns PaymentReconciliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("PaymentReconciliation", id, vid);
+        if result is any {
+            return <PaymentReconciliation>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PaymentReconciliation paymentreconciliation) returns PaymentReconciliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("PaymentReconciliation", paymentreconciliation.toJson());
+        if result is any {
+            return <PaymentReconciliation>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, PaymentReconciliation paymentreconciliation) returns PaymentReconciliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("PaymentReconciliation", id, paymentreconciliation.toJson());
+        if result is any {
+            return <PaymentReconciliation>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8551,105 +8917,38 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Condition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Condition", id);
-
-            if result is json {
-                log:printInfo("Condition: READ - Execution Success!");
-                international401:Condition condition = check fhirParser:parse(result).ensureType();
-                return condition;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch condition. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing condition: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid condition data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Condition", id);
+        if result is any {
+            return <Condition>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Condition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Condition", id, versionIdInt);
-            if versionResult is json {
-                Condition condition = check fhirParser:parse(versionResult).ensureType();
-                return condition;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Condition", id, vid);
+        if result is any {
+            return <Condition>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Condition condition) returns Condition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Condition", condition.toJson());
-
-            if result is string {
-                log:printInfo("Condition: POST - Execution Success!");
-                return condition;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing condition: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid condition data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Condition", condition.toJson());
+        if result is any {
+            return <Condition>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Condition condition) returns Condition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Condition", id, condition.toJson());
-
-            if result is string {
-                log:printInfo("Condition: PUT - Execution Success!");
-                return condition;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update Condition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Condition/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Condition", id, condition.toJson());
+        if result is any {
+            return <Condition>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8704,23 +9003,39 @@ service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SpecimenDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SpecimenDefinition", id);
+        if result is any {
+            return <SpecimenDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SpecimenDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SpecimenDefinition", id, vid);
+        if result is any {
+            return <SpecimenDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SpecimenDefinition specimendefinition) returns SpecimenDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SpecimenDefinition", specimendefinition.toJson());
+        if result is any {
+            return <SpecimenDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SpecimenDefinition specimendefinition) returns SpecimenDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SpecimenDefinition", id, specimendefinition.toJson());
+        if result is any {
+            return <SpecimenDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8754,23 +9069,39 @@ service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compo
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Composition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Composition", id);
+        if result is any {
+            return <Composition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Composition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Composition", id, vid);
+        if result is any {
+            return <Composition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Composition composition) returns Composition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Composition", composition.toJson());
+        if result is any {
+            return <Composition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Composition composition) returns Composition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Composition", id, composition.toJson());
+        if result is any {
+            return <Composition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8804,23 +9135,39 @@ service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:det
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DetectedIssue|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("DetectedIssue", id);
+        if result is any {
+            return <DetectedIssue>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns DetectedIssue|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("DetectedIssue", id, vid);
+        if result is any {
+            return <DetectedIssue>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DetectedIssue detectedissue) returns DetectedIssue|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("DetectedIssue", detectedissue.toJson());
+        if result is any {
+            return <DetectedIssue>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DetectedIssue detectedissue) returns DetectedIssue|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("DetectedIssue", id, detectedissue.toJson());
+        if result is any {
+            return <DetectedIssue>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8854,23 +9201,39 @@ service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_co
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CompartmentDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("CompartmentDefinition", id);
+        if result is any {
+            return <CompartmentDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CompartmentDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CompartmentDefinition", id, vid);
+        if result is any {
+            return <CompartmentDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CompartmentDefinition compartmentdefinition) returns CompartmentDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("CompartmentDefinition", compartmentdefinition.toJson());
+        if result is any {
+            return <CompartmentDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CompartmentDefinition compartmentdefinition) returns CompartmentDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("CompartmentDefinition", id, compartmentdefinition.toJson());
+        if result is any {
+            return <CompartmentDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8904,23 +9267,39 @@ service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_a
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductIngredient|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductIngredient", id);
+        if result is any {
+            return <MedicinalProductIngredient>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductIngredient|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductIngredient", id, vid);
+        if result is any {
+            return <MedicinalProductIngredient>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductIngredient medicinalproductingredient) returns MedicinalProductIngredient|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductIngredient", medicinalproductingredient.toJson());
+        if result is any {
+            return <MedicinalProductIngredient>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductIngredient medicinalproductingredient) returns MedicinalProductIngredient|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductIngredient", id, medicinalproductingredient.toJson());
+        if result is any {
+            return <MedicinalProductIngredient>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -8954,23 +9333,39 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationKnowledge|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicationKnowledge", id);
+        if result is any {
+            return <MedicationKnowledge>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicationKnowledge|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicationKnowledge", id, vid);
+        if result is any {
+            return <MedicationKnowledge>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationKnowledge medicationknowledge) returns MedicationKnowledge|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicationKnowledge", medicationknowledge.toJson());
+        if result is any {
+            return <MedicationKnowledge>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicationKnowledge medicationknowledge) returns MedicationKnowledge|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicationKnowledge", id, medicationknowledge.toJson());
+        if result is any {
+            return <MedicationKnowledge>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9004,104 +9399,38 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Patient|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Patient", id);
-
-            if result is json {
-                log:printInfo("Patient: READ - Execution Success!");
-                international401:Patient patient = check fhirParser:parse(result).ensureType();
-                return patient;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Patient/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                return r4:createFHIRError("Failed to fetch patient. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing patient: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid patient data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Patient", id);
+        if result is any {
+            return <Patient>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Patient|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            int versionIdInt = check int:fromString(vid);
-            json|error versionResult = historyHandler.getResourceVersion("Patient", id, versionIdInt);
-            if versionResult is json {
-                Patient patient = check fhirParser:parse(versionResult).ensureType();
-                return patient;
-            } else {
-                return r4:createFHIRError(versionResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-            }
-        } on fail error e {
-            return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Patient", id, vid);
+        if result is any {
+            return <Patient>result;
         }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Patient patient) returns Patient|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Patient", patient.toJson());
-
-            if result is string {
-                log:printInfo("Patient: POST - Execution Success!");
-                return patient;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-            }
-
-        } on fail error e {
-            log:printError("Error processing patient: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid patient data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Patient", patient.toJson());
+        if result is any {
+            return <Patient>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Patient patient) returns Patient|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Patient", id, patient.toJson());
-
-            if result is string {
-                log:printInfo("Patient: PUT - Execution Success!");
-                return patient;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Patient/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update Patient/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Patient/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Patient", id, patient.toJson());
+        if result is any {
+            return <Patient>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9156,23 +9485,39 @@ service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverage
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Coverage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Coverage", id);
+        if result is any {
+            return <Coverage>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Coverage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Coverage", id, vid);
+        if result is any {
+            return <Coverage>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Coverage coverage) returns Coverage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Coverage", coverage.toJson());
+        if result is any {
+            return <Coverage>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Coverage coverage) returns Coverage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Coverage", id, coverage.toJson());
+        if result is any {
+            return <Coverage>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9206,23 +9551,39 @@ service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_co
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns QuestionnaireResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("QuestionnaireResponse", id);
+        if result is any {
+            return <QuestionnaireResponse>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns QuestionnaireResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("QuestionnaireResponse", id, vid);
+        if result is any {
+            return <QuestionnaireResponse>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, QuestionnaireResponse questionnaireresponse) returns QuestionnaireResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("QuestionnaireResponse", questionnaireresponse.toJson());
+        if result is any {
+            return <QuestionnaireResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, QuestionnaireResponse questionnaireresponse) returns QuestionnaireResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("QuestionnaireResponse", id, questionnaireresponse.toJson());
+        if result is any {
+            return <QuestionnaireResponse>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9256,23 +9617,39 @@ service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_a
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CoverageEligibilityRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("CoverageEligibilityRequest", id);
+        if result is any {
+            return <CoverageEligibilityRequest>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CoverageEligibilityRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CoverageEligibilityRequest", id, vid);
+        if result is any {
+            return <CoverageEligibilityRequest>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CoverageEligibilityRequest coverageeligibilityrequest) returns CoverageEligibilityRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("CoverageEligibilityRequest", coverageeligibilityrequest.toJson());
+        if result is any {
+            return <CoverageEligibilityRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, CoverageEligibilityRequest coverageeligibilityrequest) returns CoverageEligibilityRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("CoverageEligibilityRequest", id, coverageeligibilityrequest.toJson());
+        if result is any {
+            return <CoverageEligibilityRequest>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9306,23 +9683,39 @@ service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:nami
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns NamingSystem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("NamingSystem", id);
+        if result is any {
+            return <NamingSystem>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns NamingSystem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("NamingSystem", id, vid);
+        if result is any {
+            return <NamingSystem>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, NamingSystem namingsystem) returns NamingSystem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("NamingSystem", namingsystem.toJson());
+        if result is any {
+            return <NamingSystem>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, NamingSystem namingsystem) returns NamingSystem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("NamingSystem", id, namingsystem.toJson());
+        if result is any {
+            return <NamingSystem>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9356,23 +9749,39 @@ service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductUndesirableEffect|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductUndesirableEffect", id);
+        if result is any {
+            return <MedicinalProductUndesirableEffect>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductUndesirableEffect|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductUndesirableEffect", id, vid);
+        if result is any {
+            return <MedicinalProductUndesirableEffect>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductUndesirableEffect medicinalproductundesirableeffect) returns MedicinalProductUndesirableEffect|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductUndesirableEffect", medicinalproductundesirableeffect.toJson());
+        if result is any {
+            return <MedicinalProductUndesirableEffect>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductUndesirableEffect medicinalproductundesirableeffect) returns MedicinalProductUndesirableEffect|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductUndesirableEffect", id, medicinalproductundesirableeffect.toJson());
+        if result is any {
+            return <MedicinalProductUndesirableEffect>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9406,23 +9815,39 @@ service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:e
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ExampleScenario|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ExampleScenario", id);
+        if result is any {
+            return <ExampleScenario>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ExampleScenario|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ExampleScenario", id, vid);
+        if result is any {
+            return <ExampleScenario>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ExampleScenario examplescenario) returns ExampleScenario|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ExampleScenario", examplescenario.toJson());
+        if result is any {
+            return <ExampleScenario>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ExampleScenario examplescenario) returns ExampleScenario|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ExampleScenario", id, examplescenario.toJson());
+        if result is any {
+            return <ExampleScenario>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9456,23 +9881,39 @@ service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:su
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SupplyDelivery|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("SupplyDelivery", id);
+        if result is any {
+            return <SupplyDelivery>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SupplyDelivery|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SupplyDelivery", id, vid);
+        if result is any {
+            return <SupplyDelivery>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SupplyDelivery supplydelivery) returns SupplyDelivery|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("SupplyDelivery", supplydelivery.toJson());
+        if result is any {
+            return <SupplyDelivery>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, SupplyDelivery supplydelivery) returns SupplyDelivery|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("SupplyDelivery", id, supplydelivery.toJson());
+        if result is any {
+            return <SupplyDelivery>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9506,23 +9947,39 @@ service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:schedule
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Schedule|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Schedule", id);
+        if result is any {
+            return <Schedule>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Schedule|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Schedule", id, vid);
+        if result is any {
+            return <Schedule>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Schedule schedule) returns Schedule|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Schedule", schedule.toJson());
+        if result is any {
+            return <Schedule>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Schedule schedule) returns Schedule|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Schedule", id, schedule.toJson());
+        if result is any {
+            return <Schedule>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9556,23 +10013,39 @@ service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DeviceDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("DeviceDefinition", id);
+        if result is any {
+            return <DeviceDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns DeviceDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("DeviceDefinition", id, vid);
+        if result is any {
+            return <DeviceDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DeviceDefinition devicedefinition) returns DeviceDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("DeviceDefinition", devicedefinition.toJson());
+        if result is any {
+            return <DeviceDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, DeviceDefinition devicedefinition) returns DeviceDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("DeviceDefinition", id, devicedefinition.toJson());
+        if result is any {
+            return <DeviceDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9606,23 +10079,39 @@ service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_confi
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ClinicalImpression|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("ClinicalImpression", id);
+        if result is any {
+            return <ClinicalImpression>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns ClinicalImpression|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("ClinicalImpression", id, vid);
+        if result is any {
+            return <ClinicalImpression>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ClinicalImpression clinicalimpression) returns ClinicalImpression|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("ClinicalImpression", clinicalimpression.toJson());
+        if result is any {
+            return <ClinicalImpression>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, ClinicalImpression clinicalimpression) returns ClinicalImpression|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("ClinicalImpression", id, clinicalimpression.toJson());
+        if result is any {
+            return <ClinicalImpression>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9656,23 +10145,39 @@ service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:pl
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PlanDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("PlanDefinition", id);
+        if result is any {
+            return <PlanDefinition>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns PlanDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("PlanDefinition", id, vid);
+        if result is any {
+            return <PlanDefinition>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PlanDefinition plandefinition) returns PlanDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("PlanDefinition", plandefinition.toJson());
+        if result is any {
+            return <PlanDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, PlanDefinition plandefinition) returns PlanDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("PlanDefinition", id, plandefinition.toJson());
+        if result is any {
+            return <PlanDefinition>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9706,23 +10211,39 @@ service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductAuthorization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("MedicinalProductAuthorization", id);
+        if result is any {
+            return <MedicinalProductAuthorization>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns MedicinalProductAuthorization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("MedicinalProductAuthorization", id, vid);
+        if result is any {
+            return <MedicinalProductAuthorization>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductAuthorization medicinalproductauthorization) returns MedicinalProductAuthorization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("MedicinalProductAuthorization", medicinalproductauthorization.toJson());
+        if result is any {
+            return <MedicinalProductAuthorization>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, MedicinalProductAuthorization medicinalproductauthorization) returns MedicinalProductAuthorization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("MedicinalProductAuthorization", id, medicinalproductauthorization.toJson());
+        if result is any {
+            return <MedicinalProductAuthorization>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9756,23 +10277,39 @@ service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiCon
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Claim|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Claim", id);
+        if result is any {
+            return <Claim>result;
+        }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Claim|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Claim", id, vid);
+        if result is any {
+            return <Claim>result;
+        }
+        return result;
     }
 
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Claim claim) returns Claim|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Claim", claim.toJson());
+        if result is any {
+            return <Claim>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Claim claim) returns Claim|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Claim", id, claim.toJson());
+        if result is any {
+            return <Claim>result;
+        }
+        return result;
     }
 
     // Update the current state of a resource partially.
@@ -9806,93 +10343,38 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Location|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:ReadHandler readHandler = new handlers:ReadHandler();
-            json|error result = readHandler.readResource(jdbcClient, "Location", id);
-
-            if result is json {
-                log:printInfo("Location: READ - Execution Success!");
-                international401:Location location = check fhirParser:parse(result).ensureType();
-                return location;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Database fetch failed: " + errorMsg);
-
-                return r4:createFHIRError("Failed to fetch location. ", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing location: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid location data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Location", id);
+        if result is any {
+            return <Location>result;
         }
+        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Location|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Location", id, vid);
+        if result is any {
+            return <Location>result;
+        }
+        return result;
     }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Location location) returns Location|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:CreateHandler createHandler = new handlers:CreateHandler(jdbcClient);
-            string|error? result = createHandler.saveResourceWithTransaction("Location", location.toJson());
-
-            if result is string {
-                log:printInfo("Location: POST - Execution Success!");
-                return location;
-            } else {
-                string errorMsg = "";
-                if (result is error) {
-                    errorMsg = result.message();
-                }
-                log:printError("Resource save failed: " + errorMsg);
-
-                // Check if resource already exists (duplicate ID)
-                if errorMsg.includes("already exists") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_CONFLICT);
-                }
-
-                // Check if error is related to invalid references (validation failure)
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                // Otherwise it's a server/database error
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError("Error processing location: " + e.message());
-            return r4:createFHIRError(
-                    "Invalid location data: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Location", location.toJson());
+        if result is any {
+            return <Location>result;
         }
+        return result;
     }
 
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Location location) returns Location|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            string|error result = updateHandler.updateResourceWithTransaction("Location", id, location.toJson());
-
-            if result is string {
-                log:printInfo("Location: PUT - Execution Success!");
-                return location;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Update failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to update Location/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error updating Location/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Update operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Location", id, location.toJson());
+        if result is any {
+            return <Location>result;
         }
+        return result;
     }
 
     // Update the current state of a resource partially.
