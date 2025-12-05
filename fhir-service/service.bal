@@ -738,27 +738,11 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Account|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Account", id, patch);
-
-            if result is json {
-                log:printInfo("Account: PATCH - Execution Success!");
-                Account account = check fhirParser:parse(result).ensureType();
-                return account;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Patch failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch Account/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError(string `Error patching Account/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Account", id, patch);
+        if result is any {
+            return <Account>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -823,25 +807,11 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Invoice|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Invoice", id, patch);
-            if result is json {
-                log:printInfo("Invoice: PATCH - Execution Success!");
-                Invoice invoice = check fhirParser:parse(result).ensureType();
-                return invoice;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Patch failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch Invoice/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Invoice/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Invoice", id, patch);
+        if result is any {
+            return <Invoice>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -906,25 +876,11 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CatalogEntry|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("CatalogEntry", id, patch);
-            if result is json {
-                log:printInfo("CatalogEntry: PATCH - Execution Success!");
-                CatalogEntry catalogentry = check fhirParser:parse(result).ensureType();
-                return catalogentry;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Patch failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch CatalogEntry/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching CatalogEntry/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("CatalogEntry", id, patch);
+        if result is any {
+            return <CatalogEntry>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -989,25 +945,11 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EventDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("EventDefinition", id, patch);
-            if result is json {
-                log:printInfo("EventDefinition: PATCH - Execution Success!");
-                EventDefinition eventdefinition = check fhirParser:parse(result).ensureType();
-                return eventdefinition;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Patch failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch EventDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching EventDefinition/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("EventDefinition", id, patch);
+        if result is any {
+            return <EventDefinition>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -1072,25 +1014,11 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DocumentManifest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("DocumentManifest", id, patch);
-            if result is json {
-                log:printInfo("DocumentManifest: PATCH - Execution Success!");
-                DocumentManifest documentmanifest = check fhirParser:parse(result).ensureType();
-                return documentmanifest;
-            } else {
-                string errorMsg = result.message();
-                log:printError("Patch failed: " + errorMsg);
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch DocumentManifest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching DocumentManifest/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("DocumentManifest", id, patch);
+        if result is any {
+            return <DocumentManifest>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -1149,23 +1077,11 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MessageDefinition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("MessageDefinition", id, patch);
-            if result is json {
-                log:printInfo("MessageDefinition: PATCH - Execution Success!");
-                MessageDefinition messagedefinition = check fhirParser:parse(result).ensureType();
-                return messagedefinition;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch MessageDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MessageDefinition", id, patch);
+        if result is any {
+            return <MessageDefinition>result;
         }
+        return result;
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
@@ -1223,23 +1139,11 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Goal|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Goal", id, patch);
-            if result is json {
-                log:printInfo("Goal: PATCH - Execution Success!");
-                Goal goal = check fhirParser:parse(result).ensureType();
-                return goal;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch Goal/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Goal", id, patch);
+        if result is any {
+            return <Goal>result;
         }
+        return result;
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
@@ -1297,23 +1201,11 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductPackaged|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("MedicinalProductPackaged", id, patch);
-            if result is json {
-                log:printInfo("MedicinalProductPackaged: PATCH - Execution Success!");
-                MedicinalProductPackaged medicinalproductpackaged = check fhirParser:parse(result).ensureType();
-                return medicinalproductpackaged;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch MedicinalProductPackaged/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductPackaged", id, patch);
+        if result is any {
+            return <MedicinalProductPackaged>result;
         }
+        return result;
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
@@ -1371,23 +1263,11 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Endpoint|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Endpoint", id, patch);
-            if result is json {
-                log:printInfo("Endpoint: PATCH - Execution Success!");
-                Endpoint endpoint = check fhirParser:parse(result).ensureType();
-                return endpoint;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch Endpoint/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Endpoint", id, patch);
+        if result is any {
+            return <Endpoint>result;
         }
+        return result;
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
@@ -1445,23 +1325,11 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EnrollmentRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("EnrollmentRequest", id, patch);
-            if result is json {
-                log:printInfo("EnrollmentRequest: PATCH - Execution Success!");
-                EnrollmentRequest enrollmentrequest = check fhirParser:parse(result).ensureType();
-                return enrollmentrequest;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch EnrollmentRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("EnrollmentRequest", id, patch);
+        if result is any {
+            return <EnrollmentRequest>result;
         }
+        return result;
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
@@ -1519,23 +1387,11 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
     }
 
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Consent|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Consent", id, patch);
-            if result is json {
-                log:printInfo("Consent: PATCH - Execution Success!");
-                Consent consent = check fhirParser:parse(result).ensureType();
-                return consent;
-            } else {
-                string errorMsg = result.message();
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-                return r4:createFHIRError(string `Failed to patch Consent/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Consent", id, patch);
+        if result is any {
+            return <Consent>result;
         }
+        return result;
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
@@ -1600,7 +1456,11 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("CapabilityStatement", id, patch);
+        if result is any {
+            return <CapabilityStatement>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -1666,7 +1526,11 @@ service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureAp
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Measure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Measure", id, patch);
+        if result is any {
+            return <Measure>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -1731,38 +1595,11 @@ service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medica
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Medication|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Medication", id, patch);
-
-            if result is json {
-                log:printInfo(string `Medication: PATCH - Execution Success!`);
-                handlers:ReadHandler readHandler = new handlers:ReadHandler();
-                json|error updatedResource = readHandler.readResource(jdbcClient, "Medication", id);
-                
-                if updatedResource is json {
-                    Medication medication = check fhirParser:parse(updatedResource).ensureType();
-                    return medication;
-                } else {
-                    return r4:createFHIRError(string `Failed to read updated resource`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-                }
-            } else {
-                string errorMsg = "";
-                if result is error {
-                    errorMsg = result.message();
-                }
-                log:printError(string `Resource patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Medication: ${e.message()}`);
-            return r4:createFHIRError(string `Invalid Medication patch data: ${e.message()}`, r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Medication", id, patch);
+        if result is any {
+            return <Medication>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -1828,7 +1665,11 @@ service /fhir/r4/ResearchSubject on new fhirr4:Listener(config = r4_api_config:r
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ResearchSubject|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ResearchSubject", id, patch);
+        if result is any {
+            return <ResearchSubject>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -1894,7 +1735,11 @@ service /fhir/r4/Subscription on new fhirr4:Listener(config = r4_api_config:subs
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Subscription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Subscription", id, patch);
+        if result is any {
+            return <Subscription>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -1960,7 +1805,11 @@ service /fhir/r4/GraphDefinition on new fhirr4:Listener(config = r4_api_config:g
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns GraphDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("GraphDefinition", id, patch);
+        if result is any {
+            return <GraphDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2026,7 +1875,11 @@ service /fhir/r4/DocumentReference on new fhirr4:Listener(config = r4_api_config
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DocumentReference|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("DocumentReference", id, patch);
+        if result is any {
+            return <DocumentReference>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2092,7 +1945,11 @@ service /fhir/r4/Parameters on new fhirr4:Listener(config = r4_api_config:parame
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Parameters|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Parameters", id, patch);
+        if result is any {
+            return <Parameters>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2158,7 +2015,11 @@ service /fhir/r4/CoverageEligibilityResponse on new fhirr4:Listener(config = r4_
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CoverageEligibilityResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("CoverageEligibilityResponse", id, patch);
+        if result is any {
+            return <CoverageEligibilityResponse>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2224,7 +2085,11 @@ service /fhir/r4/MeasureReport on new fhirr4:Listener(config = r4_api_config:mea
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MeasureReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MeasureReport", id, patch);
+        if result is any {
+            return <MeasureReport>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2290,7 +2155,11 @@ service /fhir/r4/SubstanceReferenceInformation on new fhirr4:Listener(config = r
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SubstanceReferenceInformation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SubstanceReferenceInformation", id, patch);
+        if result is any {
+            return <SubstanceReferenceInformation>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2355,28 +2224,11 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("PractitionerRole", id, patch);
-
-            if result is json {
-                log:printInfo("PractitionerRole: PATCH - Execution Success!");
-                PractitionerRole practitionerrole = check fhirParser:parse(result).ensureType();
-                return practitionerrole;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch PractitionerRole/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching PractitionerRole/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("PractitionerRole", id, patch);
+        if result is any {
+            return <PractitionerRole>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -2441,28 +2293,11 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("RelatedPerson", id, patch);
-
-            if result is json {
-                log:printInfo("RelatedPerson: PATCH - Execution Success!");
-                RelatedPerson relatedperson = check fhirParser:parse(result).ensureType();
-                return relatedperson;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch RelatedPerson/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching RelatedPerson/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("RelatedPerson", id, patch);
+        if result is any {
+            return <RelatedPerson>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -2527,28 +2362,11 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("ServiceRequest", id, patch);
-
-            if result is json {
-                log:printInfo("ServiceRequest: PATCH - Execution Success!");
-                ServiceRequest servicerequest = check fhirParser:parse(result).ensureType();
-                return servicerequest;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch ServiceRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching ServiceRequest/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ServiceRequest", id, patch);
+        if result is any {
+            return <ServiceRequest>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -2614,7 +2432,11 @@ service /fhir/r4/SupplyRequest on new fhirr4:Listener(config = r4_api_config:sup
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SupplyRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SupplyRequest", id, patch);
+        if result is any {
+            return <SupplyRequest>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2679,28 +2501,11 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Practitioner", id, patch);
-
-            if result is json {
-                log:printInfo("Practitioner: PATCH - Execution Success!");
-                Practitioner practitioner = check fhirParser:parse(result).ensureType();
-                return practitioner;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch Practitioner/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Practitioner/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Practitioner", id, patch);
+        if result is any {
+            return <Practitioner>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -2766,7 +2571,11 @@ service /fhir/r4/VerificationResult on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns VerificationResult|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("VerificationResult", id, patch);
+        if result is any {
+            return <VerificationResult>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2832,7 +2641,11 @@ service /fhir/r4/SubstanceProtein on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SubstanceProtein|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SubstanceProtein", id, patch);
+        if result is any {
+            return <SubstanceProtein>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2898,7 +2711,11 @@ service /fhir/r4/BodyStructure on new fhirr4:Listener(config = r4_api_config:bod
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns BodyStructure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("BodyStructure", id, patch);
+        if result is any {
+            return <BodyStructure>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -2963,28 +2780,11 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Slot|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Slot", id, patch);
-
-            if result is json {
-                log:printInfo("Slot: PATCH - Execution Success!");
-                Slot slot = check fhirParser:parse(result).ensureType();
-                return slot;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch Slot/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Slot/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Slot", id, patch);
+        if result is any {
+            return <Slot>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -3050,7 +2850,11 @@ service /fhir/r4/Contract on new fhirr4:Listener(config = r4_api_config:contract
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Contract|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Contract", id, patch);
+        if result is any {
+            return <Contract>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3116,7 +2920,11 @@ service /fhir/r4/Person on new fhirr4:Listener(config = r4_api_config:personApiC
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Person|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Person", id, patch);
+        if result is any {
+            return <Person>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3182,7 +2990,11 @@ service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:ri
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns RiskAssessment|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("RiskAssessment", id, patch);
+        if result is any {
+            return <RiskAssessment>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3248,7 +3060,11 @@ service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiCon
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Group|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Group", id, patch);
+        if result is any {
+            return <Group>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3314,7 +3130,11 @@ service /fhir/r4/ResearchDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ResearchDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ResearchDefinition", id, patch);
+        if result is any {
+            return <ResearchDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3380,7 +3200,11 @@ service /fhir/r4/PaymentNotice on new fhirr4:Listener(config = r4_api_config:pay
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns PaymentNotice|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("PaymentNotice", id, patch);
+        if result is any {
+            return <PaymentNotice>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3446,7 +3270,11 @@ service /fhir/r4/MedicinalProductManufactured on new fhirr4:Listener(config = r4
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductManufactured|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductManufactured", id, patch);
+        if result is any {
+            return <MedicinalProductManufactured>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3512,7 +3340,11 @@ service /fhir/r4/Organization on new fhirr4:Listener(config = r4_api_config:orga
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Organization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Organization", id, patch);
+        if result is any {
+            return <Organization>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3578,7 +3410,11 @@ service /fhir/r4/ImplementationGuide on new fhirr4:Listener(config = r4_api_conf
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ImplementationGuide|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ImplementationGuide", id, patch);
+        if result is any {
+            return <ImplementationGuide>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3644,7 +3480,11 @@ service /fhir/r4/CareTeam on new fhirr4:Listener(config = r4_api_config:careteam
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CareTeam|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("CareTeam", id, patch);
+        if result is any {
+            return <CareTeam>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3710,7 +3550,11 @@ service /fhir/r4/ImagingStudy on new fhirr4:Listener(config = r4_api_config:imag
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ImagingStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ImagingStudy", id, patch);
+        if result is any {
+            return <ImagingStudy>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3776,7 +3620,11 @@ service /fhir/r4/FamilyMemberHistory on new fhirr4:Listener(config = r4_api_conf
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns FamilyMemberHistory|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("FamilyMemberHistory", id, patch);
+        if result is any {
+            return <FamilyMemberHistory>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3842,7 +3690,11 @@ service /fhir/r4/ChargeItem on new fhirr4:Listener(config = r4_api_config:charge
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ChargeItem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ChargeItem", id, patch);
+        if result is any {
+            return <ChargeItem>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3908,7 +3760,11 @@ service /fhir/r4/ResearchElementDefinition on new fhirr4:Listener(config = r4_ap
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ResearchElementDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ResearchElementDefinition", id, patch);
+        if result is any {
+            return <ResearchElementDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -3974,7 +3830,11 @@ service /fhir/r4/ObservationDefinition on new fhirr4:Listener(config = r4_api_co
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ObservationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ObservationDefinition", id, patch);
+        if result is any {
+            return <ObservationDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4040,7 +3900,11 @@ service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_c
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SubstanceSpecification|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SubstanceSpecification", id, patch);
+        if result is any {
+            return <SubstanceSpecification>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4102,7 +3966,11 @@ service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encount
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Encounter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Encounter", id, patch);
+        if result is any {
+            return <Encounter>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4168,7 +4036,11 @@ service /fhir/r4/Substance on new fhirr4:Listener(config = r4_api_config:substan
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Substance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Substance", id, patch);
+        if result is any {
+            return <Substance>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4234,7 +4106,11 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SearchParameter", id, patch);
+        if result is any {
+            return <SearchParameter>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4300,7 +4176,11 @@ service /fhir/r4/Communication on new fhirr4:Listener(config = r4_api_config:com
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Communication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Communication", id, patch);
+        if result is any {
+            return <Communication>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4366,7 +4246,11 @@ service /fhir/r4/InsurancePlan on new fhirr4:Listener(config = r4_api_config:ins
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns InsurancePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("InsurancePlan", id, patch);
+        if result is any {
+            return <InsurancePlan>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4432,7 +4316,11 @@ service /fhir/r4/ActivityDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ActivityDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ActivityDefinition", id, patch);
+        if result is any {
+            return <ActivityDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4498,7 +4386,11 @@ service /fhir/r4/Linkage on new fhirr4:Listener(config = r4_api_config:linkageAp
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Linkage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Linkage", id, patch);
+        if result is any {
+            return <Linkage>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4564,7 +4456,11 @@ service /fhir/r4/SubstanceSourceMaterial on new fhirr4:Listener(config = r4_api_
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SubstanceSourceMaterial|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SubstanceSourceMaterial", id, patch);
+        if result is any {
+            return <SubstanceSourceMaterial>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4630,7 +4526,11 @@ service /fhir/r4/ImmunizationEvaluation on new fhirr4:Listener(config = r4_api_c
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ImmunizationEvaluation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ImmunizationEvaluation", id, patch);
+        if result is any {
+            return <ImmunizationEvaluation>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4696,7 +4596,11 @@ service /fhir/r4/DeviceUseStatement on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DeviceUseStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("DeviceUseStatement", id, patch);
+        if result is any {
+            return <DeviceUseStatement>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4762,7 +4666,11 @@ service /fhir/r4/RequestGroup on new fhirr4:Listener(config = r4_api_config:requ
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns RequestGroup|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("RequestGroup", id, patch);
+        if result is any {
+            return <RequestGroup>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4828,7 +4736,11 @@ service /fhir/r4/MessageHeader on new fhirr4:Listener(config = r4_api_config:mes
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MessageHeader|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MessageHeader", id, patch);
+        if result is any {
+            return <MessageHeader>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4894,7 +4806,11 @@ service /fhir/r4/DeviceRequest on new fhirr4:Listener(config = r4_api_config:dev
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DeviceRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("DeviceRequest", id, patch);
+        if result is any {
+            return <DeviceRequest>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -4959,28 +4875,11 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("ImmunizationRecommendation", id, patch);
-
-            if result is json {
-                log:printInfo("ImmunizationRecommendation: PATCH - Execution Success!");
-                ImmunizationRecommendation immunizationrecommendation = check fhirParser:parse(result).ensureType();
-                return immunizationrecommendation;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch ImmunizationRecommendation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching ImmunizationRecommendation/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ImmunizationRecommendation", id, patch);
+        if result is any {
+            return <ImmunizationRecommendation>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -5046,7 +4945,11 @@ service /fhir/r4/Task on new fhirr4:Listener(config = r4_api_config:taskApiConfi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Task|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Task", id, patch);
+        if result is any {
+            return <Task>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5112,7 +5015,11 @@ service /fhir/r4/Provenance on new fhirr4:Listener(config = r4_api_config:proven
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Provenance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Provenance", id, patch);
+        if result is any {
+            return <Provenance>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5178,7 +5085,11 @@ service /fhir/r4/Questionnaire on new fhirr4:Listener(config = r4_api_config:que
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Questionnaire|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Questionnaire", id, patch);
+        if result is any {
+            return <Questionnaire>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5244,7 +5155,11 @@ service /fhir/r4/ExplanationOfBenefit on new fhirr4:Listener(config = r4_api_con
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ExplanationOfBenefit", id, patch);
+        if result is any {
+            return <ExplanationOfBenefit>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5310,7 +5225,11 @@ service /fhir/r4/MedicinalProductPharmaceutical on new fhirr4:Listener(config = 
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductPharmaceutical|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductPharmaceutical", id, patch);
+        if result is any {
+            return <MedicinalProductPharmaceutical>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5376,7 +5295,11 @@ service /fhir/r4/ResearchStudy on new fhirr4:Listener(config = r4_api_config:res
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ResearchStudy|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ResearchStudy", id, patch);
+        if result is any {
+            return <ResearchStudy>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5442,7 +5365,11 @@ service /fhir/r4/Specimen on new fhirr4:Listener(config = r4_api_config:specimen
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Specimen|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Specimen", id, patch);
+        if result is any {
+            return <Specimen>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5508,7 +5435,11 @@ service /fhir/r4/CarePlan on new fhirr4:Listener(config = r4_api_config:careplan
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CarePlan|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("CarePlan", id, patch);
+        if result is any {
+            return <CarePlan>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5574,7 +5505,11 @@ service /fhir/r4/AllergyIntolerance on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns AllergyIntolerance|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("AllergyIntolerance", id, patch);
+        if result is any {
+            return <AllergyIntolerance>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5640,7 +5575,11 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("StructureDefinition", id, patch);
+        if result is any {
+            return <StructureDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5706,7 +5645,11 @@ service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_con
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ChargeItemDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ChargeItemDefinition", id, patch);
+        if result is any {
+            return <ChargeItemDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5772,7 +5715,11 @@ service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:epi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EpisodeOfCare|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("EpisodeOfCare", id, patch);
+        if result is any {
+            return <EpisodeOfCare>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5837,28 +5784,11 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Procedure|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Procedure", id, patch);
-
-            if result is json {
-                log:printInfo("Procedure: PATCH - Execution Success!");
-                Procedure procedure = check fhirParser:parse(result).ensureType();
-                return procedure;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch Procedure/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Procedure/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Procedure", id, patch);
+        if result is any {
+            return <Procedure>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -5924,7 +5854,11 @@ service /fhir/r4/List on new fhirr4:Listener(config = r4_api_config:listApiConfi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns List|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("List", id, patch);
+        if result is any {
+            return <List>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -5990,7 +5924,11 @@ service /fhir/r4/ConceptMap on new fhirr4:Listener(config = r4_api_config:concep
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ConceptMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ConceptMap", id, patch);
+        if result is any {
+            return <ConceptMap>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6056,7 +5994,11 @@ service /fhir/r4/OperationDefinition on new fhirr4:Listener(config = r4_api_conf
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns OperationDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("OperationDefinition", id, patch);
+        if result is any {
+            return <OperationDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6122,7 +6064,11 @@ service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immu
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Immunization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Immunization", id, patch);
+        if result is any {
+            return <Immunization>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6188,7 +6134,11 @@ service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicationRequest", id, patch);
+        if result is any {
+            return <MedicationRequest>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6254,7 +6204,11 @@ service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EffectEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("EffectEvidenceSynthesis", id, patch);
+        if result is any {
+            return <EffectEvidenceSynthesis>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6320,7 +6274,11 @@ service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_a
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns BiologicallyDerivedProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("BiologicallyDerivedProduct", id, patch);
+        if result is any {
+            return <BiologicallyDerivedProduct>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6385,28 +6343,11 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Device|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Device", id, patch);
-
-            if result is json {
-                log:printInfo("Device: PATCH - Execution Success!");
-                Device device = check fhirParser:parse(result).ensureType();
-                return device;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch Device/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Device/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Device", id, patch);
+        if result is any {
+            return <Device>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -6472,7 +6413,11 @@ service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns VisionPrescription|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("VisionPrescription", id, patch);
+        if result is any {
+            return <VisionPrescription>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6538,7 +6483,11 @@ service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiCon
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Media|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Media", id, patch);
+        if result is any {
+            return <Media>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6604,7 +6553,11 @@ service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config 
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductContraindication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductContraindication", id, patch);
+        if result is any {
+            return <MedicinalProductContraindication>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6670,7 +6623,11 @@ service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EvidenceVariable|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("EvidenceVariable", id, patch);
+        if result is any {
+            return <EvidenceVariable>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6736,7 +6693,11 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MolecularSequence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MolecularSequence", id, patch);
+        if result is any {
+            return <MolecularSequence>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6802,7 +6763,11 @@ service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProduct|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProduct", id, patch);
+        if result is any {
+            return <MedicinalProduct>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6868,7 +6833,11 @@ service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DeviceMetric|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("DeviceMetric", id, patch);
+        if result is any {
+            return <DeviceMetric>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -6934,7 +6903,11 @@ service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Flag|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Flag", id, patch);
+        if result is any {
+            return <Flag>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7000,7 +6973,11 @@ service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_con
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SubstanceNucleicAcid|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SubstanceNucleicAcid", id, patch);
+        if result is any {
+            return <SubstanceNucleicAcid>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7066,7 +7043,11 @@ service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_co
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns RiskEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("RiskEvidenceSynthesis", id, patch);
+        if result is any {
+            return <RiskEvidenceSynthesis>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7132,7 +7113,11 @@ service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_conf
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns AppointmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("AppointmentResponse", id, patch);
+        if result is any {
+            return <AppointmentResponse>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7198,7 +7183,11 @@ service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:stru
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns StructureMap|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("StructureMap", id, patch);
+        if result is any {
+            return <StructureMap>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7264,7 +7253,11 @@ service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adve
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns AdverseEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("AdverseEvent", id, patch);
+        if result is any {
+            return <AdverseEvent>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7330,7 +7323,11 @@ service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns GuidanceResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("GuidanceResponse", id, patch);
+        if result is any {
+            return <GuidanceResponse>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7395,28 +7392,11 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Observation|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Observation", id, patch);
-
-            if result is json {
-                log:printInfo("Observation: PATCH - Execution Success!");
-                Observation observation = check fhirParser:parse(result).ensureType();
-                return observation;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch Observation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Observation/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Observation", id, patch);
+        if result is any {
+            return <Observation>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -7482,7 +7462,11 @@ service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicationAdministration|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicationAdministration", id, patch);
+        if result is any {
+            return <MedicationAdministration>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7548,7 +7532,11 @@ service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns EnrollmentResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("EnrollmentResponse", id, patch);
+        if result is any {
+            return <EnrollmentResponse>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7614,7 +7602,11 @@ service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryAp
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Library|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Library", id, patch);
+        if result is any {
+            return <Library>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7680,7 +7672,11 @@ service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiC
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Binary|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Binary", id, patch);
+        if result is any {
+            return <Binary>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7746,7 +7742,11 @@ service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductInteraction|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductInteraction", id, patch);
+        if result is any {
+            return <MedicinalProductInteraction>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7812,7 +7812,11 @@ service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicationStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicationStatement", id, patch);
+        if result is any {
+            return <MedicationStatement>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7878,7 +7882,11 @@ service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_con
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CommunicationRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("CommunicationRequest", id, patch);
+        if result is any {
+            return <CommunicationRequest>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -7944,7 +7952,11 @@ service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testsc
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns TestScript|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("TestScript", id, patch);
+        if result is any {
+            return <TestScript>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8010,7 +8022,11 @@ service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SubstancePolymer|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SubstancePolymer", id, patch);
+        if result is any {
+            return <SubstancePolymer>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8076,7 +8092,11 @@ service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiCon
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Basic|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Basic", id, patch);
+        if result is any {
+            return <Basic>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8142,7 +8162,11 @@ service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testre
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns TestReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("TestReport", id, patch);
+        if result is any {
+            return <TestReport>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8208,7 +8232,11 @@ service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:cla
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ClaimResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ClaimResponse", id, patch);
+        if result is any {
+            return <ClaimResponse>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8274,7 +8302,11 @@ service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicationDispense|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicationDispense", id, patch);
+        if result is any {
+            return <MedicationDispense>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8340,7 +8372,11 @@ service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DiagnosticReport|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("DiagnosticReport", id, patch);
+        if result is any {
+            return <DiagnosticReport>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8406,7 +8442,11 @@ service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns OrganizationAffiliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("OrganizationAffiliation", id, patch);
+        if result is any {
+            return <OrganizationAffiliation>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8471,28 +8511,11 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("HealthcareService", id, patch);
-
-            if result is json {
-                log:printInfo("HealthcareService: PATCH - Execution Success!");
-                HealthcareService healthcareservice = check fhirParser:parse(result).ensureType();
-                return healthcareservice;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch HealthcareService/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching HealthcareService/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("HealthcareService", id, patch);
+        if result is any {
+            return <HealthcareService>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -8558,7 +8581,11 @@ service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_a
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductIndication|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductIndication", id, patch);
+        if result is any {
+            return <MedicinalProductIndication>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8624,7 +8651,11 @@ service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nu
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns NutritionOrder|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("NutritionOrder", id, patch);
+        if result is any {
+            return <NutritionOrder>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8690,7 +8721,11 @@ service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns TerminologyCapabilities|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("TerminologyCapabilities", id, patch);
+        if result is any {
+            return <TerminologyCapabilities>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8756,7 +8791,11 @@ service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidence
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Evidence|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Evidence", id, patch);
+        if result is any {
+            return <Evidence>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8822,7 +8861,11 @@ service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:audite
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns AuditEvent|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("AuditEvent", id, patch);
+        if result is any {
+            return <AuditEvent>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8888,7 +8931,11 @@ service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_co
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns PaymentReconciliation|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("PaymentReconciliation", id, patch);
+        if result is any {
+            return <PaymentReconciliation>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -8953,28 +9000,11 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Condition|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Condition", id, patch);
-
-            if result is json {
-                log:printInfo("Condition: PATCH - Execution Success!");
-                Condition condition = check fhirParser:parse(result).ensureType();
-                return condition;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch Condition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Condition/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Condition", id, patch);
+        if result is any {
+            return <Condition>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -9040,7 +9070,11 @@ service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SpecimenDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SpecimenDefinition", id, patch);
+        if result is any {
+            return <SpecimenDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9106,7 +9140,11 @@ service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compo
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Composition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Composition", id, patch);
+        if result is any {
+            return <Composition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9172,7 +9210,11 @@ service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:det
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DetectedIssue|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("DetectedIssue", id, patch);
+        if result is any {
+            return <DetectedIssue>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9238,7 +9280,11 @@ service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_co
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CompartmentDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("CompartmentDefinition", id, patch);
+        if result is any {
+            return <CompartmentDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9304,7 +9350,11 @@ service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_a
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductIngredient|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductIngredient", id, patch);
+        if result is any {
+            return <MedicinalProductIngredient>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9370,7 +9420,11 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicationKnowledge|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicationKnowledge", id, patch);
+        if result is any {
+            return <MedicationKnowledge>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9435,28 +9489,11 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Patient|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Patient", id, patch);
-
-            if result is json {
-                log:printInfo("Patient: PATCH - Execution Success!");
-                Patient patient = check fhirParser:parse(result).ensureType();
-                return patient;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch Patient/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Patient/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Patient", id, patch);
+        if result is any {
+            return <Patient>result;
         }
+        return result;
     }
 
     // Delete a resource.
@@ -9522,7 +9559,11 @@ service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverage
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Coverage|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Coverage", id, patch);
+        if result is any {
+            return <Coverage>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9588,7 +9629,11 @@ service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_co
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns QuestionnaireResponse|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("QuestionnaireResponse", id, patch);
+        if result is any {
+            return <QuestionnaireResponse>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9654,7 +9699,11 @@ service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_a
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns CoverageEligibilityRequest|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("CoverageEligibilityRequest", id, patch);
+        if result is any {
+            return <CoverageEligibilityRequest>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9720,7 +9769,11 @@ service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:nami
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns NamingSystem|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("NamingSystem", id, patch);
+        if result is any {
+            return <NamingSystem>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9786,7 +9839,11 @@ service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductUndesirableEffect|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductUndesirableEffect", id, patch);
+        if result is any {
+            return <MedicinalProductUndesirableEffect>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9852,7 +9909,11 @@ service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:e
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ExampleScenario|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ExampleScenario", id, patch);
+        if result is any {
+            return <ExampleScenario>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9918,7 +9979,11 @@ service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:su
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns SupplyDelivery|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("SupplyDelivery", id, patch);
+        if result is any {
+            return <SupplyDelivery>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -9984,7 +10049,11 @@ service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:schedule
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Schedule|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Schedule", id, patch);
+        if result is any {
+            return <Schedule>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -10050,7 +10119,11 @@ service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns DeviceDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("DeviceDefinition", id, patch);
+        if result is any {
+            return <DeviceDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -10116,7 +10189,11 @@ service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_confi
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns ClinicalImpression|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("ClinicalImpression", id, patch);
+        if result is any {
+            return <ClinicalImpression>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -10182,7 +10259,11 @@ service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:pl
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns PlanDefinition|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("PlanDefinition", id, patch);
+        if result is any {
+            return <PlanDefinition>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -10248,7 +10329,11 @@ service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns MedicinalProductAuthorization|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("MedicinalProductAuthorization", id, patch);
+        if result is any {
+            return <MedicinalProductAuthorization>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -10314,7 +10399,11 @@ service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiCon
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Claim|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Claim", id, patch);
+        if result is any {
+            return <Claim>result;
+        }
+        return result;
     }
 
     // Delete a resource.
@@ -10379,28 +10468,11 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Location|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:UpdateHandler updateHandler = new handlers:UpdateHandler(jdbcClient);
-            json|error result = updateHandler.patchResourceWithTransaction("Location", id, patch);
-
-            if result is json {
-                log:printInfo("Location: PATCH - Execution Success!");
-                Location location = check fhirParser:parse(result).ensureType();
-                return location;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Patch failed: ${errorMsg}`);
-
-                if errorMsg.includes("does not exist") || errorMsg.includes("Invalid reference") {
-                    return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
-                }
-
-                return r4:createFHIRError(string `Failed to patch Location/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error patching Location/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Patch operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+        any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Location", id, patch);
+        if result is any {
+            return <Location>result;
         }
+        return result;
     }
 
     // Delete a resource.
