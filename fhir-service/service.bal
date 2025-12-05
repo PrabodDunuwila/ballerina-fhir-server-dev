@@ -402,6 +402,74 @@ isolated function performResourceDelete(string resourceType, string id) returns 
     }
 }
 
+// Utility function to handle resource history retrieval for a specific resource ID
+isolated function performResourceHistory(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: History - Start Execution for ID: ${id}`);
+    do {
+        handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+        json[]|error result = historyHandler.getResourceHistory(resourceType, id);
+
+        if result is json[] {
+            r4:BundleEntry[] entries = [];
+            foreach json res in result {
+                r4:BundleEntry entry = {'resource: res};
+                entries.push(entry);
+            }
+
+            r4:Bundle bundle = {
+                resourceType: "Bundle",
+                'type: "history",
+                total: entries.length(),
+                entry: entries
+            };
+
+            log:printInfo(string `Retrieved ${entries.length()} versions for ${resourceType}/${id}`);
+            return bundle;
+        } else {
+            string errorMsg = result.message();
+            log:printError(string `Failed to retrieve history: ${errorMsg}`);
+            return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+    } on fail error e {
+        log:printError(string `Error retrieving ${resourceType}/${id}/_history: ${e.message()}`);
+        return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+}
+
+// Utility function to handle all resource history retrieval for a resource type
+isolated function performAllResourceHistory(string resourceType) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: All History - Start Execution`);
+    do {
+        handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
+        json[]|error result = historyHandler.getAllHistory(resourceType);
+
+        if result is json[] {
+            r4:BundleEntry[] entries = [];
+            foreach json res in result {
+                r4:BundleEntry entry = {'resource: res};
+                entries.push(entry);
+            }
+
+            r4:Bundle bundle = {
+                resourceType: "Bundle",
+                'type: "history",
+                total: entries.length(),
+                entry: entries
+            };
+
+            log:printInfo(string `Retrieved ${entries.length()} total history entries for ${resourceType}`);
+            return bundle;
+        } else {
+            string errorMsg = result.message();
+            log:printError(string `Failed to retrieve all history: ${errorMsg}`);
+            return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+    } on fail error e {
+        log:printError(string `Error retrieving ${resourceType}/_history: ${e.message()}`);
+        return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+}
+
 // // # Appointment API                                                                                                          #
 // 
 service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appointmentApiConfig) {
@@ -576,68 +644,12 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error result = historyHandler.getResourceHistory("Appointment", id);
-
-            if result is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json res in result {
-                    r4:BundleEntry entry = {'resource: res};
-                    entries.push(entry);
-                }
-
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    total: entries.length(),
-                    entry: entries
-                };
-
-                log:printInfo(string `Retrieved ${entries.length()} versions for Appointment/${id}`);
-                return bundle;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Failed to retrieve history: ${errorMsg}`);
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error retrieving Appointment/${id}/_history: ${e.message()}`);
-            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
-        }
+        return performResourceHistory("Appointment", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error result = historyHandler.getAllHistory("Appointment");
-
-            if result is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json res in result {
-                    r4:BundleEntry entry = {'resource: res};
-                    entries.push(entry);
-                }
-
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    total: entries.length(),
-                    entry: entries
-                };
-
-                log:printInfo(string `Retrieved ${entries.length()} total Appointment history entries`);
-                return bundle;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Failed to retrieve all history: ${errorMsg}`);
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error retrieving Appointment/_history: ${e.message()}`);
-            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
-        }
+        return performAllResourceHistory("Appointment");
     }
 }
 
@@ -770,34 +782,12 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Account", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("Account", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Account");
     }
 }
 
@@ -920,34 +910,12 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Invoice", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("Invoice", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Invoice");
     }
 }
 
@@ -1070,34 +1038,12 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("CatalogEntry", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("CatalogEntry", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CatalogEntry");
     }
 }
 
@@ -1220,34 +1166,12 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("EventDefinition", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("EventDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("EventDefinition");
     }
 }
 
@@ -1370,34 +1294,12 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("DocumentManifest", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("DocumentManifest", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("DocumentManifest");
     }
 }
 
@@ -1506,34 +1408,12 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("MessageDefinition", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("MessageDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MessageDefinition");
     }
 }
 
@@ -1640,34 +1520,12 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Goal", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("Goal", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Goal");
     }
 }
 
@@ -1774,34 +1632,12 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("MedicinalProductPackaged", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("MedicinalProductPackaged", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductPackaged");
     }
 }
 
@@ -1908,34 +1744,12 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Endpoint", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("Endpoint", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Endpoint");
     }
 }
 
@@ -2042,34 +1856,12 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("EnrollmentRequest", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("EnrollmentRequest", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("EnrollmentRequest");
     }
 }
 
@@ -2176,34 +1968,12 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Consent", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("Consent", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Consent");
     }
 }
 
@@ -2248,12 +2018,12 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("CapabilityStatement", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CapabilityStatement");
     }
 }
 
@@ -2298,12 +2068,12 @@ service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureAp
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Measure", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Measure");
     }
 }
 
@@ -2472,68 +2242,12 @@ service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medica
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            log:printInfo(string `Retrieving history for Medication resource with id: ${id}`);
-            json[]|error result = historyHandler.getResourceHistory("Medication", id);
-
-            if result is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json res in result {
-                    r4:BundleEntry entry = {'resource: res};
-                    entries.push(entry);
-                }
-
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    total: entries.length(),
-                    entry: entries
-                };
-
-                log:printInfo(string `Successfully retrieved ${entries.length()} history entries for Medication/${id}`);
-                return bundle;
-            } else {
-                log:printError(string `Error retrieving history for Medication/${id}: ${result.message()}`);
-                return r4:createFHIRError(string `Error retrieving history for Medication/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error in history endpoint for Medication/${id}: ${e.message()}`, e);
-            return r4:createFHIRError(string `Error retrieving history: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
-        }
+        return performResourceHistory("Medication", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            log:printInfo(string `Retrieving all history for Medication resources`);
-            json[]|error result = historyHandler.getAllHistory("Medication");
-
-            if result is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json res in result {
-                    r4:BundleEntry entry = {'resource: res};
-                    entries.push(entry);
-                }
-
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    total: entries.length(),
-                    entry: entries
-                };
-
-                log:printInfo(string `Successfully retrieved ${entries.length()} total history entries for all Medication resources`);
-                return bundle;
-            } else {
-                log:printError(string `Error retrieving all Medication history: ${result.message()}`);
-                return r4:createFHIRError(string `Error retrieving all Medication history`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error in system-wide history endpoint for Medication: ${e.message()}`, e);
-            return r4:createFHIRError(string `Error retrieving history: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
-        }
+        return performAllResourceHistory("Medication");
     }
 }
 
@@ -2578,12 +2292,12 @@ service /fhir/r4/ResearchSubject on new fhirr4:Listener(config = r4_api_config:r
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ResearchSubject", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ResearchSubject");
     }
 }
 
@@ -2628,12 +2342,12 @@ service /fhir/r4/Subscription on new fhirr4:Listener(config = r4_api_config:subs
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Subscription", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Subscription");
     }
 }
 
@@ -2678,12 +2392,12 @@ service /fhir/r4/GraphDefinition on new fhirr4:Listener(config = r4_api_config:g
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("GraphDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("GraphDefinition");
     }
 }
 
@@ -2728,12 +2442,12 @@ service /fhir/r4/DocumentReference on new fhirr4:Listener(config = r4_api_config
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("DocumentReference", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("DocumentReference");
     }
 }
 
@@ -2778,12 +2492,12 @@ service /fhir/r4/Parameters on new fhirr4:Listener(config = r4_api_config:parame
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Parameters", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Parameters");
     }
 }
 
@@ -2828,12 +2542,12 @@ service /fhir/r4/CoverageEligibilityResponse on new fhirr4:Listener(config = r4_
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("CoverageEligibilityResponse", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CoverageEligibilityResponse");
     }
 }
 
@@ -2878,12 +2592,12 @@ service /fhir/r4/MeasureReport on new fhirr4:Listener(config = r4_api_config:mea
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("CoverageEligibilityResponse", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CoverageEligibilityResponse");
     }
 }
 
@@ -2928,12 +2642,12 @@ service /fhir/r4/SubstanceReferenceInformation on new fhirr4:Listener(config = r
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SubstanceReferenceInformation", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SubstanceReferenceInformation");
     }
 }
 
@@ -3081,34 +2795,12 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("PractitionerRole", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("PractitionerRole", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("PractitionerRole");
     }
 }
 
@@ -3256,34 +2948,12 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("RelatedPerson", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("RelatedPerson", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("RelatedPerson");
     }
 }
 
@@ -3431,12 +3101,12 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ServiceRequest", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ServiceRequest");
     }
 }
 
@@ -3481,34 +3151,12 @@ service /fhir/r4/SupplyRequest on new fhirr4:Listener(config = r4_api_config:sup
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("ServiceRequest", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("SupplyRequest", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SupplyRequest");
     }
 }
 
@@ -3666,62 +3314,12 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Practitioner", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("Practitioner", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error result = historyHandler.getAllHistory("Practitioner");
-
-            if result is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json res in result {
-                    r4:BundleEntry entry = {'resource: res};
-                    entries.push(entry);
-                }
-
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    total: entries.length(),
-                    entry: entries
-                };
-
-                log:printInfo(string `Retrieved ${entries.length()} total Practitioner history entries`);
-                return bundle;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Failed to retrieve all history: ${errorMsg}`);
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error retrieving Practitioner/_history: ${e.message()}`);
-            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
-        }
+        return performAllResourceHistory("Practitioner");
     }
 }
 
@@ -3766,12 +3364,12 @@ service /fhir/r4/VerificationResult on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("VerificationResult", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("VerificationResult");
     }
 }
 
@@ -3816,12 +3414,12 @@ service /fhir/r4/SubstanceProtein on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SubstanceProtein", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SubstanceProtein");
     }
 }
 
@@ -3866,34 +3464,12 @@ service /fhir/r4/BodyStructure on new fhirr4:Listener(config = r4_api_config:bod
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Practitioner", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("BodyStructure", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("BodyStructure");
     }
 }
 
@@ -4041,12 +3617,12 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Slot", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Slot");
     }
 }
 
@@ -4091,12 +3667,12 @@ service /fhir/r4/Contract on new fhirr4:Listener(config = r4_api_config:contract
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Contract", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Contract");
     }
 }
 
@@ -4141,12 +3717,12 @@ service /fhir/r4/Person on new fhirr4:Listener(config = r4_api_config:personApiC
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Person", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Person");
     }
 }
 
@@ -4191,12 +3767,12 @@ service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:ri
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("RiskAssessment", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("RiskAssessment");
     }
 }
 
@@ -4241,12 +3817,12 @@ service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiCon
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Group", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Group");
     }
 }
 
@@ -4291,12 +3867,12 @@ service /fhir/r4/ResearchDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ResearchDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ResearchDefinition");
     }
 }
 
@@ -4341,12 +3917,12 @@ service /fhir/r4/PaymentNotice on new fhirr4:Listener(config = r4_api_config:pay
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("PaymentNotice", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("PaymentNotice");
     }
 }
 
@@ -4391,12 +3967,12 @@ service /fhir/r4/MedicinalProductManufactured on new fhirr4:Listener(config = r4
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProductManufactured", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductManufactured");
     }
 }
 
@@ -4441,12 +4017,12 @@ service /fhir/r4/Organization on new fhirr4:Listener(config = r4_api_config:orga
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Organization", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Organization");
     }
 }
 
@@ -4491,12 +4067,12 @@ service /fhir/r4/ImplementationGuide on new fhirr4:Listener(config = r4_api_conf
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ImplementationGuide", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ImplementationGuide");
     }
 }
 
@@ -4541,12 +4117,12 @@ service /fhir/r4/CareTeam on new fhirr4:Listener(config = r4_api_config:careteam
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("CareTeam", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CareTeam");
     }
 }
 
@@ -4591,12 +4167,12 @@ service /fhir/r4/ImagingStudy on new fhirr4:Listener(config = r4_api_config:imag
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ImagingStudy", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ImagingStudy");
     }
 }
 
@@ -4641,12 +4217,12 @@ service /fhir/r4/FamilyMemberHistory on new fhirr4:Listener(config = r4_api_conf
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("FamilyMemberHistory", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("FamilyMemberHistory");
     }
 }
 
@@ -4691,12 +4267,12 @@ service /fhir/r4/ChargeItem on new fhirr4:Listener(config = r4_api_config:charge
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ChargeItem", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ChargeItem");
     }
 }
 
@@ -4741,12 +4317,12 @@ service /fhir/r4/ResearchElementDefinition on new fhirr4:Listener(config = r4_ap
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ResearchElementDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ResearchElementDefinition");
     }
 }
 
@@ -4791,12 +4367,12 @@ service /fhir/r4/ObservationDefinition on new fhirr4:Listener(config = r4_api_co
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ObservationDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ObservationDefinition");
     }
 }
 
@@ -4841,12 +4417,12 @@ service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_c
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SubstanceSpecification", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SubstanceSpecification");
     }
 }
 
@@ -4891,12 +4467,12 @@ service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encount
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Encounter", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Encounter");
     }
 }
 
@@ -4941,12 +4517,12 @@ service /fhir/r4/Substance on new fhirr4:Listener(config = r4_api_config:substan
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Substance", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Substance");
     }
 }
 
@@ -4991,12 +4567,12 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SearchParameter", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SearchParameter");
     }
 }
 
@@ -5041,12 +4617,12 @@ service /fhir/r4/Communication on new fhirr4:Listener(config = r4_api_config:com
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Communication", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Communication");
     }
 }
 
@@ -5091,12 +4667,12 @@ service /fhir/r4/InsurancePlan on new fhirr4:Listener(config = r4_api_config:ins
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("InsurancePlan", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("InsurancePlan");
     }
 }
 
@@ -5141,12 +4717,12 @@ service /fhir/r4/ActivityDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ActivityDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ActivityDefinition");
     }
 }
 
@@ -5191,12 +4767,12 @@ service /fhir/r4/Linkage on new fhirr4:Listener(config = r4_api_config:linkageAp
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Linkage", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Linkage");
     }
 }
 
@@ -5241,12 +4817,12 @@ service /fhir/r4/SubstanceSourceMaterial on new fhirr4:Listener(config = r4_api_
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SubstanceSourceMaterial", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SubstanceSourceMaterial");
     }
 }
 
@@ -5291,12 +4867,12 @@ service /fhir/r4/ImmunizationEvaluation on new fhirr4:Listener(config = r4_api_c
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ImmunizationEvaluation", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ImmunizationEvaluation");
     }
 }
 
@@ -5341,12 +4917,12 @@ service /fhir/r4/DeviceUseStatement on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("DeviceUseStatement", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("DeviceUseStatement");
     }
 }
 
@@ -5391,12 +4967,12 @@ service /fhir/r4/RequestGroup on new fhirr4:Listener(config = r4_api_config:requ
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("RequestGroup", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("RequestGroup");
     }
 }
 
@@ -5441,12 +5017,12 @@ service /fhir/r4/MessageHeader on new fhirr4:Listener(config = r4_api_config:mes
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MessageHeader", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MessageHeader");
     }
 }
 
@@ -5491,34 +5067,12 @@ service /fhir/r4/DeviceRequest on new fhirr4:Listener(config = r4_api_config:dev
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Observation", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("DeviceRequest", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("DeviceRequest");
     }
 }
 
@@ -5666,12 +5220,12 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ImmunizationRecommendation", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ImmunizationRecommendation");
     }
 }
 
@@ -5716,12 +5270,12 @@ service /fhir/r4/Task on new fhirr4:Listener(config = r4_api_config:taskApiConfi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Task", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Task");
     }
 }
 
@@ -5766,12 +5320,12 @@ service /fhir/r4/Provenance on new fhirr4:Listener(config = r4_api_config:proven
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Provenance", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Provenance");
     }
 }
 
@@ -5816,12 +5370,12 @@ service /fhir/r4/Questionnaire on new fhirr4:Listener(config = r4_api_config:que
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Questionnaire", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Questionnaire");
     }
 }
 
@@ -5866,12 +5420,12 @@ service /fhir/r4/ExplanationOfBenefit on new fhirr4:Listener(config = r4_api_con
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ExplanationOfBenefit", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ExplanationOfBenefit");
     }
 }
 
@@ -5916,12 +5470,12 @@ service /fhir/r4/MedicinalProductPharmaceutical on new fhirr4:Listener(config = 
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProductPharmaceutical", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductPharmaceutical");
     }
 }
 
@@ -5966,12 +5520,12 @@ service /fhir/r4/ResearchStudy on new fhirr4:Listener(config = r4_api_config:res
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ResearchStudy", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ResearchStudy");
     }
 }
 
@@ -6016,12 +5570,12 @@ service /fhir/r4/Specimen on new fhirr4:Listener(config = r4_api_config:specimen
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Specimen", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Specimen");
     }
 }
 
@@ -6066,12 +5620,12 @@ service /fhir/r4/CarePlan on new fhirr4:Listener(config = r4_api_config:careplan
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("CarePlan", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CarePlan");
     }
 }
 
@@ -6116,12 +5670,12 @@ service /fhir/r4/AllergyIntolerance on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("AllergyIntolerance", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("AllergyIntolerance");
     }
 }
 
@@ -6166,12 +5720,12 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("StructureDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("StructureDefinition");
     }
 }
 
@@ -6216,12 +5770,12 @@ service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_con
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ChargeItemDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ChargeItemDefinition");
     }
 }
 
@@ -6266,34 +5820,12 @@ service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:epi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("HealthcareService", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("EpisodeOfCare", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("EpisodeOfCare");
     }
 }
 
@@ -6441,12 +5973,12 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Procedure", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Procedure");
     }
 }
 
@@ -6491,12 +6023,12 @@ service /fhir/r4/List on new fhirr4:Listener(config = r4_api_config:listApiConfi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("List", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("List");
     }
 }
 
@@ -6541,12 +6073,12 @@ service /fhir/r4/ConceptMap on new fhirr4:Listener(config = r4_api_config:concep
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ConceptMap", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ConceptMap");
     }
 }
 
@@ -6591,12 +6123,12 @@ service /fhir/r4/OperationDefinition on new fhirr4:Listener(config = r4_api_conf
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("OperationDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("OperationDefinition");
     }
 }
 
@@ -6641,12 +6173,12 @@ service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immu
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Immunization", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Immunization");
     }
 }
 
@@ -6691,12 +6223,12 @@ service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicationRequest", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicationRequest");
     }
 }
 
@@ -6741,12 +6273,12 @@ service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("EffectEvidenceSynthesis", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("EffectEvidenceSynthesis");
     }
 }
 
@@ -6791,34 +6323,12 @@ service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_a
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Slot", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("BiologicallyDerivedProduct", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("BiologicallyDerivedProduct");
     }
 }
 
@@ -6966,12 +6476,12 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Device", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Device");
     }
 }
 
@@ -7016,12 +6526,12 @@ service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("VisionPrescription", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("VisionPrescription");
     }
 }
 
@@ -7066,12 +6576,12 @@ service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiCon
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Media", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Media");
     }
 }
 
@@ -7116,12 +6626,12 @@ service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config 
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProductContraindication", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductContraindication");
     }
 }
 
@@ -7166,12 +6676,12 @@ service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("EvidenceVariable", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("EvidenceVariable");
     }
 }
 
@@ -7216,12 +6726,12 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MolecularSequence", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MolecularSequence");
     }
 }
 
@@ -7266,12 +6776,12 @@ service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProduct", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProduct");
     }
 }
 
@@ -7316,12 +6826,12 @@ service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("DeviceMetric", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("DeviceMetric");
     }
 }
 
@@ -7366,12 +6876,12 @@ service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Flag", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Flag");
     }
 }
 
@@ -7416,12 +6926,12 @@ service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_con
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SubstanceNucleicAcid", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SubstanceNucleicAcid");
     }
 }
 
@@ -7466,12 +6976,12 @@ service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_co
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("RiskEvidenceSynthesis", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("RiskEvidenceSynthesis");
     }
 }
 
@@ -7516,12 +7026,12 @@ service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_conf
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("AppointmentResponse", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("AppointmentResponse");
     }
 }
 
@@ -7566,12 +7076,12 @@ service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:stru
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("StructureMap", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("StructureMap");
     }
 }
 
@@ -7616,12 +7126,12 @@ service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adve
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("AdverseEvent", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("AdverseEvent");
     }
 }
 
@@ -7666,34 +7176,12 @@ service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("GuidanceResponse", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("GuidanceResponse", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("GuidanceResponse");
     }
 }
 
@@ -7841,12 +7329,12 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Observation", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Observation");
     }
 }
 
@@ -7891,12 +7379,12 @@ service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicationAdministration", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicationAdministration");
     }
 }
 
@@ -7941,12 +7429,12 @@ service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("EnrollmentResponse", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("EnrollmentResponse");
     }
 }
 
@@ -7991,12 +7479,12 @@ service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryAp
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Library", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Library");
     }
 }
 
@@ -8041,12 +7529,12 @@ service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiC
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Binary", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Binary");
     }
 }
 
@@ -8091,12 +7579,12 @@ service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProductInteraction", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductInteraction");
     }
 }
 
@@ -8141,12 +7629,12 @@ service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicationStatement", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicationStatement");
     }
 }
 
@@ -8191,12 +7679,12 @@ service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_con
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("CommunicationRequest", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CommunicationRequest");
     }
 }
 
@@ -8241,12 +7729,12 @@ service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testsc
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("TestScript", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("TestScript");
     }
 }
 
@@ -8291,12 +7779,12 @@ service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SubstancePolymer", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SubstancePolymer");
     }
 }
 
@@ -8341,12 +7829,12 @@ service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiCon
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Basic", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Basic");
     }
 }
 
@@ -8391,12 +7879,12 @@ service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testre
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("TestReport", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("TestReport");
     }
 }
 
@@ -8441,12 +7929,12 @@ service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:cla
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ClaimResponse", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ClaimResponse");
     }
 }
 
@@ -8491,12 +7979,12 @@ service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicationDispense", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicationDispense");
     }
 }
 
@@ -8541,12 +8029,12 @@ service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("DiagnosticReport", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("DiagnosticReport");
     }
 }
 
@@ -8591,34 +8079,12 @@ service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("OrganizationAffiliation", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("OrganizationAffiliation", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("OrganizationAffiliation");
     }
 }
 
@@ -8766,12 +8232,12 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("HealthcareService", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("HealthcareService");
     }
 }
 
@@ -8816,12 +8282,12 @@ service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_a
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProductIndication", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductIndication");
     }
 }
 
@@ -8866,12 +8332,12 @@ service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nu
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("NutritionOrder", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("NutritionOrder");
     }
 }
 
@@ -8916,12 +8382,12 @@ service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("TerminologyCapabilities", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("TerminologyCapabilities");
     }
 }
 
@@ -8966,12 +8432,12 @@ service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidence
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Evidence", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Evidence");
     }
 }
 
@@ -9016,12 +8482,12 @@ service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:audite
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("AuditEvent", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("AuditEvent");
     }
 }
 
@@ -9066,34 +8532,12 @@ service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_co
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("PaymentReconciliation", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("PaymentReconciliation", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("PaymentReconciliation");
     }
 }
 
@@ -9241,12 +8685,12 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Condition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Condition");
     }
 }
 
@@ -9291,12 +8735,12 @@ service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SpecimenDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SpecimenDefinition");
     }
 }
 
@@ -9341,12 +8785,12 @@ service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compo
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Composition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Composition");
     }
 }
 
@@ -9391,12 +8835,12 @@ service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:det
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("DetectedIssue", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("DetectedIssue");
     }
 }
 
@@ -9441,12 +8885,12 @@ service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_co
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("CompartmentDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CompartmentDefinition");
     }
 }
 
@@ -9491,12 +8935,12 @@ service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_a
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProductIngredient", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductIngredient");
     }
 }
 
@@ -9541,34 +8985,12 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("MedicationKnowledge", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("MedicationKnowledge", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicationKnowledge");
     }
 }
 
@@ -9715,62 +9137,12 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Patient", id);
-            if historyResult is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json item in historyResult {
-                    r4:BundleEntry entry = {
-                        'resource: check item.cloneWithType()
-                    };
-                    entries.push(entry);
-                }
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    entry: entries
-                };
-                return bundle;
-            } else {
-                return r4:createFHIRError(historyResult.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            return r4:createFHIRError("History retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceHistory("Patient", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error result = historyHandler.getAllHistory("Patient");
-
-            if result is json[] {
-                r4:BundleEntry[] entries = [];
-                foreach json res in result {
-                    r4:BundleEntry entry = {'resource: res};
-                    entries.push(entry);
-                }
-
-                r4:Bundle bundle = {
-                    resourceType: "Bundle",
-                    'type: "history",
-                    total: entries.length(),
-                    entry: entries
-                };
-
-                log:printInfo(string `Retrieved ${entries.length()} total Patient history entries`);
-                return bundle;
-            } else {
-                string errorMsg = result.message();
-                log:printError(string `Failed to retrieve all history: ${errorMsg}`);
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error retrieving Patient/_history: ${e.message()}`);
-            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
-        }
+        return performAllResourceHistory("Patient");
     }
 }
 
@@ -9815,12 +9187,12 @@ service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverage
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Coverage", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Coverage");
     }
 }
 
@@ -9865,12 +9237,12 @@ service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_co
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("QuestionnaireResponse", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("QuestionnaireResponse");
     }
 }
 
@@ -9915,12 +9287,12 @@ service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_a
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("CoverageEligibilityRequest", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("CoverageEligibilityRequest");
     }
 }
 
@@ -9965,12 +9337,12 @@ service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:nami
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("NamingSystem", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("NamingSystem");
     }
 }
 
@@ -10015,12 +9387,12 @@ service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProductUndesirableEffect", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductUndesirableEffect");
     }
 }
 
@@ -10065,12 +9437,12 @@ service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:e
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ExampleScenario", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ExampleScenario");
     }
 }
 
@@ -10115,12 +9487,12 @@ service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:su
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("SupplyDelivery", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("SupplyDelivery");
     }
 }
 
@@ -10165,12 +9537,12 @@ service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:schedule
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Schedule", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Schedule");
     }
 }
 
@@ -10215,12 +9587,12 @@ service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("DeviceDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("DeviceDefinition");
     }
 }
 
@@ -10265,12 +9637,12 @@ service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_confi
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("ClinicalImpression", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("ClinicalImpression");
     }
 }
 
@@ -10315,12 +9687,12 @@ service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:pl
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("PlanDefinition", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("PlanDefinition");
     }
 }
 
@@ -10365,12 +9737,12 @@ service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("MedicinalProductAuthorization", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("MedicinalProductAuthorization");
     }
 }
 
@@ -10415,12 +9787,12 @@ service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiCon
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Claim", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Claim");
     }
 }
 
@@ -10556,12 +9928,12 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceHistory("Location", id);
     }
 
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performAllResourceHistory("Location");
     }
 }
 
