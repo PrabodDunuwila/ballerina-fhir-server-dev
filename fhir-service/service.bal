@@ -364,10 +364,48 @@ isolated function performResourceSearch(string resourceType, r4:FHIRContext fhir
     }
 }
 
+// Utility function to handle delete operations for resources
+isolated function performResourceDelete(string resourceType, string id) returns r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Delete - Start Execution!`);
+    do {
+        handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
+        boolean|error result = deleteHandler.deleteResourceWithTransaction(resourceType, id);
+
+        if result is boolean && result {
+            log:printInfo(string `${resourceType}: DELETE - Execution Success!`);
+
+            return {
+                resourceType: "OperationOutcome",
+                issue: [
+                    {
+                        severity: "information",
+                        code: "informational",
+                        diagnostics: string `${resourceType}/${id} deleted successfully`
+                    }
+                ]
+            };
+        } else {
+            string errorMsg = result is error ? result.message() : "Unknown error";
+            log:printError(string `Delete failed: ${errorMsg}`);
+
+            // Check if resource was not found
+            if errorMsg.includes("not found") {
+                return r4:createFHIRError(string `${resourceType}/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+            }
+
+            return r4:createFHIRError(string `Failed to delete ${resourceType}/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+
+    } on fail error e {
+        log:printError(string `Error deleting ${resourceType}/${id}: ${e.message()}`);
+        return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+    }
+}
+
 // // # Appointment API                                                                                                          #
 // 
 service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appointmentApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performResourceSearch("Appointment", fhirContext);
     }
@@ -533,39 +571,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Appointment", id);
-
-            if result is boolean && result {
-                log:printInfo(string `Appointment: DELETE - Execution Success!`);
-
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `Appointment/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Appointment/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                return r4:createFHIRError(string `Failed to delete Appointment/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError(string `Error deleting Appointment/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Appointment", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -759,23 +765,7 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Account", id);
-
-            if result is boolean && result {
-                log:printInfo("Account: DELETE - Execution Success!");
-                return r4:createFHIRError(string `Account/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Account/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-
-        } on fail error e {
-            log:printError(string `Error deleting Account/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Account", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -925,21 +915,7 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Invoice", id);
-            if result is boolean && result {
-                log:printInfo("Invoice: DELETE - Execution Success!");
-                return r4:createFHIRError(string `Invoice/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Invoice/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Invoice/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Invoice", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -1089,21 +1065,7 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("CatalogEntry", id);
-            if result is boolean && result {
-                log:printInfo("CatalogEntry: DELETE - Execution Success!");
-                return r4:createFHIRError(string `CatalogEntry/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete CatalogEntry/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting CatalogEntry/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("CatalogEntry", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -1253,21 +1215,7 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("EventDefinition", id);
-            if result is boolean && result {
-                log:printInfo("EventDefinition: DELETE - Execution Success!");
-                return r4:createFHIRError(string `EventDefinition/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete EventDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting EventDefinition/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("EventDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -1417,21 +1365,7 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("DocumentManifest", id);
-            if result is boolean && result {
-                log:printInfo("DocumentManifest: DELETE - Execution Success!");
-                return r4:createFHIRError(string `DocumentManifest/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                string errorMsg = result is error ? result.message() : "Delete failed";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete DocumentManifest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting DocumentManifest/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("DocumentManifest", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -1567,18 +1501,7 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("MessageDefinition", id);
-            if result is boolean && result {
-                log:printInfo("MessageDefinition: DELETE - Execution Success!");
-                return r4:createFHIRError(string `MessageDefinition/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                return r4:createFHIRError(string `Failed to delete MessageDefinition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail {
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("MessageDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -1712,18 +1635,7 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Goal", id);
-            if result is boolean && result {
-                log:printInfo("Goal: DELETE - Execution Success!");
-                return r4:createFHIRError(string `Goal/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                return r4:createFHIRError(string `Failed to delete Goal/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail {
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Goal", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -1857,18 +1769,7 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("MedicinalProductPackaged", id);
-            if result is boolean && result {
-                log:printInfo("MedicinalProductPackaged: DELETE - Execution Success!");
-                return r4:createFHIRError(string `MedicinalProductPackaged/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                return r4:createFHIRError(string `Failed to delete MedicinalProductPackaged/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail {
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("MedicinalProductPackaged", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2002,18 +1903,7 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Endpoint", id);
-            if result is boolean && result {
-                log:printInfo("Endpoint: DELETE - Execution Success!");
-                return r4:createFHIRError(string `Endpoint/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                return r4:createFHIRError(string `Failed to delete Endpoint/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail {
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Endpoint", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2147,18 +2037,7 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("EnrollmentRequest", id);
-            if result is boolean && result {
-                log:printInfo("EnrollmentRequest: DELETE - Execution Success!");
-                return r4:createFHIRError(string `EnrollmentRequest/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                return r4:createFHIRError(string `Failed to delete EnrollmentRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail {
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("EnrollmentRequest", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2292,18 +2171,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
     }
 
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Consent", id);
-            if result is boolean && result {
-                log:printInfo("Consent: DELETE - Execution Success!");
-                return r4:createFHIRError(string `Consent/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                return r4:createFHIRError(string `Failed to delete Consent/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail {
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Consent", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2343,7 +2211,7 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
 // 
 service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_config:capabilitystatementApiConfig) {
 
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performResourceSearch("CapabilityStatement", fhirContext);
     }
@@ -2375,7 +2243,7 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("CapabilityStatement", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2393,7 +2261,7 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
 // 
 service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureApiConfig) {
 
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performResourceSearch("Measure", fhirContext);
     }
@@ -2425,7 +2293,7 @@ service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureAp
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Measure", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2599,31 +2467,7 @@ service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medica
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Medication", id);
-
-            if result is boolean {
-                log:printInfo(string `Medication/${id} deleted successfully`);
-                return r4:createFHIRError(string `Medication/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                string errorMsg = "";
-                if result is error {
-                    errorMsg = result.message();
-                }
-                log:printError(string `Resource delete failed: ${errorMsg}`);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Medication/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                return r4:createFHIRError(errorMsg, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Medication/${id}: ${e.message()}`);
-            return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
-        }
+        return performResourceDelete("Medication", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2729,7 +2573,7 @@ service /fhir/r4/ResearchSubject on new fhirr4:Listener(config = r4_api_config:r
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ResearchSubject", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2779,7 +2623,7 @@ service /fhir/r4/Subscription on new fhirr4:Listener(config = r4_api_config:subs
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Subscription", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2829,7 +2673,7 @@ service /fhir/r4/GraphDefinition on new fhirr4:Listener(config = r4_api_config:g
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("GraphDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2879,7 +2723,7 @@ service /fhir/r4/DocumentReference on new fhirr4:Listener(config = r4_api_config
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("DocumentReference", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2929,7 +2773,7 @@ service /fhir/r4/Parameters on new fhirr4:Listener(config = r4_api_config:parame
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Parameters", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -2979,7 +2823,7 @@ service /fhir/r4/CoverageEligibilityResponse on new fhirr4:Listener(config = r4_
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("CoverageEligibilityResponse", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -3029,7 +2873,7 @@ service /fhir/r4/MeasureReport on new fhirr4:Listener(config = r4_api_config:mea
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("CoverageEligibilityResponse", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -3079,7 +2923,7 @@ service /fhir/r4/SubstanceReferenceInformation on new fhirr4:Listener(config = r
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SubstanceReferenceInformation", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -3232,31 +3076,7 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("PractitionerRole", id);
-
-            if result is boolean && result {
-                log:printInfo(string `PractitionerRole: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `PractitionerRole/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete PractitionerRole/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting PractitionerRole/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("PractitionerRole", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -3431,31 +3251,7 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("RelatedPerson", id);
-
-            if result is boolean && result {
-                log:printInfo(string `RelatedPerson: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `RelatedPerson/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete RelatedPerson/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting RelatedPerson/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("RelatedPerson", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -3630,31 +3426,7 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("ServiceRequest", id);
-
-            if result is boolean && result {
-                log:printInfo(string `ServiceRequest: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `ServiceRequest/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete ServiceRequest/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting ServiceRequest/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("ServiceRequest", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -3704,7 +3476,7 @@ service /fhir/r4/SupplyRequest on new fhirr4:Listener(config = r4_api_config:sup
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SupplyRequest", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -3889,27 +3661,7 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Practitioner", id);
-            if result is boolean && result {
-                log:printInfo("Practitioner: DELETE - Execution Success!");
-                return r4:createFHIRError(string `Practitioner/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Practitioner/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                return r4:createFHIRError(string `Failed to delete Practitioner/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Practitioner/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Practitioner", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4009,7 +3761,7 @@ service /fhir/r4/VerificationResult on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("VerificationResult", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4059,7 +3811,7 @@ service /fhir/r4/SubstanceProtein on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SubstanceProtein", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4109,7 +3861,7 @@ service /fhir/r4/BodyStructure on new fhirr4:Listener(config = r4_api_config:bod
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("BodyStructure", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4284,31 +4036,7 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Slot", id);
-
-            if result is boolean && result {
-                log:printInfo(string `Slot: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `Slot/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Slot/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Slot/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Slot", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4358,7 +4086,7 @@ service /fhir/r4/Contract on new fhirr4:Listener(config = r4_api_config:contract
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Contract", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4408,7 +4136,7 @@ service /fhir/r4/Person on new fhirr4:Listener(config = r4_api_config:personApiC
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Person", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4458,7 +4186,7 @@ service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:ri
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("RiskAssessment", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4508,7 +4236,7 @@ service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiCon
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Group", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4558,7 +4286,7 @@ service /fhir/r4/ResearchDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ResearchDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4608,7 +4336,7 @@ service /fhir/r4/PaymentNotice on new fhirr4:Listener(config = r4_api_config:pay
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("PaymentNotice", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4658,7 +4386,7 @@ service /fhir/r4/MedicinalProductManufactured on new fhirr4:Listener(config = r4
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProductManufactured", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4708,7 +4436,7 @@ service /fhir/r4/Organization on new fhirr4:Listener(config = r4_api_config:orga
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Organization", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4758,7 +4486,7 @@ service /fhir/r4/ImplementationGuide on new fhirr4:Listener(config = r4_api_conf
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ImplementationGuide", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4808,7 +4536,7 @@ service /fhir/r4/CareTeam on new fhirr4:Listener(config = r4_api_config:careteam
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("CareTeam", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4858,7 +4586,7 @@ service /fhir/r4/ImagingStudy on new fhirr4:Listener(config = r4_api_config:imag
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ImagingStudy", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4908,7 +4636,7 @@ service /fhir/r4/FamilyMemberHistory on new fhirr4:Listener(config = r4_api_conf
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("FamilyMemberHistory", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -4958,7 +4686,7 @@ service /fhir/r4/ChargeItem on new fhirr4:Listener(config = r4_api_config:charge
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ChargeItem", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5008,7 +4736,7 @@ service /fhir/r4/ResearchElementDefinition on new fhirr4:Listener(config = r4_ap
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ResearchElementDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5058,7 +4786,7 @@ service /fhir/r4/ObservationDefinition on new fhirr4:Listener(config = r4_api_co
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ObservationDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5108,7 +4836,7 @@ service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_c
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SubstanceSpecification", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5158,7 +4886,7 @@ service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encount
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Encounter", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5208,7 +4936,7 @@ service /fhir/r4/Substance on new fhirr4:Listener(config = r4_api_config:substan
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Substance", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5258,7 +4986,7 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SearchParameter", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5308,7 +5036,7 @@ service /fhir/r4/Communication on new fhirr4:Listener(config = r4_api_config:com
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Communication", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5358,7 +5086,7 @@ service /fhir/r4/InsurancePlan on new fhirr4:Listener(config = r4_api_config:ins
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("InsurancePlan", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5408,7 +5136,7 @@ service /fhir/r4/ActivityDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ActivityDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5458,7 +5186,7 @@ service /fhir/r4/Linkage on new fhirr4:Listener(config = r4_api_config:linkageAp
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Linkage", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5508,7 +5236,7 @@ service /fhir/r4/SubstanceSourceMaterial on new fhirr4:Listener(config = r4_api_
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SubstanceSourceMaterial", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5558,7 +5286,7 @@ service /fhir/r4/ImmunizationEvaluation on new fhirr4:Listener(config = r4_api_c
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ImmunizationEvaluation", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5608,7 +5336,7 @@ service /fhir/r4/DeviceUseStatement on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("DeviceUseStatement", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5658,7 +5386,7 @@ service /fhir/r4/RequestGroup on new fhirr4:Listener(config = r4_api_config:requ
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("RequestGroup", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5708,7 +5436,7 @@ service /fhir/r4/MessageHeader on new fhirr4:Listener(config = r4_api_config:mes
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MessageHeader", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5758,7 +5486,7 @@ service /fhir/r4/DeviceRequest on new fhirr4:Listener(config = r4_api_config:dev
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("DeviceRequest", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -5933,31 +5661,7 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("ImmunizationRecommendation", id);
-
-            if result is boolean && result {
-                log:printInfo(string `ImmunizationRecommendation: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `ImmunizationRecommendation/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete ImmunizationRecommendation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting ImmunizationRecommendation/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("ImmunizationRecommendation", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6007,7 +5711,7 @@ service /fhir/r4/Task on new fhirr4:Listener(config = r4_api_config:taskApiConfi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Task", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6057,7 +5761,7 @@ service /fhir/r4/Provenance on new fhirr4:Listener(config = r4_api_config:proven
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Provenance", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6107,7 +5811,7 @@ service /fhir/r4/Questionnaire on new fhirr4:Listener(config = r4_api_config:que
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Questionnaire", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6157,7 +5861,7 @@ service /fhir/r4/ExplanationOfBenefit on new fhirr4:Listener(config = r4_api_con
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ExplanationOfBenefit", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6207,7 +5911,7 @@ service /fhir/r4/MedicinalProductPharmaceutical on new fhirr4:Listener(config = 
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProductPharmaceutical", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6257,7 +5961,7 @@ service /fhir/r4/ResearchStudy on new fhirr4:Listener(config = r4_api_config:res
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ResearchStudy", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6307,7 +6011,7 @@ service /fhir/r4/Specimen on new fhirr4:Listener(config = r4_api_config:specimen
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Specimen", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6357,7 +6061,7 @@ service /fhir/r4/CarePlan on new fhirr4:Listener(config = r4_api_config:careplan
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("CarePlan", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6407,7 +6111,7 @@ service /fhir/r4/AllergyIntolerance on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("AllergyIntolerance", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6457,7 +6161,7 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("StructureDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6507,7 +6211,7 @@ service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_con
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ChargeItemDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6557,7 +6261,7 @@ service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:epi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("EpisodeOfCare", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6732,31 +6436,7 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Procedure", id);
-
-            if result is boolean && result {
-                log:printInfo(string `Procedure: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `Procedure/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Procedure/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Procedure/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Procedure", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6806,7 +6486,7 @@ service /fhir/r4/List on new fhirr4:Listener(config = r4_api_config:listApiConfi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("List", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6856,7 +6536,7 @@ service /fhir/r4/ConceptMap on new fhirr4:Listener(config = r4_api_config:concep
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ConceptMap", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6906,7 +6586,7 @@ service /fhir/r4/OperationDefinition on new fhirr4:Listener(config = r4_api_conf
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("OperationDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6956,7 +6636,7 @@ service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immu
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Immunization", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -6973,9 +6653,9 @@ service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immu
 // // # MedicationRequest API                                                                                                          #
 // 
 service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config:medicationrequestApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicationRequest", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7006,7 +6686,7 @@ service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicationRequest", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7023,9 +6703,9 @@ service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config
 // // # EffectEvidenceSynthesis API                                                                                                          #
 // 
 service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_config:effectevidencesynthesisApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("EffectEvidenceSynthesis", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7056,7 +6736,7 @@ service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("EffectEvidenceSynthesis", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7073,9 +6753,9 @@ service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_
 // // # BiologicallyDerivedProduct API                                                                                                          #
 // 
 service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_api_config:biologicallyderivedproductApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("BiologicallyDerivedProduct", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7106,7 +6786,7 @@ service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_a
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("BiologicallyDerivedProduct", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7145,9 +6825,9 @@ service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_a
 // // # Device API                                                                                                          #
 // 
 service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Device", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7281,31 +6961,7 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Device", id);
-
-            if result is boolean && result {
-                log:printInfo(string `Device: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `Device/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Device/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Device/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Device", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7322,9 +6978,9 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 // // # VisionPrescription API                                                                                                          #
 // 
 service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_config:visionprescriptionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("VisionPrescription", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7355,7 +7011,7 @@ service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("VisionPrescription", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7372,9 +7028,9 @@ service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_confi
 // // # Media API                                                                                                          #
 // 
 service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Media", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7405,7 +7061,7 @@ service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiCon
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Media", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7422,9 +7078,9 @@ service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiCon
 // // # MedicinalProductContraindication API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config = r4_api_config:medicinalproductcontraindicationApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicinalProductContraindication", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7455,7 +7111,7 @@ service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config 
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProductContraindication", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7472,9 +7128,9 @@ service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config 
 // // # EvidenceVariable API                                                                                                          #
 // 
 service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:evidencevariableApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("EvidenceVariable", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7505,7 +7161,7 @@ service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("EvidenceVariable", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7522,9 +7178,9 @@ service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:
 // // # MolecularSequence API                                                                                                          #
 // 
 service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config:molecularsequenceApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MolecularSequence", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7555,7 +7211,7 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MolecularSequence", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7572,9 +7228,9 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
 // // # MedicinalProduct API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:medicinalproductApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicinalProduct", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7605,7 +7261,7 @@ service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProduct", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7622,9 +7278,9 @@ service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:
 // // # DeviceMetric API                                                                                                          #
 // 
 service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devicemetricApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("DeviceMetric", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7655,7 +7311,7 @@ service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("DeviceMetric", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7672,9 +7328,9 @@ service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devi
 // // # Flag API                                                                                                          #
 // 
 service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Flag", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7705,7 +7361,7 @@ service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Flag", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7722,9 +7378,9 @@ service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfi
 // // # SubstanceNucleicAcid API                                                                                                          #
 // 
 service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_config:substancenucleicacidApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("SubstanceNucleicAcid", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7755,7 +7411,7 @@ service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_con
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SubstanceNucleicAcid", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7772,9 +7428,9 @@ service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_con
 // // # RiskEvidenceSynthesis API                                                                                                          #
 // 
 service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_config:riskevidencesynthesisApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("RiskEvidenceSynthesis", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7805,7 +7461,7 @@ service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_co
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("RiskEvidenceSynthesis", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7822,9 +7478,9 @@ service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_co
 // // # AppointmentResponse API                                                                                                          #
 // 
 service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_config:appointmentresponseApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("AppointmentResponse", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7855,7 +7511,7 @@ service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_conf
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("AppointmentResponse", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7872,9 +7528,9 @@ service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_conf
 // // # StructureMap API                                                                                                          #
 // 
 service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:structuremapApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("StructureMap", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7905,7 +7561,7 @@ service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:stru
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("StructureMap", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7922,9 +7578,9 @@ service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:stru
 // // # AdverseEvent API                                                                                                          #
 // 
 service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adverseeventApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("AdverseEvent", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -7955,7 +7611,7 @@ service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adve
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("AdverseEvent", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -7972,9 +7628,9 @@ service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adve
 // // # GuidanceResponse API                                                                                                          #
 // 
 service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:guidanceresponseApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("GuidanceResponse", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8005,14 +7661,14 @@ service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("GuidanceResponse", id);
     }
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         do {
             handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Condition", id);
+            json[]|error historyResult = historyHandler.getResourceHistory("GuidanceResponse", id);
             if historyResult is json[] {
                 r4:BundleEntry[] entries = [];
                 foreach json item in historyResult {
@@ -8044,9 +7700,9 @@ service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:
 // // # Observation API                                                                                                          #
 // 
 service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:observationApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Observation", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8180,31 +7836,7 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Observation", id);
-
-            if result is boolean && result {
-                log:printInfo(string `Observation: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `Observation/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Observation/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Observation/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Observation", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8221,9 +7853,9 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 // // # MedicationAdministration API                                                                                                          #
 // 
 service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api_config:medicationadministrationApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources using /MedicationAdministration?params
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicationAdministration", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8254,7 +7886,7 @@ service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicationAdministration", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8271,9 +7903,9 @@ service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api
 // // # EnrollmentResponse API                                                                                                          #
 // 
 service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_config:enrollmentresponseApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("EnrollmentResponse", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8304,7 +7936,7 @@ service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("EnrollmentResponse", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8321,9 +7953,9 @@ service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_confi
 // // # Library API                                                                                                          #
 // 
 service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Library", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8354,7 +7986,7 @@ service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryAp
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Library", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8371,9 +8003,9 @@ service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryAp
 // // # Binary API                                                                                                          #
 // 
 service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Binary", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8404,7 +8036,7 @@ service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiC
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Binary", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8421,9 +8053,9 @@ service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiC
 // // # MedicinalProductInteraction API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_api_config:medicinalproductinteractionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicinalProductInteraction", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8454,7 +8086,7 @@ service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProductInteraction", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8471,9 +8103,9 @@ service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_
 // // # MedicationStatement API                                                                                                          #
 // 
 service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_config:medicationstatementApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicationStatement", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8504,7 +8136,7 @@ service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicationStatement", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8521,9 +8153,9 @@ service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_conf
 // // # CommunicationRequest API                                                                                                          #
 // 
 service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_config:communicationrequestApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("CommunicationRequest", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8554,7 +8186,7 @@ service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_con
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("CommunicationRequest", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8571,9 +8203,9 @@ service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_con
 // // # TestScript API                                                                                                          #
 // 
 service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testscriptApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("TestScript", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8604,7 +8236,7 @@ service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testsc
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("TestScript", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8621,9 +8253,9 @@ service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testsc
 // // # SubstancePolymer API                                                                                                          #
 // 
 service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:substancepolymerApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("SubstancePolymer", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8654,7 +8286,7 @@ service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SubstancePolymer", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8671,9 +8303,9 @@ service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:
 // // # Basic API                                                                                                          #
 // 
 service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Basic", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8704,7 +8336,7 @@ service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiCon
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Basic", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8721,9 +8353,9 @@ service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiCon
 // // # TestReport API                                                                                                          #
 // 
 service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testreportApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("TestReport", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8754,7 +8386,7 @@ service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testre
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("TestReport", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8771,9 +8403,9 @@ service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testre
 // // # ClaimResponse API                                                                                                          #
 // 
 service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:claimresponseApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("ClaimResponse", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8804,7 +8436,7 @@ service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:cla
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ClaimResponse", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8821,9 +8453,9 @@ service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:cla
 // // # MedicationDispense API                                                                                                          #
 // 
 service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_config:medicationdispenseApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicationDispense", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8854,7 +8486,7 @@ service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicationDispense", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8871,9 +8503,9 @@ service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_confi
 // // # DiagnosticReport API                                                                                                          #
 // 
 service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:diagnosticreportApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("DiagnosticReport", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8904,7 +8536,7 @@ service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("DiagnosticReport", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -8921,9 +8553,9 @@ service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:
 // // # OrganizationAffiliation API                                                                                                          #
 // 
 service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_config:organizationaffiliationApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("OrganizationAffiliation", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -8954,14 +8586,14 @@ service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("OrganizationAffiliation", id);
     }
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         do {
             handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Device", id);
+            json[]|error historyResult = historyHandler.getResourceHistory("OrganizationAffiliation", id);
             if historyResult is json[] {
                 r4:BundleEntry[] entries = [];
                 foreach json item in historyResult {
@@ -8993,9 +8625,9 @@ service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_
 // // # HealthcareService API                                                                                                          #
 // 
 service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config:healthcareserviceApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("HealthcareService", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9129,31 +8761,7 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("HealthcareService", id);
-
-            if result is boolean && result {
-                log:printInfo(string `HealthcareService: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `HealthcareService/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete HealthcareService/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting HealthcareService/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("HealthcareService", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9170,9 +8778,9 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 // // # MedicinalProductIndication API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_api_config:medicinalproductindicationApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicinalProductIndication", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9203,7 +8811,7 @@ service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_a
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProductIndication", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9220,9 +8828,9 @@ service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_a
 // // # NutritionOrder API                                                                                                          #
 // 
 service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nutritionorderApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("NutritionOrder", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9253,7 +8861,7 @@ service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nu
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("NutritionOrder", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9270,9 +8878,9 @@ service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nu
 // // # TerminologyCapabilities API                                                                                                          #
 // 
 service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_config:terminologycapabilitiesApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("TerminologyCapabilities", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9303,7 +8911,7 @@ service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("TerminologyCapabilities", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9320,9 +8928,9 @@ service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_
 // // # Evidence API                                                                                                          #
 // 
 service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidenceApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Evidence", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9353,7 +8961,7 @@ service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidence
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Evidence", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9370,9 +8978,9 @@ service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidence
 // // # AuditEvent API                                                                                                          #
 // 
 service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:auditeventApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("AuditEvent", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9403,7 +9011,7 @@ service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:audite
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("AuditEvent", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9420,9 +9028,9 @@ service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:audite
 // // # PaymentReconciliation API                                                                                                          #
 // 
 service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_config:paymentreconciliationApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("PaymentReconciliation", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9453,14 +9061,14 @@ service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_co
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("PaymentReconciliation", id);
     }
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         do {
             handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("Procedure", id);
+            json[]|error historyResult = historyHandler.getResourceHistory("PaymentReconciliation", id);
             if historyResult is json[] {
                 r4:BundleEntry[] entries = [];
                 foreach json item in historyResult {
@@ -9492,9 +9100,9 @@ service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_co
 // // # Condition API                                                                                                          #
 // 
 service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Condition", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9628,31 +9236,7 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Condition", id);
-
-            if result is boolean && result {
-                log:printInfo(string `Condition: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `Condition/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Condition/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Condition/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Condition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9669,9 +9253,9 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 // // # SpecimenDefinition API                                                                                                          #
 // 
 service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_config:specimendefinitionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("SpecimenDefinition", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9702,7 +9286,7 @@ service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SpecimenDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9719,9 +9303,9 @@ service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_confi
 // // # Composition API                                                                                                          #
 // 
 service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compositionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Composition", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9752,7 +9336,7 @@ service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compo
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Composition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9769,9 +9353,9 @@ service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compo
 // // # DetectedIssue API                                                                                                          #
 // 
 service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:detectedissueApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("DetectedIssue", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9802,7 +9386,7 @@ service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:det
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("DetectedIssue", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9819,9 +9403,9 @@ service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:det
 // // # CompartmentDefinition API                                                                                                          #
 // 
 service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_config:compartmentdefinitionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("CompartmentDefinition", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9852,7 +9436,7 @@ service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_co
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("CompartmentDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9869,9 +9453,9 @@ service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_co
 // // # MedicinalProductIngredient API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_api_config:medicinalproductingredientApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicinalProductIngredient", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9902,7 +9486,7 @@ service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_a
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProductIngredient", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -9919,9 +9503,9 @@ service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_a
 // // # MedicationKnowledge API                                                                                                          #
 // 
 service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_config:medicationknowledgeApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicationKnowledge", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -9952,14 +9536,14 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicationKnowledge", id);
     }
 
     // Retrieve the update history for a particular resource.
     isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         do {
             handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-            json[]|error historyResult = historyHandler.getResourceHistory("ImmunizationRecommendation", id);
+            json[]|error historyResult = historyHandler.getResourceHistory("MedicationKnowledge", id);
             if historyResult is json[] {
                 r4:BundleEntry[] entries = [];
                 foreach json item in historyResult {
@@ -9991,9 +9575,9 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
 // // # Patient API                                                                                                          #
 // 
 service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Patient", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10126,27 +9710,7 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Patient", id);
-            if result is boolean && result {
-                log:printInfo("Patient: DELETE - Execution Success!");
-                return r4:createFHIRError(string `Patient/${id} deleted successfully`, r4:INFORMATION, r4:INFORMATIONAL, httpStatusCode = http:STATUS_OK);
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-
-                // Check if resource was not found
-                if errorMsg.includes("not found") {
-                    return r4:createFHIRError(string `Patient/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
-                }
-
-                return r4:createFHIRError(string `Failed to delete Patient/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Patient/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Patient", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10213,9 +9777,9 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 // // # Coverage API                                                                                                          #
 // 
 service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverageApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Coverage", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10246,7 +9810,7 @@ service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverage
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Coverage", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10263,9 +9827,9 @@ service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverage
 // // # QuestionnaireResponse API                                                                                                          #
 // 
 service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_config:questionnaireresponseApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("QuestionnaireResponse", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10296,7 +9860,7 @@ service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_co
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("QuestionnaireResponse", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10313,9 +9877,9 @@ service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_co
 // // # CoverageEligibilityRequest API                                                                                                          #
 // 
 service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_api_config:coverageeligibilityrequestApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("CoverageEligibilityRequest", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10346,7 +9910,7 @@ service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_a
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("CoverageEligibilityRequest", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10363,9 +9927,9 @@ service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_a
 // // # NamingSystem API                                                                                                          #
 // 
 service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:namingsystemApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("NamingSystem", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10396,7 +9960,7 @@ service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:nami
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("NamingSystem", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10413,9 +9977,9 @@ service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:nami
 // // # MedicinalProductUndesirableEffect API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config = r4_api_config:medicinalproductundesirableeffectApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicinalProductUndesirableEffect", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10446,7 +10010,7 @@ service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProductUndesirableEffect", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10463,9 +10027,9 @@ service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config
 // // # ExampleScenario API                                                                                                          #
 // 
 service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:examplescenarioApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("ExampleScenario", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10496,7 +10060,7 @@ service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:e
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ExampleScenario", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10513,9 +10077,9 @@ service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:e
 // // # SupplyDelivery API                                                                                                          #
 // 
 service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:supplydeliveryApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("SupplyDelivery", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10546,7 +10110,7 @@ service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:su
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("SupplyDelivery", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10563,9 +10127,9 @@ service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:su
 // // # Schedule API                                                                                                          #
 // 
 service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:scheduleApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Schedule", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10596,7 +10160,7 @@ service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:schedule
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Schedule", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10613,9 +10177,9 @@ service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:schedule
 // // # DeviceDefinition API                                                                                                          #
 // 
 service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:devicedefinitionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("DeviceDefinition", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10646,7 +10210,7 @@ service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("DeviceDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10663,9 +10227,9 @@ service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:
 // // # ClinicalImpression API                                                                                                          #
 // 
 service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_config:clinicalimpressionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("ClinicalImpression", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10696,7 +10260,7 @@ service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_confi
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("ClinicalImpression", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10713,9 +10277,9 @@ service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_confi
 // // # PlanDefinition API                                                                                                          #
 // 
 service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:plandefinitionApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("PlanDefinition", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10746,7 +10310,7 @@ service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:pl
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("PlanDefinition", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10763,9 +10327,9 @@ service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:pl
 // // # MedicinalProductAuthorization API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r4_api_config:medicinalproductauthorizationApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("MedicinalProductAuthorization", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10796,7 +10360,7 @@ service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("MedicinalProductAuthorization", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10813,9 +10377,9 @@ service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r
 // // # Claim API                                                                                                          #
 // 
 service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiConfig) {
-    // Search for resources using /Appointment?params
+    // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Appointment", fhirContext);
+        return performResourceSearch("Claim", fhirContext);
     }
 
     // Read the current state of single resource based on its id.
@@ -10846,7 +10410,7 @@ service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiCon
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return performResourceDelete("Claim", id);
     }
 
     // Retrieve the update history for a particular resource.
@@ -10987,31 +10551,7 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
 
     // Delete a resource.
     isolated resource function delete [string id](r4:FHIRContext fhirContext) returns r4:OperationOutcome|r4:FHIRError {
-        do {
-            handlers:DeleteHandler deleteHandler = new handlers:DeleteHandler(jdbcClient);
-            boolean|error result = deleteHandler.deleteResourceWithTransaction("Location", id);
-
-            if result is boolean && result {
-                log:printInfo(string `Location: DELETE - Execution Success!`);
-                return {
-                    resourceType: "OperationOutcome",
-                    issue: [
-                        {
-                            severity: "information",
-                            code: "informational",
-                            diagnostics: string `Location/${id} deleted successfully`
-                        }
-                    ]
-                };
-            } else {
-                string errorMsg = result is error ? result.message() : "Unknown error";
-                log:printError(string `Delete failed: ${errorMsg}`);
-                return r4:createFHIRError(string `Failed to delete Location/${id}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-            }
-        } on fail error e {
-            log:printError(string `Error deleting Location/${id}: ${e.message()}`);
-            return r4:createFHIRError(string `Delete operation failed.`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
-        }
+        return performResourceDelete("Location", id);
     }
 
     // Retrieve the update history for a particular resource.
