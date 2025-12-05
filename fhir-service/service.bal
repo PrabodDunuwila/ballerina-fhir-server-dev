@@ -357,11 +357,10 @@ isolated function performResourceSearch(string resourceType, r4:FHIRContext fhir
             log:printError("Search failed: " + errorMsg);
             return r4:createFHIRError(string `Failed to search ${resourceType}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-        
     } on fail error e {
         log:printError("Error processing search: " + e.message());
         return r4:createFHIRError(
-            "Search operation failed: " + e.message(), r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
+            "Search operation failed.", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_BAD_REQUEST);
     }
 }
 
@@ -2344,6 +2343,11 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
 // 
 service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_config:capabilitystatementApiConfig) {
 
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("CapabilityStatement", fhirContext);
+    }
+
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
@@ -2351,11 +2355,6 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
@@ -2394,6 +2393,11 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
 // 
 service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureApiConfig) {
 
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Measure", fhirContext);
+    }
+
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Measure|r4:OperationOutcome|r4:FHIRError {
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
@@ -2401,11 +2405,6 @@ service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureAp
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Measure|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
@@ -2443,6 +2442,10 @@ service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureAp
 // // # Medication API                                                                                                          #
 // 
 service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medicationApiConfig) {
+    // Search for resources using /Medication?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Medication", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Medication|r4:OperationOutcome|r4:FHIRError {
@@ -2491,11 +2494,6 @@ service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medica
             log:printError(string `Error retrieving Medication/${id}/_history/${vid}: ${e.message()}`);
             return r4:createFHIRError(e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Medication", fhirContext);
     }
 
     // Create a new resource.
@@ -2698,6 +2696,10 @@ service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medica
 // // # ResearchSubject API                                                                                                          #
 // 
 service /fhir/r4/ResearchSubject on new fhirr4:Listener(config = r4_api_config:researchsubjectApiConfig) {
+    // Search for resources using /ResearchSubject?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ResearchSubject", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ResearchSubject|r4:OperationOutcome|r4:FHIRError {
@@ -2709,10 +2711,6 @@ service /fhir/r4/ResearchSubject on new fhirr4:Listener(config = r4_api_config:r
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ResearchSubject researchsubject) returns ResearchSubject|r4:OperationOutcome|r4:FHIRError {
@@ -2748,6 +2746,10 @@ service /fhir/r4/ResearchSubject on new fhirr4:Listener(config = r4_api_config:r
 // // # Subscription API                                                                                                          #
 // 
 service /fhir/r4/Subscription on new fhirr4:Listener(config = r4_api_config:subscriptionApiConfig) {
+    // Search for resources using /Subscription?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Subscription", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Subscription|r4:OperationOutcome|r4:FHIRError {
@@ -2759,10 +2761,6 @@ service /fhir/r4/Subscription on new fhirr4:Listener(config = r4_api_config:subs
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Subscription subscription) returns Subscription|r4:OperationOutcome|r4:FHIRError {
@@ -2798,6 +2796,10 @@ service /fhir/r4/Subscription on new fhirr4:Listener(config = r4_api_config:subs
 // // # GraphDefinition API                                                                                                          #
 // 
 service /fhir/r4/GraphDefinition on new fhirr4:Listener(config = r4_api_config:graphdefinitionApiConfig) {
+    // Search for resources using /GraphDefinition?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("GraphDefinition", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns GraphDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -2809,10 +2811,6 @@ service /fhir/r4/GraphDefinition on new fhirr4:Listener(config = r4_api_config:g
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, GraphDefinition graphdefinition) returns GraphDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -2848,6 +2846,10 @@ service /fhir/r4/GraphDefinition on new fhirr4:Listener(config = r4_api_config:g
 // // # DocumentReference API                                                                                                          #
 // 
 service /fhir/r4/DocumentReference on new fhirr4:Listener(config = r4_api_config:documentreferenceApiConfig) {
+    // Search for resources using /DocumentReference?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("DocumentReference", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DocumentReference|r4:OperationOutcome|r4:FHIRError {
@@ -2859,10 +2861,6 @@ service /fhir/r4/DocumentReference on new fhirr4:Listener(config = r4_api_config
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DocumentReference documentreference) returns DocumentReference|r4:OperationOutcome|r4:FHIRError {
@@ -2898,6 +2896,10 @@ service /fhir/r4/DocumentReference on new fhirr4:Listener(config = r4_api_config
 // // # Parameters API                                                                                                          #
 // 
 service /fhir/r4/Parameters on new fhirr4:Listener(config = r4_api_config:parametersApiConfig) {
+    // Search for resources using /Parameters?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Parameters", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Parameters|r4:OperationOutcome|r4:FHIRError {
@@ -2909,10 +2911,6 @@ service /fhir/r4/Parameters on new fhirr4:Listener(config = r4_api_config:parame
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Parameters parameters) returns Parameters|r4:OperationOutcome|r4:FHIRError {
@@ -2948,6 +2946,10 @@ service /fhir/r4/Parameters on new fhirr4:Listener(config = r4_api_config:parame
 // // # CoverageEligibilityResponse API                                                                                                          #
 // 
 service /fhir/r4/CoverageEligibilityResponse on new fhirr4:Listener(config = r4_api_config:coverageeligibilityresponseApiConfig) {
+    // Search for resources using /CoverageEligibilityResponse?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("CoverageEligibilityResponse", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CoverageEligibilityResponse|r4:OperationOutcome|r4:FHIRError {
@@ -2959,10 +2961,6 @@ service /fhir/r4/CoverageEligibilityResponse on new fhirr4:Listener(config = r4_
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CoverageEligibilityResponse coverageeligibilityresponse) returns CoverageEligibilityResponse|r4:OperationOutcome|r4:FHIRError {
@@ -2998,6 +2996,10 @@ service /fhir/r4/CoverageEligibilityResponse on new fhirr4:Listener(config = r4_
 // // # MeasureReport API                                                                                                          #
 // 
 service /fhir/r4/MeasureReport on new fhirr4:Listener(config = r4_api_config:measurereportApiConfig) {
+    // Search for resources using /MeasureReport?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("MeasureReport", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MeasureReport|r4:OperationOutcome|r4:FHIRError {
@@ -3009,10 +3011,6 @@ service /fhir/r4/MeasureReport on new fhirr4:Listener(config = r4_api_config:mea
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MeasureReport measurereport) returns MeasureReport|r4:OperationOutcome|r4:FHIRError {
@@ -3048,6 +3046,10 @@ service /fhir/r4/MeasureReport on new fhirr4:Listener(config = r4_api_config:mea
 // // # SubstanceReferenceInformation API                                                                                                          #
 // 
 service /fhir/r4/SubstanceReferenceInformation on new fhirr4:Listener(config = r4_api_config:substancereferenceinformationApiConfig) {
+    // Search for resources using /SubstanceReferenceInformation?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("SubstanceReferenceInformation", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceReferenceInformation|r4:OperationOutcome|r4:FHIRError {
@@ -3059,10 +3061,6 @@ service /fhir/r4/SubstanceReferenceInformation on new fhirr4:Listener(config = r
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceReferenceInformation substancereferenceinformation) returns SubstanceReferenceInformation|r4:OperationOutcome|r4:FHIRError {
@@ -3098,6 +3096,10 @@ service /fhir/r4/SubstanceReferenceInformation on new fhirr4:Listener(config = r
 // // # PractitionerRole API                                                                                                          #
 // 
 service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:practitionerroleApiConfig) {
+    // Search for resources using /PractitionerRole?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("PractitionerRole", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PractitionerRole|r4:OperationOutcome|r4:FHIRError {
@@ -3138,11 +3140,6 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("PractitionerRole", fhirContext);
     }
 
     // Create a new resource.
@@ -3298,6 +3295,10 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
 // // # RelatedPerson API                                                                                                          #
 // 
 service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:relatedpersonApiConfig) {
+    // Search for resources using /RelatedPerson?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("RelatedPerson", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
@@ -3338,11 +3339,6 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("RelatedPerson", fhirContext);
     }
 
     // Create a new resource.
@@ -3498,6 +3494,10 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
 // // # ServiceRequest API                                                                                                          #
 // 
 service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:servicerequestApiConfig) {
+    // Search for resources using /ServiceRequest?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ServiceRequest", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ServiceRequest|r4:OperationOutcome|r4:FHIRError {
@@ -3538,11 +3538,6 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("ServiceRequest", fhirContext);
     }
 
     // Create a new resource.
@@ -3676,6 +3671,10 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
 // // # SupplyRequest API                                                                                                          #
 // 
 service /fhir/r4/SupplyRequest on new fhirr4:Listener(config = r4_api_config:supplyrequestApiConfig) {
+    // Search for resources using /SupplyRequest?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("SupplyRequest", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SupplyRequest|r4:OperationOutcome|r4:FHIRError {
@@ -3687,10 +3686,6 @@ service /fhir/r4/SupplyRequest on new fhirr4:Listener(config = r4_api_config:sup
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SupplyRequest supplyrequest) returns SupplyRequest|r4:OperationOutcome|r4:FHIRError {
@@ -3748,6 +3743,10 @@ service /fhir/r4/SupplyRequest on new fhirr4:Listener(config = r4_api_config:sup
 // // # Practitioner API                                                                                                          #
 // 
 service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:practitionerApiConfig) {
+    // Search for resources using /Practitioner?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Practitioner", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Practitioner|r4:OperationOutcome|r4:FHIRError {
@@ -3793,11 +3792,6 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Practitioner", fhirContext);
     }
 
     // Create a new resource.
@@ -3982,6 +3976,10 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
 // // # VerificationResult API                                                                                                          #
 // 
 service /fhir/r4/VerificationResult on new fhirr4:Listener(config = r4_api_config:verificationresultApiConfig) {
+    // Search for resources using /VerificationResult?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("VerificationResult", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns VerificationResult|r4:OperationOutcome|r4:FHIRError {
@@ -3993,10 +3991,6 @@ service /fhir/r4/VerificationResult on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, VerificationResult verificationresult) returns VerificationResult|r4:OperationOutcome|r4:FHIRError {
@@ -4032,6 +4026,10 @@ service /fhir/r4/VerificationResult on new fhirr4:Listener(config = r4_api_confi
 // // # SubstanceProtein API                                                                                                          #
 // 
 service /fhir/r4/SubstanceProtein on new fhirr4:Listener(config = r4_api_config:substanceproteinApiConfig) {
+    // Search for resources using /SubstanceProtein?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("SubstanceProtein", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceProtein|r4:OperationOutcome|r4:FHIRError {
@@ -4043,10 +4041,6 @@ service /fhir/r4/SubstanceProtein on new fhirr4:Listener(config = r4_api_config:
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceProtein substanceprotein) returns SubstanceProtein|r4:OperationOutcome|r4:FHIRError {
@@ -4082,6 +4076,10 @@ service /fhir/r4/SubstanceProtein on new fhirr4:Listener(config = r4_api_config:
 // // # BodyStructure API                                                                                                          #
 // 
 service /fhir/r4/BodyStructure on new fhirr4:Listener(config = r4_api_config:bodystructureApiConfig) {
+    // Search for resources using /BodyStructure?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("BodyStructure", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns BodyStructure|r4:OperationOutcome|r4:FHIRError {
@@ -4093,10 +4091,6 @@ service /fhir/r4/BodyStructure on new fhirr4:Listener(config = r4_api_config:bod
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, BodyStructure bodystructure) returns BodyStructure|r4:OperationOutcome|r4:FHIRError {
@@ -4154,6 +4148,10 @@ service /fhir/r4/BodyStructure on new fhirr4:Listener(config = r4_api_config:bod
 // // # Slot API                                                                                                          #
 // 
 service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfig) {
+    // Search for resources using /Slot?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Slot", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Slot|r4:OperationOutcome|r4:FHIRError {
@@ -4194,11 +4192,6 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Slot", fhirContext);
     }
 
     // Create a new resource.
@@ -4332,6 +4325,10 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
 // // # Contract API                                                                                                          #
 // 
 service /fhir/r4/Contract on new fhirr4:Listener(config = r4_api_config:contractApiConfig) {
+    // Search for resources using /Contract?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Contract", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Contract|r4:OperationOutcome|r4:FHIRError {
@@ -4343,10 +4340,6 @@ service /fhir/r4/Contract on new fhirr4:Listener(config = r4_api_config:contract
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Contract contract) returns Contract|r4:OperationOutcome|r4:FHIRError {
@@ -4382,6 +4375,10 @@ service /fhir/r4/Contract on new fhirr4:Listener(config = r4_api_config:contract
 // // # Person API                                                                                                          #
 // 
 service /fhir/r4/Person on new fhirr4:Listener(config = r4_api_config:personApiConfig) {
+    // Search for resources using /Person?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Person", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Person|r4:OperationOutcome|r4:FHIRError {
@@ -4393,10 +4390,6 @@ service /fhir/r4/Person on new fhirr4:Listener(config = r4_api_config:personApiC
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Person person) returns Person|r4:OperationOutcome|r4:FHIRError {
@@ -4432,6 +4425,10 @@ service /fhir/r4/Person on new fhirr4:Listener(config = r4_api_config:personApiC
 // // # RiskAssessment API                                                                                                          #
 // 
 service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:riskassessmentApiConfig) {
+    // Search for resources using /RiskAssessment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("RiskAssessment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RiskAssessment|r4:OperationOutcome|r4:FHIRError {
@@ -4443,10 +4440,6 @@ service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:ri
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RiskAssessment riskassessment) returns RiskAssessment|r4:OperationOutcome|r4:FHIRError {
@@ -4482,6 +4475,10 @@ service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:ri
 // // # Group API                                                                                                          #
 // 
 service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiConfig) {
+    // Search for resources using /Group?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Group", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Group|r4:OperationOutcome|r4:FHIRError {
@@ -4493,10 +4490,6 @@ service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiCon
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Group group) returns Group|r4:OperationOutcome|r4:FHIRError {
@@ -4532,6 +4525,10 @@ service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiCon
 // // # ResearchDefinition API                                                                                                          #
 // 
 service /fhir/r4/ResearchDefinition on new fhirr4:Listener(config = r4_api_config:researchdefinitionApiConfig) {
+    // Search for resources using /ResearchDefinition?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ResearchDefinition", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ResearchDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -4543,10 +4540,6 @@ service /fhir/r4/ResearchDefinition on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ResearchDefinition researchdefinition) returns ResearchDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -4582,6 +4575,10 @@ service /fhir/r4/ResearchDefinition on new fhirr4:Listener(config = r4_api_confi
 // // # PaymentNotice API                                                                                                          #
 // 
 service /fhir/r4/PaymentNotice on new fhirr4:Listener(config = r4_api_config:paymentnoticeApiConfig) {
+    // Search for resources using /PaymentNotice?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("PaymentNotice", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PaymentNotice|r4:OperationOutcome|r4:FHIRError {
@@ -4593,10 +4590,6 @@ service /fhir/r4/PaymentNotice on new fhirr4:Listener(config = r4_api_config:pay
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PaymentNotice paymentnotice) returns PaymentNotice|r4:OperationOutcome|r4:FHIRError {
@@ -4632,6 +4625,10 @@ service /fhir/r4/PaymentNotice on new fhirr4:Listener(config = r4_api_config:pay
 // // # MedicinalProductManufactured API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductManufactured on new fhirr4:Listener(config = r4_api_config:medicinalproductmanufacturedApiConfig) {
+    // Search for resources using /MedicinalProductManufactured?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("MedicinalProductManufactured", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductManufactured|r4:OperationOutcome|r4:FHIRError {
@@ -4643,10 +4640,6 @@ service /fhir/r4/MedicinalProductManufactured on new fhirr4:Listener(config = r4
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductManufactured medicinalproductmanufactured) returns MedicinalProductManufactured|r4:OperationOutcome|r4:FHIRError {
@@ -4682,6 +4675,10 @@ service /fhir/r4/MedicinalProductManufactured on new fhirr4:Listener(config = r4
 // // # Organization API                                                                                                          #
 // 
 service /fhir/r4/Organization on new fhirr4:Listener(config = r4_api_config:organizationApiConfig) {
+    // Search for resources using /Organization?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Organization", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Organization|r4:OperationOutcome|r4:FHIRError {
@@ -4693,10 +4690,6 @@ service /fhir/r4/Organization on new fhirr4:Listener(config = r4_api_config:orga
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Organization organization) returns Organization|r4:OperationOutcome|r4:FHIRError {
@@ -4732,6 +4725,10 @@ service /fhir/r4/Organization on new fhirr4:Listener(config = r4_api_config:orga
 // // # ImplementationGuide API                                                                                                          #
 // 
 service /fhir/r4/ImplementationGuide on new fhirr4:Listener(config = r4_api_config:implementationguideApiConfig) {
+    // Search for resources using /ImplementationGuide?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ImplementationGuide", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImplementationGuide|r4:OperationOutcome|r4:FHIRError {
@@ -4743,10 +4740,6 @@ service /fhir/r4/ImplementationGuide on new fhirr4:Listener(config = r4_api_conf
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImplementationGuide implementationguide) returns ImplementationGuide|r4:OperationOutcome|r4:FHIRError {
@@ -4782,6 +4775,10 @@ service /fhir/r4/ImplementationGuide on new fhirr4:Listener(config = r4_api_conf
 // // # CareTeam API                                                                                                          #
 // 
 service /fhir/r4/CareTeam on new fhirr4:Listener(config = r4_api_config:careteamApiConfig) {
+    // Search for resources using /CareTeam?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("CareTeam", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CareTeam|r4:OperationOutcome|r4:FHIRError {
@@ -4793,10 +4790,6 @@ service /fhir/r4/CareTeam on new fhirr4:Listener(config = r4_api_config:careteam
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CareTeam careteam) returns CareTeam|r4:OperationOutcome|r4:FHIRError {
@@ -4832,6 +4825,10 @@ service /fhir/r4/CareTeam on new fhirr4:Listener(config = r4_api_config:careteam
 // // # ImagingStudy API                                                                                                          #
 // 
 service /fhir/r4/ImagingStudy on new fhirr4:Listener(config = r4_api_config:imagingstudyApiConfig) {
+    // Search for resources using /ImagingStudy?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ImagingStudy", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImagingStudy|r4:OperationOutcome|r4:FHIRError {
@@ -4843,10 +4840,6 @@ service /fhir/r4/ImagingStudy on new fhirr4:Listener(config = r4_api_config:imag
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImagingStudy imagingstudy) returns ImagingStudy|r4:OperationOutcome|r4:FHIRError {
@@ -4882,6 +4875,10 @@ service /fhir/r4/ImagingStudy on new fhirr4:Listener(config = r4_api_config:imag
 // // # FamilyMemberHistory API                                                                                                          #
 // 
 service /fhir/r4/FamilyMemberHistory on new fhirr4:Listener(config = r4_api_config:familymemberhistoryApiConfig) {
+    // Search for resources using /FamilyMemberHistory?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("FamilyMemberHistory", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns FamilyMemberHistory|r4:OperationOutcome|r4:FHIRError {
@@ -4893,10 +4890,6 @@ service /fhir/r4/FamilyMemberHistory on new fhirr4:Listener(config = r4_api_conf
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, FamilyMemberHistory familymemberhistory) returns FamilyMemberHistory|r4:OperationOutcome|r4:FHIRError {
@@ -4932,6 +4925,10 @@ service /fhir/r4/FamilyMemberHistory on new fhirr4:Listener(config = r4_api_conf
 // // # ChargeItem API                                                                                                          #
 // 
 service /fhir/r4/ChargeItem on new fhirr4:Listener(config = r4_api_config:chargeitemApiConfig) {
+    // Search for resources using /ChargeItem?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ChargeItem", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ChargeItem|r4:OperationOutcome|r4:FHIRError {
@@ -4943,10 +4940,6 @@ service /fhir/r4/ChargeItem on new fhirr4:Listener(config = r4_api_config:charge
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ChargeItem chargeitem) returns ChargeItem|r4:OperationOutcome|r4:FHIRError {
@@ -4982,6 +4975,10 @@ service /fhir/r4/ChargeItem on new fhirr4:Listener(config = r4_api_config:charge
 // // # ResearchElementDefinition API                                                                                                          #
 // 
 service /fhir/r4/ResearchElementDefinition on new fhirr4:Listener(config = r4_api_config:researchelementdefinitionApiConfig) {
+    // Search for resources using /ResearchElementDefinition?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ResearchElementDefinition", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ResearchElementDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -4993,10 +4990,6 @@ service /fhir/r4/ResearchElementDefinition on new fhirr4:Listener(config = r4_ap
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ResearchElementDefinition researchelementdefinition) returns ResearchElementDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -5032,6 +5025,10 @@ service /fhir/r4/ResearchElementDefinition on new fhirr4:Listener(config = r4_ap
 // // # ObservationDefinition API                                                                                                          #
 // 
 service /fhir/r4/ObservationDefinition on new fhirr4:Listener(config = r4_api_config:observationdefinitionApiConfig) {
+    // Search for resources using /ObservationDefinition?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ObservationDefinition", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ObservationDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -5043,10 +5040,6 @@ service /fhir/r4/ObservationDefinition on new fhirr4:Listener(config = r4_api_co
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ObservationDefinition observationdefinition) returns ObservationDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -5082,6 +5075,10 @@ service /fhir/r4/ObservationDefinition on new fhirr4:Listener(config = r4_api_co
 // // # SubstanceSpecification API                                                                                                          #
 // 
 service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_config:substancespecificationApiConfig) {
+    // Search for resources using /SubstanceSpecification?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("SubstanceSpecification", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceSpecification|r4:OperationOutcome|r4:FHIRError {
@@ -5093,10 +5090,6 @@ service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_c
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceSpecification substancespecification) returns SubstanceSpecification|r4:OperationOutcome|r4:FHIRError {
@@ -5132,6 +5125,10 @@ service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_c
 // // # Encounter API                                                                                                          #
 // 
 service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encounterApiConfig) {
+    // Search for resources using /Encounter?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Encounter", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Encounter|r4:OperationOutcome|r4:FHIRError {
@@ -5143,10 +5140,6 @@ service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encount
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Encounter encounter) returns Encounter|r4:OperationOutcome|r4:FHIRError {
@@ -5182,6 +5175,10 @@ service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encount
 // // # Substance API                                                                                                          #
 // 
 service /fhir/r4/Substance on new fhirr4:Listener(config = r4_api_config:substanceApiConfig) {
+    // Search for resources using /Substance?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Substance", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Substance|r4:OperationOutcome|r4:FHIRError {
@@ -5193,10 +5190,6 @@ service /fhir/r4/Substance on new fhirr4:Listener(config = r4_api_config:substan
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Substance substance) returns Substance|r4:OperationOutcome|r4:FHIRError {
@@ -5232,6 +5225,10 @@ service /fhir/r4/Substance on new fhirr4:Listener(config = r4_api_config:substan
 // // # SearchParameter API                                                                                                          #
 // 
 service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:searchparameterApiConfig) {
+    // Search for resources using /SearchParameter?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("SearchParameter", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
@@ -5243,10 +5240,6 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SearchParameter searchparameter) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
@@ -5282,6 +5275,10 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
 // // # Communication API                                                                                                          #
 // 
 service /fhir/r4/Communication on new fhirr4:Listener(config = r4_api_config:communicationApiConfig) {
+    // Search for resources using /Communication?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Communication", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Communication|r4:OperationOutcome|r4:FHIRError {
@@ -5293,10 +5290,6 @@ service /fhir/r4/Communication on new fhirr4:Listener(config = r4_api_config:com
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Communication communication) returns Communication|r4:OperationOutcome|r4:FHIRError {
@@ -5332,6 +5325,10 @@ service /fhir/r4/Communication on new fhirr4:Listener(config = r4_api_config:com
 // // # InsurancePlan API                                                                                                          #
 // 
 service /fhir/r4/InsurancePlan on new fhirr4:Listener(config = r4_api_config:insuranceplanApiConfig) {
+    // Search for resources using /InsurancePlan?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("InsurancePlan", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns InsurancePlan|r4:OperationOutcome|r4:FHIRError {
@@ -5343,10 +5340,6 @@ service /fhir/r4/InsurancePlan on new fhirr4:Listener(config = r4_api_config:ins
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, InsurancePlan insuranceplan) returns InsurancePlan|r4:OperationOutcome|r4:FHIRError {
@@ -5382,6 +5375,10 @@ service /fhir/r4/InsurancePlan on new fhirr4:Listener(config = r4_api_config:ins
 // // # ActivityDefinition API                                                                                                          #
 // 
 service /fhir/r4/ActivityDefinition on new fhirr4:Listener(config = r4_api_config:activitydefinitionApiConfig) {
+    // Search for resources using /ActivityDefinition?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ActivityDefinition", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ActivityDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -5393,10 +5390,6 @@ service /fhir/r4/ActivityDefinition on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ActivityDefinition activitydefinition) returns ActivityDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -5432,6 +5425,10 @@ service /fhir/r4/ActivityDefinition on new fhirr4:Listener(config = r4_api_confi
 // // # Linkage API                                                                                                          #
 // 
 service /fhir/r4/Linkage on new fhirr4:Listener(config = r4_api_config:linkageApiConfig) {
+    // Search for resources using /Linkage?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Linkage", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Linkage|r4:OperationOutcome|r4:FHIRError {
@@ -5443,10 +5440,6 @@ service /fhir/r4/Linkage on new fhirr4:Listener(config = r4_api_config:linkageAp
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Linkage linkage) returns Linkage|r4:OperationOutcome|r4:FHIRError {
@@ -5482,6 +5475,10 @@ service /fhir/r4/Linkage on new fhirr4:Listener(config = r4_api_config:linkageAp
 // // # SubstanceSourceMaterial API                                                                                                          #
 // 
 service /fhir/r4/SubstanceSourceMaterial on new fhirr4:Listener(config = r4_api_config:substancesourcematerialApiConfig) {
+    // Search for resources using /SubstanceSourceMaterial?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("SubstanceSourceMaterial", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceSourceMaterial|r4:OperationOutcome|r4:FHIRError {
@@ -5493,10 +5490,6 @@ service /fhir/r4/SubstanceSourceMaterial on new fhirr4:Listener(config = r4_api_
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceSourceMaterial substancesourcematerial) returns SubstanceSourceMaterial|r4:OperationOutcome|r4:FHIRError {
@@ -5532,6 +5525,10 @@ service /fhir/r4/SubstanceSourceMaterial on new fhirr4:Listener(config = r4_api_
 // // # ImmunizationEvaluation API                                                                                                          #
 // 
 service /fhir/r4/ImmunizationEvaluation on new fhirr4:Listener(config = r4_api_config:immunizationevaluationApiConfig) {
+    // Search for resources using /ImmunizationEvaluation?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ImmunizationEvaluation", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImmunizationEvaluation|r4:OperationOutcome|r4:FHIRError {
@@ -5543,10 +5540,6 @@ service /fhir/r4/ImmunizationEvaluation on new fhirr4:Listener(config = r4_api_c
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ImmunizationEvaluation immunizationevaluation) returns ImmunizationEvaluation|r4:OperationOutcome|r4:FHIRError {
@@ -5582,6 +5575,10 @@ service /fhir/r4/ImmunizationEvaluation on new fhirr4:Listener(config = r4_api_c
 // // # DeviceUseStatement API                                                                                                          #
 // 
 service /fhir/r4/DeviceUseStatement on new fhirr4:Listener(config = r4_api_config:deviceusestatementApiConfig) {
+    // Search for resources using /DeviceUseStatement?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("DeviceUseStatement", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DeviceUseStatement|r4:OperationOutcome|r4:FHIRError {
@@ -5593,10 +5590,6 @@ service /fhir/r4/DeviceUseStatement on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DeviceUseStatement deviceusestatement) returns DeviceUseStatement|r4:OperationOutcome|r4:FHIRError {
@@ -5632,6 +5625,10 @@ service /fhir/r4/DeviceUseStatement on new fhirr4:Listener(config = r4_api_confi
 // // # RequestGroup API                                                                                                          #
 // 
 service /fhir/r4/RequestGroup on new fhirr4:Listener(config = r4_api_config:requestgroupApiConfig) {
+    // Search for resources using /RequestGroup?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("RequestGroup", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RequestGroup|r4:OperationOutcome|r4:FHIRError {
@@ -5643,10 +5640,6 @@ service /fhir/r4/RequestGroup on new fhirr4:Listener(config = r4_api_config:requ
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RequestGroup requestgroup) returns RequestGroup|r4:OperationOutcome|r4:FHIRError {
@@ -5682,6 +5675,10 @@ service /fhir/r4/RequestGroup on new fhirr4:Listener(config = r4_api_config:requ
 // // # MessageHeader API                                                                                                          #
 // 
 service /fhir/r4/MessageHeader on new fhirr4:Listener(config = r4_api_config:messageheaderApiConfig) {
+    // Search for resources using /MessageHeader?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("MessageHeader", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MessageHeader|r4:OperationOutcome|r4:FHIRError {
@@ -5693,10 +5690,6 @@ service /fhir/r4/MessageHeader on new fhirr4:Listener(config = r4_api_config:mes
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MessageHeader messageheader) returns MessageHeader|r4:OperationOutcome|r4:FHIRError {
@@ -5732,6 +5725,10 @@ service /fhir/r4/MessageHeader on new fhirr4:Listener(config = r4_api_config:mes
 // // # DeviceRequest API                                                                                                          #
 // 
 service /fhir/r4/DeviceRequest on new fhirr4:Listener(config = r4_api_config:devicerequestApiConfig) {
+    // Search for resources using /DeviceRequest?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("DeviceRequest", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DeviceRequest|r4:OperationOutcome|r4:FHIRError {
@@ -5743,10 +5740,6 @@ service /fhir/r4/DeviceRequest on new fhirr4:Listener(config = r4_api_config:dev
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DeviceRequest devicerequest) returns DeviceRequest|r4:OperationOutcome|r4:FHIRError {
@@ -5804,6 +5797,10 @@ service /fhir/r4/DeviceRequest on new fhirr4:Listener(config = r4_api_config:dev
 // // # ImmunizationRecommendation API                                                                                                          #
 // 
 service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_api_config:immunizationrecommendationApiConfig) {
+    // Search for resources using /ImmunizationRecommendation?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ImmunizationRecommendation", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ImmunizationRecommendation|r4:OperationOutcome|r4:FHIRError {
@@ -5844,11 +5841,6 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("ImmunizationRecommendation", fhirContext);
     }
 
     // Create a new resource.
@@ -5982,6 +5974,10 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
 // // # Task API                                                                                                          #
 // 
 service /fhir/r4/Task on new fhirr4:Listener(config = r4_api_config:taskApiConfig) {
+    // Search for resources using /Task?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Task", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Task|r4:OperationOutcome|r4:FHIRError {
@@ -5993,10 +5989,6 @@ service /fhir/r4/Task on new fhirr4:Listener(config = r4_api_config:taskApiConfi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Task task) returns Task|r4:OperationOutcome|r4:FHIRError {
@@ -6032,6 +6024,10 @@ service /fhir/r4/Task on new fhirr4:Listener(config = r4_api_config:taskApiConfi
 // // # Provenance API                                                                                                          #
 // 
 service /fhir/r4/Provenance on new fhirr4:Listener(config = r4_api_config:provenanceApiConfig) {
+    // Search for resources using /Provenance?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Provenance", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Provenance|r4:OperationOutcome|r4:FHIRError {
@@ -6043,10 +6039,6 @@ service /fhir/r4/Provenance on new fhirr4:Listener(config = r4_api_config:proven
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Provenance provenance) returns Provenance|r4:OperationOutcome|r4:FHIRError {
@@ -6082,6 +6074,10 @@ service /fhir/r4/Provenance on new fhirr4:Listener(config = r4_api_config:proven
 // // # Questionnaire API                                                                                                          #
 // 
 service /fhir/r4/Questionnaire on new fhirr4:Listener(config = r4_api_config:questionnaireApiConfig) {
+    // Search for resources using /Questionnaire?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Questionnaire", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Questionnaire|r4:OperationOutcome|r4:FHIRError {
@@ -6093,10 +6089,6 @@ service /fhir/r4/Questionnaire on new fhirr4:Listener(config = r4_api_config:que
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Questionnaire questionnaire) returns Questionnaire|r4:OperationOutcome|r4:FHIRError {
@@ -6132,6 +6124,10 @@ service /fhir/r4/Questionnaire on new fhirr4:Listener(config = r4_api_config:que
 // // # ExplanationOfBenefit API                                                                                                          #
 // 
 service /fhir/r4/ExplanationOfBenefit on new fhirr4:Listener(config = r4_api_config:explanationofbenefitApiConfig) {
+    // Search for resources using /ExplanationOfBenefit?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ExplanationOfBenefit", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
@@ -6143,10 +6139,6 @@ service /fhir/r4/ExplanationOfBenefit on new fhirr4:Listener(config = r4_api_con
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ExplanationOfBenefit explanationofbenefit) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
@@ -6182,6 +6174,10 @@ service /fhir/r4/ExplanationOfBenefit on new fhirr4:Listener(config = r4_api_con
 // // # MedicinalProductPharmaceutical API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductPharmaceutical on new fhirr4:Listener(config = r4_api_config:medicinalproductpharmaceuticalApiConfig) {
+    // Search for resources using /MedicinalProductPharmaceutical?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("MedicinalProductPharmaceutical", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductPharmaceutical|r4:OperationOutcome|r4:FHIRError {
@@ -6193,10 +6189,6 @@ service /fhir/r4/MedicinalProductPharmaceutical on new fhirr4:Listener(config = 
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductPharmaceutical medicinalproductpharmaceutical) returns MedicinalProductPharmaceutical|r4:OperationOutcome|r4:FHIRError {
@@ -6232,6 +6224,10 @@ service /fhir/r4/MedicinalProductPharmaceutical on new fhirr4:Listener(config = 
 // // # ResearchStudy API                                                                                                          #
 // 
 service /fhir/r4/ResearchStudy on new fhirr4:Listener(config = r4_api_config:researchstudyApiConfig) {
+    // Search for resources using /ResearchStudy?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ResearchStudy", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ResearchStudy|r4:OperationOutcome|r4:FHIRError {
@@ -6243,10 +6239,6 @@ service /fhir/r4/ResearchStudy on new fhirr4:Listener(config = r4_api_config:res
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ResearchStudy researchstudy) returns ResearchStudy|r4:OperationOutcome|r4:FHIRError {
@@ -6282,6 +6274,10 @@ service /fhir/r4/ResearchStudy on new fhirr4:Listener(config = r4_api_config:res
 // // # Specimen API                                                                                                          #
 // 
 service /fhir/r4/Specimen on new fhirr4:Listener(config = r4_api_config:specimenApiConfig) {
+    // Search for resources using /Specimen?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Specimen", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Specimen|r4:OperationOutcome|r4:FHIRError {
@@ -6293,10 +6289,6 @@ service /fhir/r4/Specimen on new fhirr4:Listener(config = r4_api_config:specimen
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Specimen specimen) returns Specimen|r4:OperationOutcome|r4:FHIRError {
@@ -6332,6 +6324,10 @@ service /fhir/r4/Specimen on new fhirr4:Listener(config = r4_api_config:specimen
 // // # CarePlan API                                                                                                          #
 // 
 service /fhir/r4/CarePlan on new fhirr4:Listener(config = r4_api_config:careplanApiConfig) {
+    // Search for resources using /CarePlan?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("CarePlan", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CarePlan|r4:OperationOutcome|r4:FHIRError {
@@ -6343,10 +6339,6 @@ service /fhir/r4/CarePlan on new fhirr4:Listener(config = r4_api_config:careplan
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CarePlan careplan) returns CarePlan|r4:OperationOutcome|r4:FHIRError {
@@ -6382,6 +6374,10 @@ service /fhir/r4/CarePlan on new fhirr4:Listener(config = r4_api_config:careplan
 // // # AllergyIntolerance API                                                                                                          #
 // 
 service /fhir/r4/AllergyIntolerance on new fhirr4:Listener(config = r4_api_config:allergyintoleranceApiConfig) {
+    // Search for resources using /AllergyIntolerance?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("AllergyIntolerance", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns AllergyIntolerance|r4:OperationOutcome|r4:FHIRError {
@@ -6393,10 +6389,6 @@ service /fhir/r4/AllergyIntolerance on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, AllergyIntolerance allergyintolerance) returns AllergyIntolerance|r4:OperationOutcome|r4:FHIRError {
@@ -6432,6 +6424,10 @@ service /fhir/r4/AllergyIntolerance on new fhirr4:Listener(config = r4_api_confi
 // // # StructureDefinition API                                                                                                          #
 // 
 service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_config:structuredefinitionApiConfig) {
+    // Search for resources using /StructureDefinition?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("StructureDefinition", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -6443,10 +6439,6 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, StructureDefinition structuredefinition) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -6482,6 +6474,10 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
 // // # ChargeItemDefinition API                                                                                                          #
 // 
 service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_config:chargeitemdefinitionApiConfig) {
+    // Search for resources using /ChargeItemDefinition?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ChargeItemDefinition", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ChargeItemDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -6493,10 +6489,6 @@ service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_con
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ChargeItemDefinition chargeitemdefinition) returns ChargeItemDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -6532,6 +6524,10 @@ service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_con
 // // # EpisodeOfCare API                                                                                                          #
 // 
 service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:episodeofcareApiConfig) {
+    // Search for resources using /EpisodeOfCare?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("EpisodeOfCare", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EpisodeOfCare|r4:OperationOutcome|r4:FHIRError {
@@ -6543,10 +6539,6 @@ service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:epi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EpisodeOfCare episodeofcare) returns EpisodeOfCare|r4:OperationOutcome|r4:FHIRError {
@@ -6604,6 +6596,10 @@ service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:epi
 // // # Procedure API                                                                                                          #
 // 
 service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedureApiConfig) {
+    // Search for resources using /Procedure?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Procedure", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Procedure|r4:OperationOutcome|r4:FHIRError {
@@ -6644,11 +6640,6 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Procedure", fhirContext);
     }
 
     // Create a new resource.
@@ -6782,6 +6773,10 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
 // // # List API                                                                                                          #
 // 
 service /fhir/r4/List on new fhirr4:Listener(config = r4_api_config:listApiConfig) {
+    // Search for resources using /List?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("List", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns List|r4:OperationOutcome|r4:FHIRError {
@@ -6793,10 +6788,6 @@ service /fhir/r4/List on new fhirr4:Listener(config = r4_api_config:listApiConfi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, List list) returns List|r4:OperationOutcome|r4:FHIRError {
@@ -6832,6 +6823,10 @@ service /fhir/r4/List on new fhirr4:Listener(config = r4_api_config:listApiConfi
 // // # ConceptMap API                                                                                                          #
 // 
 service /fhir/r4/ConceptMap on new fhirr4:Listener(config = r4_api_config:conceptmapApiConfig) {
+    // Search for resources using /ConceptMap?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("ConceptMap", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ConceptMap|r4:OperationOutcome|r4:FHIRError {
@@ -6843,10 +6838,6 @@ service /fhir/r4/ConceptMap on new fhirr4:Listener(config = r4_api_config:concep
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ConceptMap conceptmap) returns ConceptMap|r4:OperationOutcome|r4:FHIRError {
@@ -6882,6 +6873,10 @@ service /fhir/r4/ConceptMap on new fhirr4:Listener(config = r4_api_config:concep
 // // # OperationDefinition API                                                                                                          #
 // 
 service /fhir/r4/OperationDefinition on new fhirr4:Listener(config = r4_api_config:operationdefinitionApiConfig) {
+    // Search for resources using /OperationDefinition?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("OperationDefinition", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns OperationDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -6893,10 +6888,6 @@ service /fhir/r4/OperationDefinition on new fhirr4:Listener(config = r4_api_conf
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, OperationDefinition operationdefinition) returns OperationDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -6932,6 +6923,10 @@ service /fhir/r4/OperationDefinition on new fhirr4:Listener(config = r4_api_conf
 // // # Immunization API                                                                                                          #
 // 
 service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immunizationApiConfig) {
+    // Search for resources using /Immunization?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Immunization", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Immunization|r4:OperationOutcome|r4:FHIRError {
@@ -6943,10 +6938,6 @@ service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immu
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Immunization immunization) returns Immunization|r4:OperationOutcome|r4:FHIRError {
@@ -6982,6 +6973,10 @@ service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immu
 // // # MedicationRequest API                                                                                                          #
 // 
 service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config:medicationrequestApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationRequest|r4:OperationOutcome|r4:FHIRError {
@@ -6993,10 +6988,6 @@ service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationRequest medicationrequest) returns MedicationRequest|r4:OperationOutcome|r4:FHIRError {
@@ -7032,6 +7023,10 @@ service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config
 // // # EffectEvidenceSynthesis API                                                                                                          #
 // 
 service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_config:effectevidencesynthesisApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EffectEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
@@ -7043,10 +7038,6 @@ service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EffectEvidenceSynthesis effectevidencesynthesis) returns EffectEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
@@ -7082,6 +7073,10 @@ service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_
 // // # BiologicallyDerivedProduct API                                                                                                          #
 // 
 service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_api_config:biologicallyderivedproductApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns BiologicallyDerivedProduct|r4:OperationOutcome|r4:FHIRError {
@@ -7093,10 +7088,6 @@ service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_a
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, BiologicallyDerivedProduct biologicallyderivedproduct) returns BiologicallyDerivedProduct|r4:OperationOutcome|r4:FHIRError {
@@ -7154,6 +7145,10 @@ service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_a
 // // # Device API                                                                                                          #
 // 
 service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Device|r4:OperationOutcome|r4:FHIRError {
@@ -7194,11 +7189,6 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Device", fhirContext);
     }
 
     // Create a new resource.
@@ -7332,6 +7322,10 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
 // // # VisionPrescription API                                                                                                          #
 // 
 service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_config:visionprescriptionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns VisionPrescription|r4:OperationOutcome|r4:FHIRError {
@@ -7343,10 +7337,6 @@ service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, VisionPrescription visionprescription) returns VisionPrescription|r4:OperationOutcome|r4:FHIRError {
@@ -7382,6 +7372,10 @@ service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_confi
 // // # Media API                                                                                                          #
 // 
 service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Media|r4:OperationOutcome|r4:FHIRError {
@@ -7393,10 +7387,6 @@ service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiCon
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Media media) returns Media|r4:OperationOutcome|r4:FHIRError {
@@ -7432,6 +7422,10 @@ service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiCon
 // // # MedicinalProductContraindication API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config = r4_api_config:medicinalproductcontraindicationApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductContraindication|r4:OperationOutcome|r4:FHIRError {
@@ -7443,10 +7437,6 @@ service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config 
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductContraindication medicinalproductcontraindication) returns MedicinalProductContraindication|r4:OperationOutcome|r4:FHIRError {
@@ -7482,6 +7472,10 @@ service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config 
 // // # EvidenceVariable API                                                                                                          #
 // 
 service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:evidencevariableApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EvidenceVariable|r4:OperationOutcome|r4:FHIRError {
@@ -7493,10 +7487,6 @@ service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EvidenceVariable evidencevariable) returns EvidenceVariable|r4:OperationOutcome|r4:FHIRError {
@@ -7532,6 +7522,10 @@ service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:
 // // # MolecularSequence API                                                                                                          #
 // 
 service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config:molecularsequenceApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MolecularSequence|r4:OperationOutcome|r4:FHIRError {
@@ -7543,10 +7537,6 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MolecularSequence molecularsequence) returns MolecularSequence|r4:OperationOutcome|r4:FHIRError {
@@ -7582,6 +7572,10 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
 // // # MedicinalProduct API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:medicinalproductApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProduct|r4:OperationOutcome|r4:FHIRError {
@@ -7593,10 +7587,6 @@ service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProduct medicinalproduct) returns MedicinalProduct|r4:OperationOutcome|r4:FHIRError {
@@ -7632,6 +7622,10 @@ service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:
 // // # DeviceMetric API                                                                                                          #
 // 
 service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devicemetricApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DeviceMetric|r4:OperationOutcome|r4:FHIRError {
@@ -7643,10 +7637,6 @@ service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DeviceMetric devicemetric) returns DeviceMetric|r4:OperationOutcome|r4:FHIRError {
@@ -7682,6 +7672,10 @@ service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devi
 // // # Flag API                                                                                                          #
 // 
 service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Flag|r4:OperationOutcome|r4:FHIRError {
@@ -7693,10 +7687,6 @@ service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Flag flag) returns Flag|r4:OperationOutcome|r4:FHIRError {
@@ -7732,6 +7722,10 @@ service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfi
 // // # SubstanceNucleicAcid API                                                                                                          #
 // 
 service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_config:substancenucleicacidApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstanceNucleicAcid|r4:OperationOutcome|r4:FHIRError {
@@ -7743,10 +7737,6 @@ service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_con
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstanceNucleicAcid substancenucleicacid) returns SubstanceNucleicAcid|r4:OperationOutcome|r4:FHIRError {
@@ -7782,6 +7772,10 @@ service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_con
 // // # RiskEvidenceSynthesis API                                                                                                          #
 // 
 service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_config:riskevidencesynthesisApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns RiskEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
@@ -7793,10 +7787,6 @@ service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_co
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, RiskEvidenceSynthesis riskevidencesynthesis) returns RiskEvidenceSynthesis|r4:OperationOutcome|r4:FHIRError {
@@ -7832,6 +7822,10 @@ service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_co
 // // # AppointmentResponse API                                                                                                          #
 // 
 service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_config:appointmentresponseApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns AppointmentResponse|r4:OperationOutcome|r4:FHIRError {
@@ -7843,10 +7837,6 @@ service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_conf
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, AppointmentResponse appointmentresponse) returns AppointmentResponse|r4:OperationOutcome|r4:FHIRError {
@@ -7882,6 +7872,10 @@ service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_conf
 // // # StructureMap API                                                                                                          #
 // 
 service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:structuremapApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns StructureMap|r4:OperationOutcome|r4:FHIRError {
@@ -7893,10 +7887,6 @@ service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:stru
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, StructureMap structuremap) returns StructureMap|r4:OperationOutcome|r4:FHIRError {
@@ -7932,6 +7922,10 @@ service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:stru
 // // # AdverseEvent API                                                                                                          #
 // 
 service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adverseeventApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns AdverseEvent|r4:OperationOutcome|r4:FHIRError {
@@ -7943,10 +7937,6 @@ service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adve
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, AdverseEvent adverseevent) returns AdverseEvent|r4:OperationOutcome|r4:FHIRError {
@@ -7982,6 +7972,10 @@ service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adve
 // // # GuidanceResponse API                                                                                                          #
 // 
 service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:guidanceresponseApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns GuidanceResponse|r4:OperationOutcome|r4:FHIRError {
@@ -7993,10 +7987,6 @@ service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, GuidanceResponse guidanceresponse) returns GuidanceResponse|r4:OperationOutcome|r4:FHIRError {
@@ -8054,6 +8044,10 @@ service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:
 // // # Observation API                                                                                                          #
 // 
 service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:observationApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Observation|r4:OperationOutcome|r4:FHIRError {
@@ -8094,11 +8088,6 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Observation", fhirContext);
     }
 
     // Create a new resource.
@@ -8232,6 +8221,10 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
 // // # MedicationAdministration API                                                                                                          #
 // 
 service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api_config:medicationadministrationApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationAdministration|r4:OperationOutcome|r4:FHIRError {
@@ -8243,10 +8236,6 @@ service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationAdministration medicationadministration) returns MedicationAdministration|r4:OperationOutcome|r4:FHIRError {
@@ -8282,6 +8271,10 @@ service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api
 // // # EnrollmentResponse API                                                                                                          #
 // 
 service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_config:enrollmentresponseApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns EnrollmentResponse|r4:OperationOutcome|r4:FHIRError {
@@ -8293,10 +8286,6 @@ service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, EnrollmentResponse enrollmentresponse) returns EnrollmentResponse|r4:OperationOutcome|r4:FHIRError {
@@ -8332,6 +8321,10 @@ service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_confi
 // // # Library API                                                                                                          #
 // 
 service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Library|r4:OperationOutcome|r4:FHIRError {
@@ -8343,10 +8336,6 @@ service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryAp
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Library library) returns Library|r4:OperationOutcome|r4:FHIRError {
@@ -8382,6 +8371,10 @@ service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryAp
 // // # Binary API                                                                                                          #
 // 
 service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Binary|r4:OperationOutcome|r4:FHIRError {
@@ -8393,10 +8386,6 @@ service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiC
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Binary binary) returns Binary|r4:OperationOutcome|r4:FHIRError {
@@ -8432,6 +8421,10 @@ service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiC
 // // # MedicinalProductInteraction API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_api_config:medicinalproductinteractionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductInteraction|r4:OperationOutcome|r4:FHIRError {
@@ -8443,10 +8436,6 @@ service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductInteraction medicinalproductinteraction) returns MedicinalProductInteraction|r4:OperationOutcome|r4:FHIRError {
@@ -8482,6 +8471,10 @@ service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_
 // // # MedicationStatement API                                                                                                          #
 // 
 service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_config:medicationstatementApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationStatement|r4:OperationOutcome|r4:FHIRError {
@@ -8493,10 +8486,6 @@ service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_conf
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationStatement medicationstatement) returns MedicationStatement|r4:OperationOutcome|r4:FHIRError {
@@ -8532,6 +8521,10 @@ service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_conf
 // // # CommunicationRequest API                                                                                                          #
 // 
 service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_config:communicationrequestApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CommunicationRequest|r4:OperationOutcome|r4:FHIRError {
@@ -8543,10 +8536,6 @@ service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_con
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CommunicationRequest communicationrequest) returns CommunicationRequest|r4:OperationOutcome|r4:FHIRError {
@@ -8582,6 +8571,10 @@ service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_con
 // // # TestScript API                                                                                                          #
 // 
 service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testscriptApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns TestScript|r4:OperationOutcome|r4:FHIRError {
@@ -8593,10 +8586,6 @@ service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testsc
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, TestScript testscript) returns TestScript|r4:OperationOutcome|r4:FHIRError {
@@ -8632,6 +8621,10 @@ service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testsc
 // // # SubstancePolymer API                                                                                                          #
 // 
 service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:substancepolymerApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SubstancePolymer|r4:OperationOutcome|r4:FHIRError {
@@ -8643,10 +8636,6 @@ service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SubstancePolymer substancepolymer) returns SubstancePolymer|r4:OperationOutcome|r4:FHIRError {
@@ -8682,6 +8671,10 @@ service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:
 // // # Basic API                                                                                                          #
 // 
 service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Basic|r4:OperationOutcome|r4:FHIRError {
@@ -8693,10 +8686,6 @@ service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiCon
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Basic basic) returns Basic|r4:OperationOutcome|r4:FHIRError {
@@ -8732,6 +8721,10 @@ service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiCon
 // // # TestReport API                                                                                                          #
 // 
 service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testreportApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns TestReport|r4:OperationOutcome|r4:FHIRError {
@@ -8743,10 +8736,6 @@ service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testre
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, TestReport testreport) returns TestReport|r4:OperationOutcome|r4:FHIRError {
@@ -8782,6 +8771,10 @@ service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testre
 // // # ClaimResponse API                                                                                                          #
 // 
 service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:claimresponseApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ClaimResponse|r4:OperationOutcome|r4:FHIRError {
@@ -8793,10 +8786,6 @@ service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:cla
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ClaimResponse claimresponse) returns ClaimResponse|r4:OperationOutcome|r4:FHIRError {
@@ -8832,6 +8821,10 @@ service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:cla
 // // # MedicationDispense API                                                                                                          #
 // 
 service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_config:medicationdispenseApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationDispense|r4:OperationOutcome|r4:FHIRError {
@@ -8843,10 +8836,6 @@ service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationDispense medicationdispense) returns MedicationDispense|r4:OperationOutcome|r4:FHIRError {
@@ -8882,6 +8871,10 @@ service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_confi
 // // # DiagnosticReport API                                                                                                          #
 // 
 service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:diagnosticreportApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DiagnosticReport|r4:OperationOutcome|r4:FHIRError {
@@ -8893,10 +8886,6 @@ service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DiagnosticReport diagnosticreport) returns DiagnosticReport|r4:OperationOutcome|r4:FHIRError {
@@ -8932,6 +8921,10 @@ service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:
 // // # OrganizationAffiliation API                                                                                                          #
 // 
 service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_config:organizationaffiliationApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns OrganizationAffiliation|r4:OperationOutcome|r4:FHIRError {
@@ -8943,10 +8936,6 @@ service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, OrganizationAffiliation organizationaffiliation) returns OrganizationAffiliation|r4:OperationOutcome|r4:FHIRError {
@@ -9004,6 +8993,10 @@ service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_
 // // # HealthcareService API                                                                                                          #
 // 
 service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config:healthcareserviceApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns HealthcareService|r4:OperationOutcome|r4:FHIRError {
@@ -9044,11 +9037,6 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("HealthcareService", fhirContext);
     }
 
     // Create a new resource.
@@ -9182,6 +9170,10 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
 // // # MedicinalProductIndication API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_api_config:medicinalproductindicationApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductIndication|r4:OperationOutcome|r4:FHIRError {
@@ -9193,10 +9185,6 @@ service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_a
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductIndication medicinalproductindication) returns MedicinalProductIndication|r4:OperationOutcome|r4:FHIRError {
@@ -9232,6 +9220,10 @@ service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_a
 // // # NutritionOrder API                                                                                                          #
 // 
 service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nutritionorderApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns NutritionOrder|r4:OperationOutcome|r4:FHIRError {
@@ -9243,10 +9235,6 @@ service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nu
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, NutritionOrder nutritionorder) returns NutritionOrder|r4:OperationOutcome|r4:FHIRError {
@@ -9282,6 +9270,10 @@ service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nu
 // // # TerminologyCapabilities API                                                                                                          #
 // 
 service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_config:terminologycapabilitiesApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns TerminologyCapabilities|r4:OperationOutcome|r4:FHIRError {
@@ -9293,10 +9285,6 @@ service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, TerminologyCapabilities terminologycapabilities) returns TerminologyCapabilities|r4:OperationOutcome|r4:FHIRError {
@@ -9332,6 +9320,10 @@ service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_
 // // # Evidence API                                                                                                          #
 // 
 service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidenceApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Evidence|r4:OperationOutcome|r4:FHIRError {
@@ -9343,10 +9335,6 @@ service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidence
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Evidence evidence) returns Evidence|r4:OperationOutcome|r4:FHIRError {
@@ -9382,6 +9370,10 @@ service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidence
 // // # AuditEvent API                                                                                                          #
 // 
 service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:auditeventApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns AuditEvent|r4:OperationOutcome|r4:FHIRError {
@@ -9393,10 +9385,6 @@ service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:audite
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, AuditEvent auditevent) returns AuditEvent|r4:OperationOutcome|r4:FHIRError {
@@ -9432,6 +9420,10 @@ service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:audite
 // // # PaymentReconciliation API                                                                                                          #
 // 
 service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_config:paymentreconciliationApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PaymentReconciliation|r4:OperationOutcome|r4:FHIRError {
@@ -9443,10 +9435,6 @@ service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_co
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PaymentReconciliation paymentreconciliation) returns PaymentReconciliation|r4:OperationOutcome|r4:FHIRError {
@@ -9504,6 +9492,10 @@ service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_co
 // // # Condition API                                                                                                          #
 // 
 service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Condition|r4:OperationOutcome|r4:FHIRError {
@@ -9544,11 +9536,6 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Condition", fhirContext);
     }
 
     // Create a new resource.
@@ -9682,6 +9669,10 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
 // // # SpecimenDefinition API                                                                                                          #
 // 
 service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_config:specimendefinitionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SpecimenDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -9693,10 +9684,6 @@ service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SpecimenDefinition specimendefinition) returns SpecimenDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -9732,6 +9719,10 @@ service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_confi
 // // # Composition API                                                                                                          #
 // 
 service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compositionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Composition|r4:OperationOutcome|r4:FHIRError {
@@ -9743,10 +9734,6 @@ service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compo
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Composition composition) returns Composition|r4:OperationOutcome|r4:FHIRError {
@@ -9782,6 +9769,10 @@ service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compo
 // // # DetectedIssue API                                                                                                          #
 // 
 service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:detectedissueApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DetectedIssue|r4:OperationOutcome|r4:FHIRError {
@@ -9793,10 +9784,6 @@ service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:det
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DetectedIssue detectedissue) returns DetectedIssue|r4:OperationOutcome|r4:FHIRError {
@@ -9832,6 +9819,10 @@ service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:det
 // // # CompartmentDefinition API                                                                                                          #
 // 
 service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_config:compartmentdefinitionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CompartmentDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -9843,10 +9834,6 @@ service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_co
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CompartmentDefinition compartmentdefinition) returns CompartmentDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -9882,6 +9869,10 @@ service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_co
 // // # MedicinalProductIngredient API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_api_config:medicinalproductingredientApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductIngredient|r4:OperationOutcome|r4:FHIRError {
@@ -9893,10 +9884,6 @@ service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_a
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductIngredient medicinalproductingredient) returns MedicinalProductIngredient|r4:OperationOutcome|r4:FHIRError {
@@ -9932,6 +9919,10 @@ service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_a
 // // # MedicationKnowledge API                                                                                                          #
 // 
 service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_config:medicationknowledgeApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicationKnowledge|r4:OperationOutcome|r4:FHIRError {
@@ -9943,10 +9934,6 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicationKnowledge medicationknowledge) returns MedicationKnowledge|r4:OperationOutcome|r4:FHIRError {
@@ -10004,6 +9991,10 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
 // // # Patient API                                                                                                          #
 // 
 service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Patient|r4:OperationOutcome|r4:FHIRError {
@@ -10049,11 +10040,6 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
         } on fail error e {
             return r4:createFHIRError("Version retrieval failed: " + e.message(), r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Patient", fhirContext);
     }
 
     // Create a new resource.
@@ -10227,6 +10213,10 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
 // // # Coverage API                                                                                                          #
 // 
 service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverageApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Coverage|r4:OperationOutcome|r4:FHIRError {
@@ -10238,10 +10228,6 @@ service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverage
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Coverage coverage) returns Coverage|r4:OperationOutcome|r4:FHIRError {
@@ -10277,6 +10263,10 @@ service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverage
 // // # QuestionnaireResponse API                                                                                                          #
 // 
 service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_config:questionnaireresponseApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns QuestionnaireResponse|r4:OperationOutcome|r4:FHIRError {
@@ -10288,10 +10278,6 @@ service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_co
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, QuestionnaireResponse questionnaireresponse) returns QuestionnaireResponse|r4:OperationOutcome|r4:FHIRError {
@@ -10327,6 +10313,10 @@ service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_co
 // // # CoverageEligibilityRequest API                                                                                                          #
 // 
 service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_api_config:coverageeligibilityrequestApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns CoverageEligibilityRequest|r4:OperationOutcome|r4:FHIRError {
@@ -10338,10 +10328,6 @@ service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_a
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CoverageEligibilityRequest coverageeligibilityrequest) returns CoverageEligibilityRequest|r4:OperationOutcome|r4:FHIRError {
@@ -10377,6 +10363,10 @@ service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_a
 // // # NamingSystem API                                                                                                          #
 // 
 service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:namingsystemApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns NamingSystem|r4:OperationOutcome|r4:FHIRError {
@@ -10388,10 +10378,6 @@ service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:nami
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, NamingSystem namingsystem) returns NamingSystem|r4:OperationOutcome|r4:FHIRError {
@@ -10427,6 +10413,10 @@ service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:nami
 // // # MedicinalProductUndesirableEffect API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config = r4_api_config:medicinalproductundesirableeffectApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductUndesirableEffect|r4:OperationOutcome|r4:FHIRError {
@@ -10438,10 +10428,6 @@ service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductUndesirableEffect medicinalproductundesirableeffect) returns MedicinalProductUndesirableEffect|r4:OperationOutcome|r4:FHIRError {
@@ -10477,6 +10463,10 @@ service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config
 // // # ExampleScenario API                                                                                                          #
 // 
 service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:examplescenarioApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ExampleScenario|r4:OperationOutcome|r4:FHIRError {
@@ -10488,10 +10478,6 @@ service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:e
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ExampleScenario examplescenario) returns ExampleScenario|r4:OperationOutcome|r4:FHIRError {
@@ -10527,6 +10513,10 @@ service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:e
 // // # SupplyDelivery API                                                                                                          #
 // 
 service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:supplydeliveryApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns SupplyDelivery|r4:OperationOutcome|r4:FHIRError {
@@ -10538,10 +10528,6 @@ service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:su
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, SupplyDelivery supplydelivery) returns SupplyDelivery|r4:OperationOutcome|r4:FHIRError {
@@ -10577,6 +10563,10 @@ service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:su
 // // # Schedule API                                                                                                          #
 // 
 service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:scheduleApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Schedule|r4:OperationOutcome|r4:FHIRError {
@@ -10588,10 +10578,6 @@ service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:schedule
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Schedule schedule) returns Schedule|r4:OperationOutcome|r4:FHIRError {
@@ -10627,6 +10613,10 @@ service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:schedule
 // // # DeviceDefinition API                                                                                                          #
 // 
 service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:devicedefinitionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns DeviceDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -10638,10 +10628,6 @@ service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, DeviceDefinition devicedefinition) returns DeviceDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -10677,6 +10663,10 @@ service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:
 // // # ClinicalImpression API                                                                                                          #
 // 
 service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_config:clinicalimpressionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns ClinicalImpression|r4:OperationOutcome|r4:FHIRError {
@@ -10688,10 +10678,6 @@ service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_confi
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, ClinicalImpression clinicalimpression) returns ClinicalImpression|r4:OperationOutcome|r4:FHIRError {
@@ -10727,6 +10713,10 @@ service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_confi
 // // # PlanDefinition API                                                                                                          #
 // 
 service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:plandefinitionApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns PlanDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -10738,10 +10728,6 @@ service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:pl
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, PlanDefinition plandefinition) returns PlanDefinition|r4:OperationOutcome|r4:FHIRError {
@@ -10777,6 +10763,10 @@ service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:pl
 // // # MedicinalProductAuthorization API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r4_api_config:medicinalproductauthorizationApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns MedicinalProductAuthorization|r4:OperationOutcome|r4:FHIRError {
@@ -10788,10 +10778,6 @@ service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, MedicinalProductAuthorization medicinalproductauthorization) returns MedicinalProductAuthorization|r4:OperationOutcome|r4:FHIRError {
@@ -10827,6 +10813,10 @@ service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r
 // // # Claim API                                                                                                          #
 // 
 service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiConfig) {
+    // Search for resources using /Appointment?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Appointment", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Claim|r4:OperationOutcome|r4:FHIRError {
@@ -10838,10 +10828,6 @@ service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiCon
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Claim claim) returns Claim|r4:OperationOutcome|r4:FHIRError {
@@ -10877,6 +10863,10 @@ service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiCon
 // // # Location API                                                                                                          #
 // 
 service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:locationApiConfig) {
+    // Search for resources using /Location?params
+    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performResourceSearch("Location", fhirContext);
+    }
 
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Location|r4:OperationOutcome|r4:FHIRError {
@@ -10905,11 +10895,6 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Location|r4:OperationOutcome|r4:FHIRError {
         return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
-    }
-
-    // Search for resources based on a set of criteria.
-    isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceSearch("Location", fhirContext);
     }
 
     // Create a new resource.
