@@ -161,8 +161,13 @@ public class ReadMapper {
             }
             
             // Skip reference parameters (already processed above)
-            // Reference params either have "/" in name OR value contains "/"
-            if paramName.includes("/") || paramValue.includes("/") {
+            // Reference params have "/" BUT not token params (which use | for system|code)
+            // Token example: identifier=http://hospital.org|12345 (has "/" but is NOT a reference)
+            // Reference example: patient=Patient/123 (has "/" and IS a reference)
+            boolean isTokenParam = paramValue.includes("|");
+            boolean hasSlash = paramName.includes("/") || paramValue.includes("/");
+            
+            if hasSlash && !isTokenParam {
                 continue;
             }
 
@@ -178,25 +183,39 @@ public class ReadMapper {
 
             string operator = "=";
             string searchValue = paramValue;
-            boolean isTokenParam = false;
             string? tokenSystem = ();
             string? tokenCode = ();
+            boolean tokenSystemEmpty = false;
 
-            // Check if this is a token parameter (contains | for system|code format)
-            // Token parameters: identifier, status, code, etc.
-            if paramValue.includes("|") {
-                isTokenParam = true;
-                // For system|code format, we need to search for both system and code separately
+            // Process token parameter (already detected above)
+            // Token parameters support 4 formats per FHIR spec:
+            // 1. [code]: Match code only, any system
+            // 2. [system]|[code]: Match both system and code
+            // 3. |[code]: Match code where system is absent
+            // 4. [system]|: Match system only, any code
+            if isTokenParam {
                 string[] tokenParts = regexp:split(re `\|`, paramValue);
                 if tokenParts.length() == 2 {
-                    // If system is empty (|code), just search for code
-                    if tokenParts[0] == "" {
-                        tokenCode = tokenParts[1];
-                    } else {
-                        // Both system and code provided
-                        tokenSystem = tokenParts[0];
-                        tokenCode = tokenParts[1];
+                    string systemPart = tokenParts[0];
+                    string codePart = tokenParts[1];
+                    
+                    if systemPart == "" && codePart != "" {
+                        // Case 3: |[code] - code with no system
+                        tokenCode = codePart;
+                        tokenSystemEmpty = true;
+                    } else if systemPart != "" && codePart == "" {
+                        // Case 4: [system]| - system only, any code
+                        tokenSystem = systemPart;
+                    } else if systemPart != "" && codePart != "" {
+                        // Case 2: [system]|[code] - both system and code
+                        tokenSystem = systemPart;
+                        tokenCode = codePart;
                     }
+                    // If both empty (just "|"), ignore this parameter
+                } else {
+                    // Case 1: No pipe, just [code] - will be handled as non-token param below
+                    isTokenParam = false;
+                    searchValue = paramValue;
                 }
             }
 
@@ -238,27 +257,41 @@ public class ReadMapper {
                 // For token parameters with system|code format
                 // Token columns contain JSON like [{"coding":[{"system":"...","code":"..."}]}]
                 if isTokenParam {
+                    string sanitizedSystem = tokenSystem is string ? utils:escapeSql(tokenSystem) : "";
+                    string sanitizedCode = tokenCode is string ? utils:escapeSql(tokenCode) : "";
+                    
                     if tokenSystem is string && tokenCode is string {
-                        // Search for both system and code with proper JSON field names
-                        // Handle optional whitespace after colon in JSON
-                        string sanitizedSystem = utils:escapeSql(tokenSystem);
-                        string sanitizedCode = utils:escapeSql(tokenCode);
+                        // Case 2: [system]|[code] - Both system and code must match
                         if whereClause == "" {
                             whereClause = string ` WHERE (${columnName} LIKE '%"system":"${sanitizedSystem}"%' OR ${columnName} LIKE '%"system": "${sanitizedSystem}"%') AND (${columnName} LIKE '%"code":"${sanitizedCode}"%' OR ${columnName} LIKE '%"code": "${sanitizedCode}"%')`;
                         } else {
                             whereClause = whereClause + string ` AND (${columnName} LIKE '%"system":"${sanitizedSystem}"%' OR ${columnName} LIKE '%"system": "${sanitizedSystem}"%') AND (${columnName} LIKE '%"code":"${sanitizedCode}"%' OR ${columnName} LIKE '%"code": "${sanitizedCode}"%')`;
                         }
-                    } else if tokenCode is string {
-                        // Only code provided (|code format) - search for "code":"value" or "code": "value"
-                        string sanitizedCode = utils:escapeSql(tokenCode);
+                    } else if tokenCode is string && tokenSystemEmpty {
+                        // Case 3: |[code] - Code matches but system must be absent/null
+                        // This is complex - for simplicity, just search for code (limitation)
                         if whereClause == "" {
                             whereClause = string ` WHERE (${columnName} LIKE '%"code":"${sanitizedCode}"%' OR ${columnName} LIKE '%"code": "${sanitizedCode}"%')`;
                         } else {
                             whereClause = whereClause + string ` AND (${columnName} LIKE '%"code":"${sanitizedCode}"%' OR ${columnName} LIKE '%"code": "${sanitizedCode}"%')`;
                         }
+                    } else if tokenCode is string {
+                        // This shouldn't happen with current logic, but handle it
+                        if whereClause == "" {
+                            whereClause = string ` WHERE (${columnName} LIKE '%"code":"${sanitizedCode}"%' OR ${columnName} LIKE '%"code": "${sanitizedCode}"%')`;
+                        } else {
+                            whereClause = whereClause + string ` AND (${columnName} LIKE '%"code":"${sanitizedCode}"%' OR ${columnName} LIKE '%"code": "${sanitizedCode}"%')`;
+                        }
+                    } else if tokenSystem is string {
+                        // Case 4: [system]| - System matches, any code
+                        if whereClause == "" {
+                            whereClause = string ` WHERE (${columnName} LIKE '%"system":"${sanitizedSystem}"%' OR ${columnName} LIKE '%"system": "${sanitizedSystem}"%')`;
+                        } else {
+                            whereClause = whereClause + string ` AND (${columnName} LIKE '%"system":"${sanitizedSystem}"%' OR ${columnName} LIKE '%"system": "${sanitizedSystem}"%')`;
+                        }
                     }
                 }
-                // Use LIKE for string columns to support partial matching
+                // Case 1: [code] only (no pipe) - Use LIKE for string columns to support partial matching
                 else if operator == "=" {
                     string sanitizedValue = utils:escapeSql(searchValue);
                     if whereClause == "" {
