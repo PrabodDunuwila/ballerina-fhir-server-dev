@@ -1,16 +1,16 @@
 # generated files
 target/
 generated/
-~/
+data/
+
+# H2 database files
+fhir-service/data/
+fhir-service/tests/data/
 
 # dependencies
 # Dependencies.toml
 **.DS_Store
 **launch.json
-
-# the config files used for testing, Uncomment the following line if you want to commit the test config files
-#!**/tests/Config.toml
-fhir-service/~./
 
 # test artifacts
 **/tests/INTEGRATION_TEST_RESULTS.md

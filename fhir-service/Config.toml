@@ -1,5 +1,8 @@
 # JDBC Database Configuration for db_handler module
 [ballerina_fhir_server.handlers]
-dbUrl = "jdbc:h2:~./fhir-data-db"
+dbUrl = "jdbc:h2:./data/fhir-db"
 dbUser = "sa"
 dbPassword = ""
+# Set to true to clear all data and reinitialize the database on startup
+# Set to false to keep existing data from previous runs
+clearDataOnStartup = false
