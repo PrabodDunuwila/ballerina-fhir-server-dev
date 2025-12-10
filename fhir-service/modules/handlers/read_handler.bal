@@ -12,7 +12,7 @@ public class ReadHandler {
 
     // Main function to read a single resource by ID
     public isolated function readResource(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns json|error {
-        log:printInfo(string `Reading ${resourceType}/${resourceId}`);
+        log:printDebug(string `Reading ${resourceType}/${resourceId}`);
 
         // Use ReadMapper to fetch resource
         json|error resourceJson = self.readMapper.readResourceById(jdbcClient, resourceType, resourceId);
@@ -28,7 +28,7 @@ public class ReadHandler {
 
     // Function to search resources with query parameters
     public isolated function searchResources(jdbc:Client? jdbcClient, string resourceType, map<string[]> queryParams) returns json|error {
-        log:printInfo(string `Searching ${resourceType} with query parameters`);
+        log:printDebug(string `Searching ${resourceType} with query parameters`);
 
         // Use ReadMapper to search resources
         json|error searchResults = self.readMapper.searchResources(jdbcClient, resourceType, queryParams);
@@ -44,7 +44,7 @@ public class ReadHandler {
 
     // Function to read all resources of a type (with optional limit)
     public isolated function readAllResources(jdbc:Client? jdbcClient, string resourceType, int? 'limit = ()) returns json|error {
-        log:printInfo(string `Reading all ${resourceType} resources${('limit is int) ? string ` (limit: ${'limit})` : ""}`);
+        log:printDebug(string `Reading all ${resourceType} resources${('limit is int) ? string ` (limit: ${'limit})` : ""}`);
 
         // Use ReadMapper to fetch all resources
         json|error allResources = self.readMapper.readAllResources(jdbcClient, resourceType, 'limit);
@@ -60,7 +60,7 @@ public class ReadHandler {
 
     // Function to check if a resource exists
     public isolated function checkResourceExists(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns boolean|error {
-        log:printInfo(string `Checking if ${resourceType}/${resourceId} exists`);
+        log:printDebug(string `Checking if ${resourceType}/${resourceId} exists`);
 
         // Use ReadMapper to check existence
         boolean|error exists = self.readMapper.resourceExists(jdbcClient, resourceType, resourceId);
@@ -70,13 +70,13 @@ public class ReadHandler {
             return exists;
         }
 
-        log:printInfo(string `${resourceType}/${resourceId} ${exists ? "exists" : "does not exist"}`);
+        log:printDebug(string `${resourceType}/${resourceId} ${exists ? "exists" : "does not exist"}`);
         return exists;
     }
 
     // Function to get resource count
     public isolated function getResourceCount(jdbc:Client? jdbcClient, string resourceType) returns int|error {
-        log:printInfo(string `Getting count for ${resourceType} resources`);
+        log:printDebug(string `Getting count for ${resourceType} resources`);
 
         // Use ReadMapper to get count
         int|error count = self.readMapper.getResourceCount(jdbcClient, resourceType);
@@ -86,13 +86,13 @@ public class ReadHandler {
             return count;
         }
 
-        log:printInfo(string `Total ${resourceType} resources: ${count}`);
+        log:printDebug(string `Total ${resourceType} resources: ${count}`);
         return count;
     }
 
     // Function to get resource metadata only (without full RESOURCE_JSON)
     public isolated function getResourceMetadata(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns record {|anydata...;|}|error {
-        log:printInfo(string `Getting metadata for ${resourceType}/${resourceId}`);
+        log:printDebug(string `Getting metadata for ${resourceType}/${resourceId}`);
 
         // Use ReadMapper to get metadata
         record {|anydata...;|}|error metadata = self.readMapper.getResourceMetadata(jdbcClient, resourceType, resourceId);
@@ -102,13 +102,13 @@ public class ReadHandler {
             return metadata;
         }
 
-        log:printInfo(string `Successfully retrieved metadata for ${resourceType}/${resourceId}`);
+        log:printDebug(string `Successfully retrieved metadata for ${resourceType}/${resourceId}`);
         return metadata;
     }
 
     // Function to read references for a resource
     public isolated function readResourceReferences(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns json[]|error {
-        log:printInfo(string `Reading references for ${resourceType}/${resourceId}`);
+        log:printDebug(string `Reading references for ${resourceType}/${resourceId}`);
 
         // Use ReadMapper to get references
         json[]|error references = self.readMapper.readReferences(jdbcClient, resourceType, resourceId);
@@ -118,13 +118,13 @@ public class ReadHandler {
             return references;
         }
 
-        log:printInfo(string `Successfully read ${references.length()} references for ${resourceType}/${resourceId}`);
+        log:printDebug(string `Successfully read ${references.length()} references for ${resourceType}/${resourceId}`);
         return references;
     }
 
     // Function to read resource with its references (combined operation)
     public isolated function readResourceWithReferences(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns json|error {
-        log:printInfo(string `Reading ${resourceType}/${resourceId} with references`);
+        log:printDebug(string `Reading ${resourceType}/${resourceId} with references`);
 
         // Read the main resource
         json resourceJson = check self.readResource(jdbcClient, resourceType, resourceId);

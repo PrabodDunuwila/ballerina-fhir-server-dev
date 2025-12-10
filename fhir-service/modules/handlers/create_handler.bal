@@ -28,7 +28,7 @@ public class CreateHandler {
             mappers:CreateMapper mapper = new mappers:CreateMapper(validatedClient);
             
             // Map resource to insert model
-            log:printInfo(string `Mapping ${resourceType} to insert model`);
+            log:printDebug(string `Mapping ${resourceType} to insert model`);
             record {|anydata...;|}|error? insertModel = mapper.mapToInsertModel(
                 validatedClient, resourceType, resourceJson
             );
@@ -45,7 +45,7 @@ public class CreateHandler {
             json[] references = mapper.getReferences();
 
             // Validate all references BEFORE saving main resource
-            log:printInfo(string `Validating ${references.length()} reference(s) for ${resourceType}`);
+            log:printDebug(string `Validating ${references.length()} reference(s) for ${resourceType}`);
             error? validationResult = utils:validateReferences(self.jdbcClient, references);
             if validationResult is error {
                 log:printError(string `Reference validation failed: ${validationResult.message()}`);
@@ -53,14 +53,14 @@ public class CreateHandler {
             }
 
             // Save main resource
-            log:printInfo(string `Saving main ${resourceType} record`);
+            log:printDebug(string `Saving main ${resourceType} record`);
             string resourceId = check self.saveMainResource(resourceType, insertModel);
             'transaction.mainResourceId = resourceId;
 
             log:printInfo(string `Saved ${resourceType} with ID: ${resourceId}`);
 
             // Save all references
-            log:printInfo(string `Saving references for ${resourceType}/${resourceId}`);
+            log:printDebug(string `Saving references for ${resourceType}/${resourceId}`);
             error? refResult = utils:saveReferences(self.jdbcClient, references, resourceType, resourceId, 'transaction);
 
             if refResult is error {
@@ -95,7 +95,7 @@ public class CreateHandler {
         
         // Get table name
         string tableName = mapperUtils:getTableName(resourceType);
-        log:printInfo(string `Saving ${resourceType} to table: ${tableName}`);
+        log:printDebug(string `Saving ${resourceType} to table: ${tableName}`);
         
         // Validate JDBC client
         jdbc:Client jdbcClient = check utils:getValidatedJdbcClient(self.jdbcClient);
@@ -115,13 +115,13 @@ public class CreateHandler {
         string[] columnNames = insertModel.keys();
         anydata[] columnValues = insertModel.toArray();
         
-        log:printInfo(string `Extracted ${columnNames.length()} columns and ${columnValues.length()} values from insertModel`);
+        log:printDebug(string `Extracted ${columnNames.length()} columns and ${columnValues.length()} values from insertModel`);
         
         // Print column names and values
         foreach int i in 0 ..< columnNames.length() {
             string colName = columnNames[i];
             any colValue = columnValues[i];
-            log:printInfo(string `Column[${i}]: ${colName} = ${colValue.toString()}`);
+            log:printDebug(string `Column[${i}]: ${colName} = ${colValue.toString()}`);
         }
         
         // Build INSERT query string
@@ -137,7 +137,7 @@ public class CreateHandler {
         
         // Build complete INSERT query string with table name in double quotes
         string completeQueryStr = "INSERT INTO \"" + tableName + "\"(" + columnNamesStr + ") VALUES (" + valuesStr + ")";
-        log:printInfo(string `Executing query: ${completeQueryStr}`);
+        log:printDebug(string `Executing query: ${completeQueryStr}`);
         
         // Execute raw SQL by creating a custom ParameterizedQuery implementation
         utils:RawSQLQuery rawQuery = new(completeQueryStr);
@@ -148,7 +148,7 @@ public class CreateHandler {
             return result;
         }
         
-        log:printInfo(string `Insert successful`);
+        log:printDebug(string `Insert successful`);
 
         log:printInfo(string `Successfully inserted ${resourceType} with ID: ${resourceId}`);
         return resourceId;

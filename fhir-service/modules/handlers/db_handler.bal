@@ -1,6 +1,7 @@
 import ballerina_fhir_server.utils;
 
 import ballerina/io;
+import ballerina/log;
 import ballerina/sql;
 import ballerinax/java.jdbc;
 
@@ -43,45 +44,39 @@ public class DBHandler {
         } else if (dbExists == true) {
             // Database exists - check if we should clear it
             if (clearDataOnStartup) {
-                io:println("Clearing existing database data as clearDataOnStartup is enabled...");
+                log:printWarn("Clearing existing database data as clearDataOnStartup is enabled...");
                 // Continue to drop and recreate tables
             } else {
-                io:println("Database already exists. Skipping initialization to preserve existing data.");
+                log:printInfo("Database already exists. Skipping initialization to preserve existing data.");
                 return true;
             }
         }
         
         // Initialize or reinitialize database
-        sql:ExecutionResult dropQueryResult = {affectedRowCount: 0, lastInsertId: 0};
-        sql:ExecutionResult createQueryResult = {affectedRowCount: 0, lastInsertId: 0};
-
         error? isError = self.retreiveQueriesFromSchema();
 
         if (isError is error) {
-            io:println("An error occured when reading the db schema: " + isError.message());
+            log:printError("An error occured when reading the db schema: " + isError.message());
             return false;
         } else {
             foreach sql:ParameterizedQuery dropQuery in self.dropQueries {
                 sql:ParameterizedQuery query1 = dropQuery;
-                dropQueryResult = check jdbcClient->execute(query1);
+                _ = check jdbcClient->execute(query1);
             }
 
             foreach sql:ParameterizedQuery createQuery in self.createQueries {
                 sql:ParameterizedQuery query2 = createQuery;
-                createQueryResult = check jdbcClient->execute(query2);
+                _ = check jdbcClient->execute(query2);
             }
         }
-
-        io:println("Drop Query Result: " + dropQueryResult.toString());
-        io:println("Create Query Result: " + createQueryResult.toString());
 
         // MIGHT BE OBSOLETE: Check whether if necessary
         error? isSearchParamsPopulated = self.populateSearchParamExpressionTable();
         if (isSearchParamsPopulated is error) {
-            io:print("An error occured while populating the SEARCH_PARAM_EXPRESSION_TABLE: " + isSearchParamsPopulated.message());
+            log:printError("An error occured while populating the SEARCH_PARAM_EXPRESSION_TABLE: " + isSearchParamsPopulated.message());
             return false;
         } else {
-            io:println("SEARCH_PARAM_EXPRESSION TABLE populated successfully!");
+            log:printDebug("SEARCH_PARAM_EXPRESSION TABLE populated successfully!");
             return true;
         }
     }
@@ -174,6 +169,6 @@ public class DBHandler {
                 }
             }
         }
-        io:println("Total Records Inserted: " + totRecords.toString());
+        log:printDebug("Total Records Inserted to SEARCH_PARAM_RES_EXPRESSIONS: " + totRecords.toString());
     }
 }

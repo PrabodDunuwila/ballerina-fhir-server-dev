@@ -33,7 +33,7 @@ public class UpdateHandler {
             }
 
             // Check if resource exists
-            log:printInfo(string `Checking if ${resourceType}/${resourceId} exists`);
+            log:printDebug(string `Checking if ${resourceType}/${resourceId} exists`);
             boolean exists = check self.checkResourceExists(resourceType, resourceId);
 
             if !exists {
@@ -41,12 +41,12 @@ public class UpdateHandler {
             }
 
             // Backup existing resource (for rollback)
-            log:printInfo(string `Backing up existing ${resourceType}/${resourceId}`);
+            log:printDebug(string `Backing up existing ${resourceType}/${resourceId}`);
             record {|anydata...;|} backup = check self.backupResource(resourceType, resourceId);
             'transaction.backupResource = backup;
 
             // Delete old references (they will be recreated)
-            log:printInfo(string `Deleting old references for ${resourceType}/${resourceId}`);
+            log:printDebug(string `Deleting old references for ${resourceType}/${resourceId}`);
             int[] oldReferenceIds = check self.findSourceReferences(resourceType, resourceId);
             error? deleteRefsResult = utils:deleteReferences(self.jdbcClient, oldReferenceIds, 'transaction);
 
@@ -62,7 +62,7 @@ public class UpdateHandler {
             }
 
             // Save current version to history before updating
-            log:printInfo(string `Saving current version of ${resourceType}/${resourceId} to history`);
+            log:printDebug(string `Saving current version of ${resourceType}/${resourceId} to history`);
             error? historyResult = self.historyHandler.saveToHistory(resourceType, resourceId, backup, "UPDATE");
             if historyResult is error {
                 log:printError(string `Failed to save history: ${historyResult.message()}`);
@@ -80,7 +80,7 @@ public class UpdateHandler {
             int newVersion = currentVersion + 1;
 
             // Map updated resource to update model
-            log:printInfo(string `Mapping updated ${resourceType} to model (version ${newVersion})`);
+            log:printDebug(string `Mapping updated ${resourceType} to model (version ${newVersion})`);
             record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(jdbcConn, resourceType, resourceJson, newVersion);
 
             if updateModel is () || updateModel is error {
@@ -97,7 +97,7 @@ public class UpdateHandler {
             json[] references = self.updateMapper.getReferences();
 
             // Validate all references BEFORE patching main resource
-            log:printInfo(string `Validating ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
+            log:printDebug(string `Validating ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
             error? validationResult = utils:validateReferences(self.jdbcClient, references);
             if validationResult is error {
                 log:printError(string `Reference validation failed: ${validationResult.message()}`);
@@ -111,7 +111,7 @@ public class UpdateHandler {
             }
 
             // Update main resource
-            log:printInfo(string `Updating main ${resourceType}/${resourceId} record`);
+            log:printDebug(string `Updating main ${resourceType}/${resourceId} record`);
             error? updateResult = self.updateMainResource(resourceType, resourceId, updateModel);
 
             if updateResult is error {
@@ -126,7 +126,7 @@ public class UpdateHandler {
             }
 
             // Save new references
-            log:printInfo(string `Saving new references for ${resourceType}/${resourceId}`);
+            log:printDebug(string `Saving new references for ${resourceType}/${resourceId}`);
             error? refResult = utils:saveReferences(self.jdbcClient, references, resourceType, resourceId, 'transaction);
 
             if refResult is error {
@@ -172,20 +172,20 @@ public class UpdateHandler {
 
         do {
             // Check if resource exists and get current data
-            log:printInfo(string `Fetching existing ${resourceType}/${resourceId}`);
+            log:printDebug(string `Fetching existing ${resourceType}/${resourceId}`);
             json existingResource = check self.getResourceAsJson(resourceType, resourceId);
 
             // Backup for rollback
-            log:printInfo(string `Backing up existing resource`);
+            log:printDebug(string `Backing up existing resource`);
             record {|anydata...;|} backup = check self.backupResource(resourceType, resourceId);
             'transaction.backupResource = backup;
 
             // Apply patch to existing resource
-            log:printInfo(string `Applying patch to ${resourceType}/${resourceId}`);
+            log:printDebug(string `Applying patch to ${resourceType}/${resourceId}`);
             json mergedResource = check self.applyPatch(existingResource, patchJson);
 
             // Delete old references
-            log:printInfo(string `Deleting old references`);
+            log:printDebug(string `Deleting old references`);
             int[] oldReferenceIds = check self.findSourceReferences(resourceType, resourceId);
             error? deleteRefsResult = utils:deleteReferences(self.jdbcClient, oldReferenceIds, 'transaction);
 
@@ -198,7 +198,7 @@ public class UpdateHandler {
             }
 
             // Map merged resource to update model
-            log:printInfo(string `Mapping patched resource to model`);
+            log:printDebug(string `Mapping patched resource to model`);
             record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(jdbcConn, resourceType, mergedResource);
 
             if updateModel is () || updateModel is error {
@@ -213,7 +213,7 @@ public class UpdateHandler {
             json[] references = self.updateMapper.getReferences();
 
             // Validate all references BEFORE updating main resource
-            log:printInfo(string `Validating ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
+            log:printDebug(string `Validating ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
             error? validationResult = utils:validateReferences(self.jdbcClient, references);
             if validationResult is error {
                 log:printError(string `Reference validation failed: ${validationResult.message()}`);
@@ -227,7 +227,7 @@ public class UpdateHandler {
             }
 
             // Update main resource
-            log:printInfo(string `Updating main resource`);
+            log:printDebug(string `Updating main resource`);
             error? updateResult = self.updateMainResource(resourceType, resourceId, updateModel);
 
             if updateResult is error {
@@ -241,7 +241,7 @@ public class UpdateHandler {
             }
 
             // Save new references
-            log:printInfo(string `Saving new references`);
+            log:printDebug(string `Saving new references`);
             error? refResult = utils:saveReferences(self.jdbcClient, references, resourceType, resourceId, 'transaction);
 
             if refResult is error {

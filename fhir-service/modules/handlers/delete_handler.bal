@@ -23,7 +23,7 @@ public class DeleteHandler {
 
         do {
             // Check if resource exists
-            log:printInfo(string `Checking if ${resourceType}/${resourceId} exists`);
+            log:printDebug(string `Checking if ${resourceType}/${resourceId} exists`);
             boolean exists = check self.checkResourceExists(resourceType, resourceId);
 
             if !exists {
@@ -31,7 +31,7 @@ public class DeleteHandler {
             }
 
             // Backup before delete
-            log:printInfo(string `Backing up ${resourceType}/${resourceId} before deletion`);
+            log:printDebug(string `Backing up ${resourceType}/${resourceId} before deletion`);
             record {|anydata...;|}? backup = check self.backupResource(resourceType, resourceId);
             'transaction.backupResource = backup;
             'transaction.backupReferences = check self.backupReferences(resourceType, resourceId);
@@ -39,7 +39,7 @@ public class DeleteHandler {
             // Save to history before deletion
             if backup is record {|anydata...;|} {
                 int versionId = check int:fromString(backup.get("VERSION_ID").toString());
-                log:printInfo(string `Saving version ${versionId} of ${resourceType}/${resourceId} to history before deletion`);
+                log:printDebug(string `Saving version ${versionId} of ${resourceType}/${resourceId} to history before deletion`);
                 error? historyResult = self.historyHandler.saveToHistory(resourceType, resourceId, backup, "DELETE");
                 if historyResult is error {
                     log:printError(string `Failed to save history: ${historyResult.message()}`);
@@ -54,7 +54,7 @@ public class DeleteHandler {
             }
 
             // Find references
-            log:printInfo(string `Finding references for ${resourceType}/${resourceId}`);
+            log:printDebug(string `Finding references for ${resourceType}/${resourceId}`);
             int[] referenceIds = check self.findSourceReferences(resourceType, resourceId);
 
             // Delete references
@@ -69,7 +69,7 @@ public class DeleteHandler {
             }
 
             // Delete main resource
-            log:printInfo(string `Deleting main ${resourceType}/${resourceId} record`);
+            log:printDebug(string `Deleting main ${resourceType}/${resourceId} record`);
             error? deleteResult = utils:deleteResource(self.jdbcClient, resourceType, resourceId);
 
             if deleteResult is error {
