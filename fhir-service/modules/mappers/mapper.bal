@@ -46,7 +46,7 @@ public class FHIRMapper {
             searchParams: searchParamMappings
         };
 
-        log:printInfo(string `Loaded ${config.searchParams.length()} search parameters for ${resourceType}`);
+        log:printDebug(string `Loaded ${config.searchParams.length()} search parameters for ${resourceType}`);
         return config;
     }
 

@@ -37,6 +37,7 @@ public class UpdateHandler {
             boolean exists = check self.checkResourceExists(resourceType, resourceId);
 
             if !exists {
+                log:printWarn(string `Update attempted on non-existent resource: ${resourceType}/${resourceId}`);
                 return error(string `${resourceType}/${resourceId} not found`);
             }
 
@@ -51,12 +52,12 @@ public class UpdateHandler {
             error? deleteRefsResult = utils:deleteReferences(self.jdbcClient, oldReferenceIds, 'transaction);
 
             if deleteRefsResult is error {
-                log:printError(string `Failed to delete old references: ${deleteRefsResult.message()}`);
+                log:printError(string `Failed to delete old references for ${resourceType}/${resourceId}: ${deleteRefsResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType
                 );
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return deleteRefsResult;
             }
@@ -65,12 +66,12 @@ public class UpdateHandler {
             log:printDebug(string `Saving current version of ${resourceType}/${resourceId} to history`);
             error? historyResult = self.historyHandler.saveToHistory(resourceType, resourceId, backup, "UPDATE");
             if historyResult is error {
-                log:printError(string `Failed to save history: ${historyResult.message()}`);
+                log:printError(string `Failed to save history for ${resourceType}/${resourceId}: ${historyResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType
                 );
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return historyResult;
             }
@@ -84,11 +85,12 @@ public class UpdateHandler {
             record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(jdbcConn, resourceType, resourceJson, newVersion);
 
             if updateModel is () || updateModel is error {
+                log:printError(string `Failed to map update model for ${resourceType}/${resourceId}: ${updateModel is error ? updateModel.message() : "mapper returned null"}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType
                 );
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return updateModel is error ? updateModel : error("Failed to create update model");
             }
@@ -100,12 +102,12 @@ public class UpdateHandler {
             log:printDebug(string `Validating ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
             error? validationResult = utils:validateReferences(self.jdbcClient, references);
             if validationResult is error {
-                log:printError(string `Reference validation failed: ${validationResult.message()}`);
+                log:printError(string `Reference validation failed for ${resourceType}/${resourceId}: ${validationResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType
                 );
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return validationResult;
             }
@@ -115,12 +117,12 @@ public class UpdateHandler {
             error? updateResult = self.updateMainResource(resourceType, resourceId, updateModel);
 
             if updateResult is error {
-                log:printError(string `Main resource update failed: ${updateResult.message()}`);
+                log:printError(string `Failed to update main resource ${resourceType}/${resourceId}: ${updateResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType
                 );
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return updateResult;
             }
@@ -130,17 +132,18 @@ public class UpdateHandler {
             error? refResult = utils:saveReferences(self.jdbcClient, references, resourceType, resourceId, 'transaction);
 
             if refResult is error {
-                log:printError(string `Reference save failed: ${refResult.message()}`);
+                log:printError(string `Failed to save references for ${resourceType}/${resourceId}: ${refResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType
                 );
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return refResult;
             }
 
             // Commit transaction
+            log:printDebug(string `Committing update transaction for ${resourceType}/${resourceId}`);
             self.transactionHandler.commitTransaction('transaction, resourceType, resourceId);
 
             log:printInfo(string `Successfully updated ${resourceType}/${resourceId}`);
@@ -152,7 +155,7 @@ public class UpdateHandler {
                 self.jdbcClient, 'transaction, resourceType
             );
             if (rollbackResult is error) {
-                log:printError(rollbackResult.toString());
+                log:printError(string `Rollback failed during update transaction cleanup for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
             }
             return e;
         }
@@ -190,9 +193,10 @@ public class UpdateHandler {
             error? deleteRefsResult = utils:deleteReferences(self.jdbcClient, oldReferenceIds, 'transaction);
 
             if deleteRefsResult is error {
+                log:printError(string `Failed to delete old references for ${resourceType}/${resourceId}: ${deleteRefsResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(self.jdbcClient, 'transaction, resourceType);
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return deleteRefsResult;
             }
@@ -202,9 +206,10 @@ public class UpdateHandler {
             record {|anydata...;|}|error? updateModel = self.updateMapper.mapToUpdateModel(jdbcConn, resourceType, mergedResource);
 
             if updateModel is () || updateModel is error {
+                log:printError(string `Failed to map patched resource for ${resourceType}/${resourceId}: ${updateModel is error ? updateModel.message() : "mapper returned null"}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(self.jdbcClient, 'transaction, resourceType);
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return updateModel is error ? updateModel : error("Failed to create update model");
             }
@@ -216,12 +221,12 @@ public class UpdateHandler {
             log:printDebug(string `Validating ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
             error? validationResult = utils:validateReferences(self.jdbcClient, references);
             if validationResult is error {
-                log:printError(string `Reference validation failed: ${validationResult.message()}`);
+                log:printError(string `Reference validation failed for ${resourceType}/${resourceId}: ${validationResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType
                 );
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return validationResult;
             }
@@ -231,11 +236,12 @@ public class UpdateHandler {
             error? updateResult = self.updateMainResource(resourceType, resourceId, updateModel);
 
             if updateResult is error {
+                log:printError(string `Failed to update main resource ${resourceType}/${resourceId}: ${updateResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType
                 );
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return updateResult;
             }
@@ -245,27 +251,29 @@ public class UpdateHandler {
             error? refResult = utils:saveReferences(self.jdbcClient, references, resourceType, resourceId, 'transaction);
 
             if refResult is error {
+                log:printError(string `Failed to save references for ${resourceType}/${resourceId}: ${refResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                     self.jdbcClient, 'transaction, resourceType);
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return refResult;
             }
 
             // Commit transaction
+            log:printDebug(string `Committing patch transaction for ${resourceType}/${resourceId}`);
             self.transactionHandler.commitTransaction('transaction, resourceType, resourceId);
 
             log:printInfo(string `Successfully patched ${resourceType}/${resourceId}`);
             return mergedResource;
 
         } on fail error e {
-            log:printError(string `Patch transaction failed: ${e.message()}`);
+            log:printError(string `Patch transaction failed for ${resourceType}/${resourceId}: ${e.message()}`);
             error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
                 self.jdbcClient, 'transaction, resourceType
             );
             if (rollbackResult is error) {
-                log:printError(rollbackResult.toString());
+                log:printError(string `Rollback failed during patch transaction cleanup for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
             }
             return e;
         }

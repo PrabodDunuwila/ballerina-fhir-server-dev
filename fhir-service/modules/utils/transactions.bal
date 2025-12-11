@@ -17,7 +17,7 @@ public type TransactionContext record {|
 public class TransactionHandler {
 
     public isolated function beginTransaction() returns TransactionContext {
-        log:printInfo("Beginning new transaction");
+        log:printDebug("Beginning new transaction");
         return {
             mainResourceId: (),
             savedReferenceIds: [],
@@ -45,7 +45,10 @@ public class TransactionHandler {
                 string deleteQuery = string `DELETE FROM "REFERENCES" WHERE ID = ${refId}`;
                 sql:ExecutionResult|error result = jdbcClient->execute(new RawSQLQuery(deleteQuery));
                 if result is error {
-                    log:printError(string `Failed to delete reference ${refId}: ${result.message()}`);
+                    log:printError(string `Failed to delete reference ${refId} during rollback: ${result.message()}`);
+                    failedRefs += 1;
+                } else {
+                    deletedRefs += 1;
                 }
             }
         }
@@ -56,14 +59,14 @@ public class TransactionHandler {
             error? deleteResult = deleteResource(jdbcClient, resourceType, resourceId);
 
             if deleteResult is error {
-                log:printError(string `Failed to delete main resource ${resourceId}: ${deleteResult.message()}`);
+                log:printError(string `Failed to delete main resource ${resourceType}/${resourceId} during rollback: ${deleteResult.message()}`);
                 return deleteResult;
             } else {
-                log:printInfo(string `Deleted main resource: ${resourceType}/${resourceId}`);
+                log:printDebug(string `Deleted main resource during rollback: ${resourceType}/${resourceId}`);
             }
         }
 
-        log:printInfo(string `Rollback completed: deleted ${deletedRefs} references, failed ${failedRefs}`);
+        log:printDebug(string `Rollback completed: deleted ${deletedRefs} reference(s), failed ${failedRefs}`);
     }
 
     // Rollback for DELETE operations (restore deleted items)
@@ -82,10 +85,10 @@ public class TransactionHandler {
             error? restoreResult = self.restoreResource(jdbcClient, resourceType, resourceId, 'transaction.backupResource);
 
             if restoreResult is error {
-                log:printError(string `Failed to restore resource: ${restoreResult.message()}`);
+                log:printError(string `Failed to restore resource ${resourceType}/${resourceId}: ${restoreResult.message()}`);
                 return restoreResult;
             } else {
-                log:printInfo(string `Restored ${resourceType}/${resourceId}`);
+                log:printDebug(string `Restored ${resourceType}/${resourceId} during rollback`);
             }
         }
 
@@ -95,29 +98,29 @@ public class TransactionHandler {
             foreach var ref in backupRefs {
                 error? restoreResult = self.restoreReference(jdbcClient, ref);
                 if restoreResult is error {
-                    log:printError(string `Failed to restore reference: ${restoreResult.message()}`);
+                    log:printError(string `Failed to restore reference during rollback: ${restoreResult.message()}`);
                 } else {
                     int refId = check int:fromString(ref.get("ID").toString());
-                    log:printInfo(string `Restored reference: ${refId}`);
+                    log:printDebug(string `Restored reference [${refId}] during rollback`);
                 }
             }
         }
 
-        log:printInfo("Delete rollback completed successfully");
+        log:printDebug("Delete rollback completed");
     }
 
     public isolated function commitTransaction(TransactionContext 'transaction, string resourceType, string resourceId) {
         'transaction.committed = true;
-        log:printInfo(string `Transaction committed successfully for ${resourceType}/${resourceId}`);
+        log:printDebug(string `Transaction committed for ${resourceType}/${resourceId}`);
 
         if 'transaction.savedReferenceIds.length() > 0 {
-            log:printInfo(string `   - Main resource: ${<string>'transaction.mainResourceId}`);
-            log:printInfo(string `   - References saved: ${'transaction.savedReferenceIds.length()}`);
+            log:printDebug(string `   - Main resource: ${<string>'transaction.mainResourceId}`);
+            log:printDebug(string `   - References saved: ${'transaction.savedReferenceIds.length()}`);
         }
 
         if 'transaction.deletedReferenceIds.length() > 0 {
-            log:printInfo(string `   - Main resource: ${<string>'transaction.mainResourceId}`);
-            log:printInfo(string `   - References deleted: ${'transaction.deletedReferenceIds.length()}`);
+            log:printDebug(string `   - Main resource: ${<string>'transaction.mainResourceId}`);
+            log:printDebug(string `   - References deleted: ${'transaction.deletedReferenceIds.length()}`);
         }
     }
 
@@ -136,9 +139,9 @@ public class TransactionHandler {
             string resourceId = <string>'transaction.mainResourceId;
             error? restoreResult = self.restoreResource(jdbcClient, resourceType, resourceId, 'transaction.backupResource);
             if restoreResult is error {
-                log:printError(string `Failed to restore resource: ${restoreResult.message()}`);
+                log:printError(string `Failed to restore resource ${resourceType}/${resourceId}: ${restoreResult.message()}`);
             } else {
-                log:printInfo(string `Restored ${resourceType}/${resourceId} from backup`);
+                log:printDebug(string `Restored ${resourceType}/${resourceId} from backup during rollback`);
             }
         }
 
@@ -148,12 +151,12 @@ public class TransactionHandler {
                 string deleteQuery = string `DELETE FROM "REFERENCES" WHERE ID = ${refId}`;
                 sql:ExecutionResult|error result = jdbcClient->execute(new RawSQLQuery(deleteQuery));
                 if result is error {
-                    log:printError(string `Failed to delete reference ${refId}: ${result.message()}`);
+                    log:printError(string `Failed to delete reference ${refId} during rollback: ${result.message()}`);
                 }
             }
         }
 
-        log:printInfo("Update rollback completed");
+        log:printDebug("Update rollback completed");
     }
 
     private isolated function restoreResource(jdbc:Client? jdbcClient, string resourceType, string resourceId, record {|anydata...;|}? backup) returns error? {
@@ -188,7 +191,7 @@ public class TransactionHandler {
             return error(string `Failed to restore ${resourceType}/${resourceId} - resource not found`);
         }
 
-        log:printInfo(string `Restored ${resourceType}/${resourceId} with ${setClauses.length()} fields`);
+        log:printDebug(string `Restored ${resourceType}/${resourceId} with ${setClauses.length()} field(s)`);
     }
 
     // Helper to restore a single reference using JDBC

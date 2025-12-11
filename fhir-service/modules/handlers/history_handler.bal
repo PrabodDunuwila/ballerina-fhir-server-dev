@@ -17,6 +17,7 @@ public class HistoryHandler {
     // Save current version to history before update/delete
     public isolated function saveToHistory(string resourceType, string resourceId, 
                                           record {|anydata...;|} currentVersion, string operation) returns error? {
+        log:printDebug(string `Saving ${resourceType}/${resourceId} to history (operation: ${operation})`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
         string tableName = utils:getTableName(resourceType);
@@ -59,6 +60,8 @@ public class HistoryHandler {
         string timestamp = string `'${now.year}-${utils:padZero(now.month)}-${utils:padZero(now.day)} ${utils:padZero(now.hour)}:${utils:padZero(now.minute)}:${utils:padZero(<int>now.second)}'`;
         values.push(timestamp);
         
+        log:printDebug(string `Prepared ${columns.length()} columns for history insert of ${resourceType}/${resourceId}`);
+        
         string columnList = string:'join(", ", ...columns);
         string valueList = string:'join(", ", ...values);
         
@@ -68,11 +71,12 @@ public class HistoryHandler {
         _ = check jdbcConn->execute(query);
         
         int versionId = check int:fromString(currentVersion.get("VERSION_ID").toString());
-        log:printInfo(string `Saved version ${versionId} of ${resourceType}/${resourceId} to history`);
+        log:printDebug(string `Saved version ${versionId} of ${resourceType}/${resourceId} to history table`);
     }
     
     // Get a specific version of a resource from history
     public isolated function getResourceVersion(string resourceType, string resourceId, int versionId) returns json|error {
+        log:printDebug(string `Fetching ${resourceType}/${resourceId}/_history/${versionId}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
         string tableName = utils:getTableName(resourceType);
@@ -88,6 +92,7 @@ public class HistoryHandler {
             select result;
 
         if results.length() == 0 {
+            log:printWarn(string `History version not found: ${resourceType}/${resourceId}/_history/${versionId}`);
             return error(string `${resourceType}/${resourceId}/_history/${versionId} not found`);
         }
 
@@ -95,11 +100,13 @@ public class HistoryHandler {
         string jsonStr = check string:fromBytes(results[0].RESOURCE_JSON);
         json resourceJson = check jsonStr.fromJsonString();
 
+        log:printDebug(string `Retrieved version ${versionId} of ${resourceType}/${resourceId} from history`);
         return resourceJson;
     }
     
     // Get all history versions of a specific resource
     public isolated function getResourceHistory(string resourceType, string resourceId) returns json[]|error {
+        log:printDebug(string `Fetching all history for ${resourceType}/${resourceId}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
         string tableName = utils:getTableName(resourceType);
@@ -121,11 +128,13 @@ public class HistoryHandler {
             versions.push(resourceJson);
         }
 
+        log:printDebug(string `Retrieved ${versions.length()} history version(s) for ${resourceType}/${resourceId}`);
         return versions;
     }
     
     // Get all history for all resources of a type
     public isolated function getAllHistory(string resourceType) returns json[]|error {
+        log:printDebug(string `Fetching all history for resource type: ${resourceType}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
         string tableName = utils:getTableName(resourceType);
@@ -146,6 +155,7 @@ public class HistoryHandler {
             versions.push(resourceJson);
         }
 
+        log:printDebug(string `Retrieved ${versions.length()} history version(s) for all ${resourceType} resources`);
         return versions;
     }
 }

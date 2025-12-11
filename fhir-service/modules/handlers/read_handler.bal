@@ -22,23 +22,23 @@ public class ReadHandler {
             return resourceJson;
         }
 
-        log:printInfo(string `Successfully read ${resourceType}/${resourceId}`);
+        log:printDebug(string `Successfully read ${resourceType}/${resourceId}`);
         return resourceJson;
     }
 
     // Function to search resources with query parameters
     public isolated function searchResources(jdbc:Client? jdbcClient, string resourceType, map<string[]> queryParams) returns json|error {
-        log:printDebug(string `Searching ${resourceType} with query parameters`);
+        log:printDebug(string `Searching ${resourceType} with ${queryParams.keys().length()} query parameter(s)`);
 
         // Use ReadMapper to search resources
         json|error searchResults = self.readMapper.searchResources(jdbcClient, resourceType, queryParams);
 
         if searchResults is error {
-            log:printError(string `Failed to search ${resourceType}: ${searchResults.message()}`);
+            log:printError(string `Search failed for ${resourceType}: ${searchResults.message()}`);
             return searchResults;
         }
 
-        log:printInfo(string `Successfully completed search for ${resourceType}`);
+        log:printInfo(string `Search completed for ${resourceType}`);
         return searchResults;
     }
 
@@ -54,7 +54,7 @@ public class ReadHandler {
             return allResources;
         }
 
-        log:printInfo(string `Successfully read all ${resourceType} resources`);
+        log:printDebug(string `Successfully read all ${resourceType} resources`);
         return allResources;
     }
 
@@ -138,7 +138,7 @@ public class ReadHandler {
             "references": references
         };
 
-        log:printInfo(string `Successfully read ${resourceType}/${resourceId} with ${references.length()} references`);
+        log:printDebug(string `Successfully read ${resourceType}/${resourceId} with ${references.length()} reference(s)`);
         return response;
     }
 }

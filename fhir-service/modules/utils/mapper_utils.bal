@@ -90,7 +90,7 @@ public isolated function getTableColumns(jdbc:Client jdbcClient, string tableNam
         }
     }
     
-    log:printInfo(string `Cache miss - querying columns for table: ${tableName}`);
+    log:printDebug(string `Cache miss - querying columns for table: ${tableName}`);
     
     // Query the database schema for column names
     // H2 stores table names in uppercase by default
@@ -111,7 +111,7 @@ public isolated function getTableColumns(jdbc:Client jdbcClient, string tableNam
     
     check columnStream.close();
     
-    log:printInfo(string `Total columns found for ${tableName}: ${columns.length()}`);
+    log:printDebug(string `Total columns found for ${tableName}: ${columns.length()}`);
     log:printDebug(string `Columns: ${columns.toString()}`);
     
     // Store in cache for future requests (thread-safe write)

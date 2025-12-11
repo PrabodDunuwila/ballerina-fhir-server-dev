@@ -27,6 +27,7 @@ public class DeleteHandler {
             boolean exists = check self.checkResourceExists(resourceType, resourceId);
 
             if !exists {
+                log:printWarn(string `Delete attempted on non-existent resource: ${resourceType}/${resourceId}`);
                 return error(string `${resourceType}/${resourceId} not found`);
             }
 
@@ -42,12 +43,12 @@ public class DeleteHandler {
                 log:printDebug(string `Saving version ${versionId} of ${resourceType}/${resourceId} to history before deletion`);
                 error? historyResult = self.historyHandler.saveToHistory(resourceType, resourceId, backup, "DELETE");
                 if historyResult is error {
-                    log:printError(string `Failed to save history: ${historyResult.message()}`);
+                    log:printError(string `Failed to save history for ${resourceType}/${resourceId}: ${historyResult.message()}`);
                     error? rollbackResult = self.transactionHandler.rollbackDeleteTransaction(
                         self.jdbcClient, 'transaction, resourceType
                     );
                     if (rollbackResult is error) {
-                        log:printError(rollbackResult.toString());
+                        log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                     }
                     return historyResult;
                 }
@@ -56,14 +57,16 @@ public class DeleteHandler {
             // Find references
             log:printDebug(string `Finding references for ${resourceType}/${resourceId}`);
             int[] referenceIds = check self.findSourceReferences(resourceType, resourceId);
+            log:printDebug(string `Found ${referenceIds.length()} reference(s) to delete for ${resourceType}/${resourceId}`);
 
             // Delete references
             error? refResult = utils:deleteReferences(self.jdbcClient, referenceIds, 'transaction);
 
             if refResult is error {
+                log:printError(string `Failed to delete references for ${resourceType}/${resourceId}: ${refResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackDeleteTransaction(self.jdbcClient, 'transaction, resourceType);
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return refResult;
             }
@@ -73,23 +76,26 @@ public class DeleteHandler {
             error? deleteResult = utils:deleteResource(self.jdbcClient, resourceType, resourceId);
 
             if deleteResult is error {
+                log:printError(string `Failed to delete main resource ${resourceType}/${resourceId}: ${deleteResult.message()}`);
                 error? rollbackResult = self.transactionHandler.rollbackDeleteTransaction(self.jdbcClient, 'transaction, resourceType);
                 if (rollbackResult is error) {
-                    log:printError(rollbackResult.toString());
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return deleteResult;
             }
 
             // Commit Transaction
+            log:printDebug(string `Committing delete transaction for ${resourceType}/${resourceId}`);
             self.transactionHandler.commitTransaction('transaction, resourceType, resourceId);
 
             log:printInfo(string `Successfully deleted ${resourceType}/${resourceId}`);
             return true;
 
         } on fail error e {
+            log:printError(string `Delete transaction failed for ${resourceType}/${resourceId}: ${e.message()}`);
             error? rollbackResult = self.transactionHandler.rollbackDeleteTransaction(self.jdbcClient, 'transaction, resourceType);
             if (rollbackResult is error) {
-                log:printError(rollbackResult.toString());
+                log:printError(string `Rollback failed during delete transaction cleanup for ${resourceType}: ${rollbackResult.message()}`);
             }
             return e;
         }

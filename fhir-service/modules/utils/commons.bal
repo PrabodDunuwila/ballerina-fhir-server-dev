@@ -91,11 +91,11 @@ public isolated function validateReferenceExists(jdbc:Client? jdbcClient, string
 // Validate all references before saving
 public isolated function validateReferences(jdbc:Client? jdbcClient, json[] references) returns error? {
     if references.length() == 0 {
-        log:printInfo("No references to validate");
+        log:printDebug("No references to validate");
         return;
     }
 
-    log:printInfo(string `Validating ${references.length()} reference(s)`);
+    log:printDebug(string `Validating ${references.length()} reference(s)`);
 
     foreach json referenceEntry in references {
         if referenceEntry is map<json> {
@@ -119,7 +119,7 @@ public isolated function validateReferences(jdbc:Client? jdbcClient, json[] refe
         }
     }
     
-    log:printInfo("All references validated successfully");
+    log:printDebug("All references validated successfully");
 }
 
 // Validate a single reference object
@@ -149,8 +149,6 @@ isolated function validateSingleReference(jdbc:Client? jdbcClient, json fhirRefe
     if !exists {
         return error(string `Referenced resource does not exist: ${targetResourceType}/${targetResourceId}`);
     }
-    
-    log:printInfo(string `Valid reference: ${targetResourceType}/${targetResourceId}`);
 }
 
 // Delete main resource using generic JDBC query
@@ -173,7 +171,7 @@ public isolated function deleteResource(jdbc:Client? jdbcClient, string resource
         return error(string `Resource not found: ${resourceType}/${resourceId}`);
     }
     
-    log:printInfo(string `Deleted resource: ${resourceType}/${resourceId}`);
+    log:printDebug(string `Deleted resource: ${resourceType}/${resourceId}`);
 }
 
 // Delete references using generic JDBC query
@@ -190,7 +188,7 @@ public isolated function deleteReferences(jdbc:Client? jdbcClient, int[] referen
         
         if result.affectedRowCount > 0 {
             'transaction.deletedReferenceIds.push(refId);
-            log:printInfo(string `Deleted reference [${refId}]`);
+            log:printDebug(string `Deleted reference [${refId}]`);
         } else {
             log:printWarn(string `Reference [${refId}] not found, skipping`);
         }
@@ -199,11 +197,11 @@ public isolated function deleteReferences(jdbc:Client? jdbcClient, int[] referen
 
 public isolated function saveReferences(jdbc:Client? jdbcClient, json[] references, string sourceResType, string sourceResId, TransactionContext 'transaction) returns error? {
     if references.length() == 0 {
-        log:printInfo("No references to save");
+        log:printDebug("No references to save");
         return;
     }
 
-    log:printInfo(string `Saving ${references.length()} reference(s) for ${sourceResType}/${sourceResId}`);
+    log:printDebug(string `Saving ${references.length()} reference(s) for ${sourceResType}/${sourceResId}`);
 
     foreach json referenceEntry in references {
 
@@ -231,7 +229,7 @@ public isolated function saveReferences(jdbc:Client? jdbcClient, json[] referenc
         }
     }
 
-    log:printInfo(string `Successfully saved all references for ${sourceResType}/${sourceResId}`);
+    log:printDebug(string `Successfully saved all references for ${sourceResType}/${sourceResId}`);
 }
 
 public isolated function saveSingleReference(jdbc:Client? jdbcClient, string sourceResType, string sourceResId, string sourceExpression, json fhirReference, TransactionContext 'transaction) returns error? {
@@ -301,7 +299,7 @@ public isolated function saveSingleReference(jdbc:Client? jdbcClient, string sou
     // Track in transaction context for rollback
     'transaction.savedReferenceIds.push(savedRefId);
 
-    log:printInfo(string `Saved reference [${savedRefId}]: ${sourceResType}/${sourceResId} --(${sourceExpression})--> ${targetResourceType}/${targetResourceId}`);
+    log:printDebug(string `Saved reference [${savedRefId}]: ${sourceResType}/${sourceResId} --(${sourceExpression})--> ${targetResourceType}/${targetResourceId}`);
 }
 
 // Helper function to format numbers to two digits

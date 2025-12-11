@@ -147,7 +147,7 @@ public class CreateMapper {
             return error("JDBC client is required for resource mapping");
         }
 
-        log:printInfo(string `Using generic mapping for ${resourceType}`);
+        log:printDebug(string `Using generic mapping for ${resourceType}`);
         log:printDebug(string `Extracted values: ${extractedValues.toString()}`);
 
         map<anydata> insertRecord = check self.buildInsertRecord(

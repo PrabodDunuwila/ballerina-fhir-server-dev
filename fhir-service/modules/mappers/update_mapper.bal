@@ -145,7 +145,7 @@ public class UpdateMapper {
             return error("JDBC client is required for resource mapping");
         }
 
-        log:printInfo(string `Using generic mapping for ${resourceType} update`);
+        log:printDebug(string `Using generic mapping for ${resourceType} update`);
         log:printDebug(string `Extracted values: ${extractedValues.toString()}`);
 
         map<anydata> updateRecord = check self.buildUpdateRecord(
