@@ -150,9 +150,25 @@ public class CreateMapper {
         log:printDebug(string `Using generic mapping for ${resourceType}`);
         log:printDebug(string `Extracted values: ${extractedValues.toString()}`);
 
+        // Determine resource ID based on configuration
+        string resourceId;
+        if mapperUtils:useServerGeneratedIds {
+            // Server generates the ID
+            resourceId = mapperUtils:generateResourceId();
+            log:printDebug(string `Generated server ID for ${resourceType}: ${resourceId}`);
+        } else {
+            // Use client-provided ID
+            json|error clientId = resourceJson.id;
+            if clientId is error {
+                return error("Resource must have an 'id' field when server-generated IDs are disabled");
+            }
+            resourceId = clientId.toString();
+            log:printDebug(string `Using client-provided ID for ${resourceType}: ${resourceId}`);
+        }
+
         map<anydata> insertRecord = check self.buildInsertRecord(
             resourceType,
-            check resourceJson.id,
+            resourceId,
             extractedValues,
             resourceJson.toJsonString().toBytes()
         );

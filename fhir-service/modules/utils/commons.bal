@@ -1,9 +1,13 @@
 import ballerina/log;
+import ballerina/uuid;
 import ballerina/regex;
 import ballerina/sql;
 import ballerina/time;
 
 import ballerinax/java.jdbc;
+
+// Configuration for ID generation strategy
+public configurable boolean useServerGeneratedIds = false;
 
 // Common constants
 const string JDBC_NOT_INITIALIZED = "JDBC Client is not initialized";
@@ -25,6 +29,14 @@ public isolated function getValidatedJdbcClient(jdbc:Client? jdbcClient) returns
         return error(JDBC_NOT_INITIALIZED);
     }
     return jdbcClient;
+}
+
+// Generate a unique resource ID using UUID
+// Returns first segment of UUID for a shorter ID (8 characters)
+public isolated function generateResourceId() returns string {
+    string fullUuid = uuid:createType1AsString();
+    string[] parts = regex:split(fullUuid, "-");
+    return parts[0];
 }
 
 // Format a value for SQL INSERT/UPDATE statements

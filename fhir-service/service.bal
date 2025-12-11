@@ -546,9 +546,9 @@ isolated function performResourceCreate(string resourceType, json resourceJson) 
                 return r4:createFHIRError(errorMsg, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
             }
 
-            // Check for missing required fields (KeyNotFound typically means missing 'id')
-            if errorMsg.includes("KeyNotFound") {
-                return r4:createFHIRError("Required field missing in resource (resource must have an 'id' field)", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+            // Check for missing required fields
+            if errorMsg.includes("KeyNotFound") || errorMsg.includes("must have an 'id' field") {
+                return r4:createFHIRError("Required field missing in resource (resource must have an 'id' field when server-generated IDs are disabled)", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
             }
 
             // Otherwise it's a server/database error
