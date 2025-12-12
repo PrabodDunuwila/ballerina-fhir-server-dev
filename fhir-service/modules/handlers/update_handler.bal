@@ -62,20 +62,6 @@ public class UpdateHandler {
                 return deleteRefsResult;
             }
 
-            // Save current version to history before updating
-            log:printDebug(string `Saving current version of ${resourceType}/${resourceId} to history`);
-            error? historyResult = self.historyHandler.saveToHistory(resourceType, resourceId, backup, "UPDATE");
-            if historyResult is error {
-                log:printError(string `Failed to save history for ${resourceType}/${resourceId}: ${historyResult.message()}`);
-                error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
-                    self.jdbcClient, 'transaction, resourceType
-                );
-                if (rollbackResult is error) {
-                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
-                }
-                return historyResult;
-            }
-
             // Get current VERSION_ID and increment it
             int currentVersion = check self.getCurrentVersionFromBackup(backup, resourceType);
             int newVersion = currentVersion + 1;
@@ -125,6 +111,20 @@ public class UpdateHandler {
                     log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return updateResult;
+            }
+
+            // Save new version to history after successful update
+            log:printDebug(string `Saving new version of ${resourceType}/${resourceId} to history`);
+            error? historyResult = self.historyHandler.saveToHistory(resourceType, resourceId, updateModel, "PUT");
+            if historyResult is error {
+                log:printError(string `Failed to save history for ${resourceType}/${resourceId}: ${historyResult.message()}`);
+                error? rollbackResult = self.transactionHandler.rollbackUpdateTransaction(
+                    self.jdbcClient, 'transaction, resourceType
+                );
+                if (rollbackResult is error) {
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
+                }
+                return historyResult;
             }
 
             // Save new references

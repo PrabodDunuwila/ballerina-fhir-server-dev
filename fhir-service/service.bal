@@ -407,12 +407,31 @@ isolated function performResourceHistory(string resourceType, string id) returns
     log:printInfo(string `${resourceType}: History - Start Execution for ID: ${id}`);
     do {
         handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-        json[]|error result = historyHandler.getResourceHistory(resourceType, id);
+        map<json>[]|error result = historyHandler.getResourceHistory(resourceType, id);
 
-        if result is json[] {
+        if result is map<json>[] {
             r4:BundleEntry[] entries = [];
-            foreach json res in result {
-                r4:BundleEntry entry = {'resource: res};
+            foreach map<json> historyItem in result {
+                string operation = historyItem.get("operation").toString();
+                string lastModifiedStr = historyItem.get("lastModified").toString();
+                
+                r4:BundleEntry entry = {
+                    request: {
+                        method: <r4:HTTPVerb>operation,
+                        url: string `${resourceType}/${id}`
+                    },
+                    response: {
+                        status: "200",
+                        lastModified: lastModifiedStr
+                    }
+                };
+                
+                // For DELETE operations, do not include the resource
+                if operation != "DELETE" {
+                    json resourceData = historyItem.get("resource");
+                    entry.'resource = resourceData;
+                }
+                
                 entries.push(entry);
             }
 
@@ -441,12 +460,33 @@ isolated function performAllResourceHistory(string resourceType) returns r4:Bund
     log:printInfo(string `${resourceType}: All History - Start Execution`);
     do {
         handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
-        json[]|error result = historyHandler.getAllHistory(resourceType);
+        map<json>[]|error result = historyHandler.getAllHistory(resourceType);
 
-        if result is json[] {
+        if result is map<json>[] {
             r4:BundleEntry[] entries = [];
-            foreach json res in result {
-                r4:BundleEntry entry = {'resource: res};
+            foreach map<json> historyItem in result {
+                string operation = historyItem.get("operation").toString();
+                string lastModifiedStr = historyItem.get("lastModified").toString();
+                json resourceData = historyItem.get("resource");
+                json resourceIdJson = check resourceData.id;
+                string resourceId = resourceIdJson.toString();
+                
+                r4:BundleEntry entry = {
+                    request: {
+                        method: <r4:HTTPVerb>operation,
+                        url: string `${resourceType}/${resourceId}`
+                    },
+                    response: {
+                        status: "200",
+                        lastModified: lastModifiedStr
+                    }
+                };
+                
+                // For DELETE operations, do not include the resource
+                if operation != "DELETE" {
+                    entry.'resource = resourceData;
+                }
+                
                 entries.push(entry);
             }
 
@@ -504,11 +544,13 @@ isolated function performResourceVersionRead(string resourceType, string id, str
     do {
         handlers:HistoryHandler historyHandler = new handlers:HistoryHandler(jdbcClient);
         int versionId = check int:fromString(vid);
-        json|error result = historyHandler.getResourceVersion(resourceType, id, versionId);
+        map<json>|error result = historyHandler.getResourceVersion(resourceType, id, versionId);
 
-        if result is json {
+        if result is map<json> {
+            // Extract just the resource from the map
+            json resourceData = result.get("resource");
             log:printInfo(string `${resourceType}: VERSION READ - Execution Success! Retrieved ${resourceType}/${id}/_history/${vid}`);
-            any parsedResource = check fhirParser:parse(result).ensureType();
+            any parsedResource = check fhirParser:parse(resourceData).ensureType();
             return parsedResource;
         } else {
             string errorMsg = result.message();

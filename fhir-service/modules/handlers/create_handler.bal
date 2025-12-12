@@ -9,11 +9,13 @@ import ballerinax/java.jdbc;
 
 public class CreateHandler {
     private utils:TransactionHandler transactionHandler;
+    private HistoryHandler historyHandler;
     private final jdbc:Client? jdbcClient;
 
     public isolated function init(jdbc:Client? jdbcClient = ()) {
         self.jdbcClient = jdbcClient;
         self.transactionHandler = new utils:TransactionHandler();
+        self.historyHandler = new HistoryHandler(jdbcClient);
     }
 
     // Main function to save resource
@@ -61,6 +63,18 @@ public class CreateHandler {
             'transaction.mainResourceId = resourceId;
 
             log:printDebug(string `Created ${resourceType} with ID: ${resourceId}`);
+
+            // Save to history after creation
+            log:printDebug(string `Saving initial version of ${resourceType}/${resourceId} to history`);
+            error? historyResult = self.historyHandler.saveToHistory(resourceType, resourceId, insertModel, "POST");
+            if historyResult is error {
+                log:printError(string `Failed to save history for ${resourceType}/${resourceId}: ${historyResult.message()}`);
+                error? rollbackResult = self.transactionHandler.rollbackCreateTransaction(self.jdbcClient, 'transaction, resourceType);
+                if (rollbackResult is error) {
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
+                }
+                return historyResult;
+            }
 
             // Save all references
             log:printDebug(string `Saving ${references.length()} reference(s) for ${resourceType}/${resourceId}`);
