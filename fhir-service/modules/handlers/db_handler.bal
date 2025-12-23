@@ -160,7 +160,7 @@ public class DBHandler {
                 string searchParamType = data[2];
                 string expression = data[3];
 
-                string sqlQuery = string `INSERT INTO "SEARCH_PARAM_RES_EXPRESSIONS" (SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION) VALUES ('${searchParamName}', '${searchParamType}', '${'resource}', '${expression}')`;
+                string sqlQuery = string `INSERT INTO "SEARCH_PARAM_RES_EXPRESSIONS" (SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION) VALUES ('${utils:escapeSql(searchParamName)}', '${utils:escapeSql(searchParamType)}', '${utils:escapeSql('resource)}', '${utils:escapeSql(expression)}')`;
                 sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
                 sql:ExecutionResult result = check jdbcConn->execute(query);

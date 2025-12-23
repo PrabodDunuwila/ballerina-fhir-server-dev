@@ -899,6 +899,83 @@ else
     print_fail "Failed to search all Medications (HTTP $HTTP_CODE)"
 fi
 
+# ======================================================================
+# _include Search Parameter Tests
+# ======================================================================
+
+# Test 49: Search Appointments with _include=Appointment:patient
+print_test "Search Appointments with _include=Appointment:patient"
+RESPONSE=$(curl -s "$BASE_URL/Appointment?_include=Appointment:patient")
+HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null "$BASE_URL/Appointment?_include=Appointment:patient")
+if [ "$HTTP_CODE" = "200" ]; then
+    # Check if response has both Appointment and Patient resources
+    APPOINTMENT_COUNT=$(echo "$RESPONSE" | grep -o '"resourceType":"Appointment"' | wc -l)
+    PATIENT_COUNT=$(echo "$RESPONSE" | grep -o '"resourceType":"Patient"' | wc -l)
+    INCLUDE_MODE=$(echo "$RESPONSE" | grep -o '"mode":"include"' | wc -l)
+    
+    if [ "$APPOINTMENT_COUNT" -gt 0 ] && [ "$PATIENT_COUNT" -gt 0 ] && [ "$INCLUDE_MODE" -gt 0 ]; then
+        print_pass "Successfully returned Appointments with included Patients (HTTP $HTTP_CODE, Appointments: $APPOINTMENT_COUNT, Patients: $PATIENT_COUNT, Include mode: $INCLUDE_MODE)"
+    else
+        print_fail "Response doesn't contain expected included resources (Appointments: $APPOINTMENT_COUNT, Patients: $PATIENT_COUNT, Include mode: $INCLUDE_MODE)"
+    fi
+else
+    print_fail "Failed to search with _include (HTTP $HTTP_CODE)"
+fi
+
+# Test 50: Search Appointments with _include=Appointment:actor
+print_test "Search Appointments with _include=Appointment:actor"
+RESPONSE=$(curl -s "$BASE_URL/Appointment?_include=Appointment:actor")
+HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null "$BASE_URL/Appointment?_include=Appointment:actor")
+if [ "$HTTP_CODE" = "200" ]; then
+    # Check if response has search mode include
+    INCLUDE_MODE=$(echo "$RESPONSE" | grep -o '"mode":"include"' | wc -l)
+    MATCH_MODE=$(echo "$RESPONSE" | grep -o '"mode":"match"' | wc -l)
+    
+    if [ "$MATCH_MODE" -gt 0 ]; then
+        print_pass "Successfully returned Appointments with _include=Appointment:actor (HTTP $HTTP_CODE, Match mode: $MATCH_MODE, Include mode: $INCLUDE_MODE)"
+    else
+        print_fail "Response missing expected search modes"
+    fi
+else
+    print_fail "Failed to search with _include (HTTP $HTTP_CODE)"
+fi
+
+# Test 51: Search Appointments with wildcard _include=*
+print_test "Search Appointments with wildcard _include=*"
+RESPONSE=$(curl -s "$BASE_URL/Appointment?_include=*")
+HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null "$BASE_URL/Appointment?_include=*")
+if [ "$HTTP_CODE" = "200" ]; then
+    # Check if response is a valid Bundle
+    BUNDLE_TYPE=$(echo "$RESPONSE" | grep -o '"type":"searchset"' | wc -l)
+    INCLUDE_MODE=$(echo "$RESPONSE" | grep -o '"mode":"include"' | wc -l)
+    
+    if [ "$BUNDLE_TYPE" -gt 0 ]; then
+        print_pass "Successfully returned Appointments with wildcard _include=* (HTTP $HTTP_CODE, Include mode count: $INCLUDE_MODE)"
+    else
+        print_fail "Response is not a valid searchset Bundle"
+    fi
+else
+    print_fail "Failed to search with wildcard _include (HTTP $HTTP_CODE)"
+fi
+
+# Test 52: Search with _include and filter parameter
+print_test "Search Appointments by status with _include=Appointment:patient"
+RESPONSE=$(curl -s "$BASE_URL/Appointment?status=booked&_include=Appointment:patient")
+HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null "$BASE_URL/Appointment?status=booked&_include=Appointment:patient")
+if [ "$HTTP_CODE" = "200" ]; then
+    # Check if response contains both match and include modes
+    MATCH_MODE=$(echo "$RESPONSE" | grep -o '"mode":"match"' | wc -l)
+    INCLUDE_MODE=$(echo "$RESPONSE" | grep -o '"mode":"include"' | wc -l)
+    
+    if [ "$MATCH_MODE" -gt 0 ]; then
+        print_pass "Successfully returned filtered Appointments with included resources (HTTP $HTTP_CODE, Match: $MATCH_MODE, Include: $INCLUDE_MODE)"
+    else
+        print_fail "Response missing expected data"
+    fi
+else
+    print_fail "Failed to search with filter and _include (HTTP $HTTP_CODE)"
+fi
+
 # Summary
 echo ""
 echo "======================================================================"

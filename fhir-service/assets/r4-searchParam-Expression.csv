@@ -11,27 +11,27 @@ _tag,Resource,token,Resource.meta.tag
 identifier,Account,token,Account.identifier
 name,Account,string,Account.name
 owner,Account,reference,Account.owner
-patient,Account,reference,Account.subject.where
+patient,Account,reference,Account.subject.where(resolve() is Patient)
 period,Account,date,Account.servicePeriod
 status,Account,token,Account.status
 subject,Account,reference,Account.subject
 type,Account,token,Account.type
-composed-of,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where
+composed-of,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where(type='composed-of').resource
 context,ActivityDefinition,token,
 context-quantity,ActivityDefinition,quantity,
 context-type,ActivityDefinition,token,ActivityDefinition.useContext.code
 date,ActivityDefinition,date,ActivityDefinition.date
-depends-on,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where
-derived-from,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where
+depends-on,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where(type='depends-on').resource
+derived-from,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where(type='derived-from').resource
 description,ActivityDefinition,string,ActivityDefinition.description
 effective,ActivityDefinition,date,ActivityDefinition.effectivePeriod
 identifier,ActivityDefinition,token,ActivityDefinition.identifier
 jurisdiction,ActivityDefinition,token,ActivityDefinition.jurisdiction
 name,ActivityDefinition,string,ActivityDefinition.name
-predecessor,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where
+predecessor,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where(type='predecessor').resource
 publisher,ActivityDefinition,string,ActivityDefinition.publisher
 status,ActivityDefinition,token,ActivityDefinition.status
-successor,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where
+successor,ActivityDefinition,reference,ActivityDefinition.relatedArtifact.where(type='successor').resource
 title,ActivityDefinition,string,ActivityDefinition.title
 topic,ActivityDefinition,token,ActivityDefinition.topic
 url,ActivityDefinition,uri,ActivityDefinition.url
@@ -119,35 +119,35 @@ last-date,AllergyIntolerance,date,AllergyIntolerance.lastOccurrence
 manifestation,AllergyIntolerance,token,AllergyIntolerance.reaction.manifestation
 onset,AllergyIntolerance,date,AllergyIntolerance.reaction.onset
 patient,AllergyIntolerance,reference,AllergyIntolerance.patient
-patient,CarePlan,reference,CarePlan.subject.where
-patient,CareTeam,reference,CareTeam.subject.where
-patient,ClinicalImpression,reference,ClinicalImpression.subject.where
-patient,Composition,reference,Composition.subject.where
-patient,Condition,reference,Condition.subject.where
+patient,CarePlan,reference,CarePlan.subject.where(resolve() is Patient)
+patient,CareTeam,reference,CareTeam.subject.where(resolve() is Patient)
+patient,ClinicalImpression,reference,ClinicalImpression.subject.where(resolve() is Patient)
+patient,Composition,reference,Composition.subject.where(resolve() is Patient)
+patient,Condition,reference,Condition.subject.where(resolve() is Patient)
 patient,Consent,reference,Consent.patient
 patient,DetectedIssue,reference,DetectedIssue.patient
-patient,DeviceRequest,reference,DeviceRequest.subject.where
+patient,DeviceRequest,reference,DeviceRequest.subject.where(resolve() is Patient)
 patient,DeviceUseStatement,reference,DeviceUseStatement.subject
-patient,DiagnosticReport,reference,DiagnosticReport.subject.where
-patient,DocumentManifest,reference,DocumentManifest.subject.where
-patient,DocumentReference,reference,DocumentReference.subject.where
-patient,Encounter,reference,Encounter.subject.where
+patient,DiagnosticReport,reference,DiagnosticReport.subject.where(resolve() is Patient)
+patient,DocumentManifest,reference,DocumentManifest.subject.where(resolve() is Patient)
+patient,DocumentReference,reference,DocumentReference.subject.where(resolve() is Patient)
+patient,Encounter,reference,Encounter.subject.where(resolve() is Patient)
 patient,EpisodeOfCare,reference,EpisodeOfCare.patient
 patient,FamilyMemberHistory,reference,FamilyMemberHistory.patient
-patient,Flag,reference,Flag.subject.where
-patient,Goal,reference,Goal.subject.where
-patient,ImagingStudy,reference,ImagingStudy.subject.where
+patient,Flag,reference,Flag.subject.where(resolve() is Patient)
+patient,Goal,reference,Goal.subject.where(resolve() is Patient)
+patient,ImagingStudy,reference,ImagingStudy.subject.where(resolve() is Patient)
 patient,Immunization,reference,Immunization.patient
-patient,List,reference,List.subject.where
-patient,MedicationAdministration,reference,MedicationAdministration.subject.where
-patient,MedicationDispense,reference,MedicationDispense.subject.where
-patient,MedicationRequest,reference,MedicationRequest.subject.where
-patient,MedicationStatement,reference,MedicationStatement.subject.where
+patient,List,reference,List.subject.where(resolve() is Patient)
+patient,MedicationAdministration,reference,MedicationAdministration.subject.where(resolve() is Patient)
+patient,MedicationDispense,reference,MedicationDispense.subject.where(resolve() is Patient)
+patient,MedicationRequest,reference,MedicationRequest.subject.where(resolve() is Patient)
+patient,MedicationStatement,reference,MedicationStatement.subject.where(resolve() is Patient)
 patient,NutritionOrder,reference,NutritionOrder.patient
-patient,Observation,reference,Observation.subject.where
-patient,Procedure,reference,Procedure.subject.where
-patient,RiskAssessment,reference,RiskAssessment.subject.where
-patient,ServiceRequest,reference,ServiceRequest.subject.where
+patient,Observation,reference,Observation.subject.where(resolve() is Patient)
+patient,Procedure,reference,Procedure.subject.where(resolve() is Patient)
+patient,RiskAssessment,reference,RiskAssessment.subject.where(resolve() is Patient)
+patient,ServiceRequest,reference,ServiceRequest.subject.where(resolve() is Patient)
 patient,SupplyDelivery,reference,SupplyDelivery.patient
 patient,VisionPrescription,reference,VisionPrescription.patient
 recorder,AllergyIntolerance,reference,AllergyIntolerance.recorder
@@ -165,10 +165,10 @@ appointment-type,Appointment,token,Appointment.appointmentType
 based-on,Appointment,reference,Appointment.basedOn
 date,Appointment,date,Appointment.start
 identifier,Appointment,token,Appointment.identifier
-location,Appointment,reference,Appointment.participant.actor.where
+location,Appointment,reference,Appointment.participant.actor.where(resolve() is Location)
 part-status,Appointment,token,Appointment.participant.status
-patient,Appointment,reference,Appointment.participant.actor.where
-practitioner,Appointment,reference,Appointment.participant.actor.where
+patient,Appointment,reference,Appointment.participant.actor.where(resolve() is Patient)
+practitioner,Appointment,reference,Appointment.participant.actor.where(resolve() is Practitioner)
 reason-code,Appointment,token,Appointment.reasonCode
 reason-reference,Appointment,reference,Appointment.reasonReference
 service-category,Appointment,token,Appointment.serviceCategory
@@ -180,10 +180,10 @@ supporting-info,Appointment,reference,Appointment.supportingInformation
 actor,AppointmentResponse,reference,AppointmentResponse.actor
 appointment,AppointmentResponse,reference,AppointmentResponse.appointment
 identifier,AppointmentResponse,token,AppointmentResponse.identifier
-location,AppointmentResponse,reference,AppointmentResponse.actor.where
+location,AppointmentResponse,reference,AppointmentResponse.actor.where(resolve() is Location)
 part-status,AppointmentResponse,token,AppointmentResponse.participantStatus
-patient,AppointmentResponse,reference,AppointmentResponse.actor.where
-practitioner,AppointmentResponse,reference,AppointmentResponse.actor.where
+patient,AppointmentResponse,reference,AppointmentResponse.actor.where(resolve() is Patient)
+practitioner,AppointmentResponse,reference,AppointmentResponse.actor.where(resolve() is Practitioner)
 action,AuditEvent,token,AuditEvent.action
 address,AuditEvent,string,AuditEvent.agent.network.address
 agent,AuditEvent,reference,AuditEvent.agent.who
@@ -196,7 +196,7 @@ entity-name,AuditEvent,string,AuditEvent.entity.name
 entity-role,AuditEvent,token,AuditEvent.entity.role
 entity-type,AuditEvent,token,AuditEvent.entity.type
 outcome,AuditEvent,token,AuditEvent.outcome
-patient,AuditEvent,reference,AuditEvent.agent.who.where
+patient,AuditEvent,reference,AuditEvent.agent.who.where(resolve() is Patient)
 policy,AuditEvent,uri,AuditEvent.agent.policy
 site,AuditEvent,token,AuditEvent.source.site
 source,AuditEvent,reference,AuditEvent.source.observer
@@ -206,7 +206,7 @@ author,Basic,reference,Basic.author
 code,Basic,token,Basic.code
 created,Basic,date,Basic.created
 identifier,Basic,token,Basic.identifier
-patient,Basic,reference,Basic.subject.where
+patient,Basic,reference,Basic.subject.where(resolve() is Patient)
 subject,Basic,reference,Basic.subject
 identifier,BodyStructure,token,BodyStructure.identifier
 location,BodyStructure,token,BodyStructure.location
@@ -445,7 +445,7 @@ enterer,ChargeItem,reference,ChargeItem.enterer
 factor-override,ChargeItem,number,ChargeItem.factorOverride
 identifier,ChargeItem,token,ChargeItem.identifier
 occurrence,ChargeItem,date,ChargeItem.occurrence
-patient,ChargeItem,reference,ChargeItem.subject.where
+patient,ChargeItem,reference,ChargeItem.subject.where(resolve() is Patient)
 performer-actor,ChargeItem,reference,ChargeItem.performer.actor
 performer-function,ChargeItem,token,ChargeItem.performer.function
 performing-organization,ChargeItem,reference,ChargeItem.performingOrganization
@@ -527,7 +527,7 @@ instantiates-canonical,Communication,reference,Communication.instantiatesCanonic
 instantiates-uri,Communication,uri,Communication.instantiatesUri
 medium,Communication,token,Communication.medium
 part-of,Communication,reference,Communication.partOf
-patient,Communication,reference,Communication.subject.where
+patient,Communication,reference,Communication.subject.where(resolve() is Patient)
 received,Communication,date,Communication.received
 recipient,Communication,reference,Communication.recipient
 sender,Communication,reference,Communication.sender
@@ -542,7 +542,7 @@ group-identifier,CommunicationRequest,token,CommunicationRequest.groupIdentifier
 identifier,CommunicationRequest,token,CommunicationRequest.identifier
 medium,CommunicationRequest,token,CommunicationRequest.medium
 occurrence,CommunicationRequest,date,
-patient,CommunicationRequest,reference,CommunicationRequest.subject.where
+patient,CommunicationRequest,reference,CommunicationRequest.subject.where(resolve() is Patient)
 priority,CommunicationRequest,token,CommunicationRequest.priority
 recipient,CommunicationRequest,reference,CommunicationRequest.recipient
 replaces,CommunicationRequest,reference,CommunicationRequest.replaces
@@ -623,7 +623,7 @@ domain,Contract,reference,Contract.domain
 identifier,Contract,token,Contract.identifier
 instantiates,Contract,uri,Contract.instantiatesUri
 issued,Contract,date,Contract.issued
-patient,Contract,reference,Contract.subject.where
+patient,Contract,reference,Contract.subject.where(resolve() is Patient)
 signer,Contract,reference,Contract.signer.party
 status,Contract,token,Contract.status
 subject,Contract,reference,Contract.subject
@@ -766,7 +766,7 @@ location-period,Encounter,date,Encounter.location.period
 part-of,Encounter,reference,Encounter.partOf
 participant,Encounter,reference,Encounter.participant.individual
 participant-type,Encounter,token,Encounter.participant.type
-practitioner,Encounter,reference,Encounter.participant.individual.where
+practitioner,Encounter,reference,Encounter.participant.individual.where(resolve() is Practitioner)
 reason-code,Encounter,token,Encounter.reasonCode
 reason-reference,Encounter,reference,Encounter.reasonReference
 service-provider,Encounter,reference,Encounter.serviceProvider
@@ -786,71 +786,71 @@ subject,EnrollmentRequest,reference,EnrollmentRequest.candidate
 identifier,EnrollmentResponse,token,EnrollmentResponse.identifier
 request,EnrollmentResponse,reference,EnrollmentResponse.request
 status,EnrollmentResponse,token,EnrollmentResponse.status
-care-manager,EpisodeOfCare,reference,EpisodeOfCare.careManager.where
+care-manager,EpisodeOfCare,reference,EpisodeOfCare.careManager.where(resolve() is Practitioner)
 condition,EpisodeOfCare,reference,EpisodeOfCare.diagnosis.condition
 incoming-referral,EpisodeOfCare,reference,EpisodeOfCare.referralRequest
 organization,EpisodeOfCare,reference,EpisodeOfCare.managingOrganization
 status,EpisodeOfCare,token,EpisodeOfCare.status
-composed-of,EventDefinition,reference,EventDefinition.relatedArtifact.where
+composed-of,EventDefinition,reference,EventDefinition.relatedArtifact.where(type='composed-of').resource
 context,EventDefinition,token,
 context-quantity,EventDefinition,quantity,
 context-type,EventDefinition,token,EventDefinition.useContext.code
 date,EventDefinition,date,EventDefinition.date
-depends-on,EventDefinition,reference,EventDefinition.relatedArtifact.where
-derived-from,EventDefinition,reference,EventDefinition.relatedArtifact.where
+depends-on,EventDefinition,reference,EventDefinition.relatedArtifact.where(type='depends-on').resource
+derived-from,EventDefinition,reference,EventDefinition.relatedArtifact.where(type='derived-from').resource
 description,EventDefinition,string,EventDefinition.description
 effective,EventDefinition,date,EventDefinition.effectivePeriod
 identifier,EventDefinition,token,EventDefinition.identifier
 jurisdiction,EventDefinition,token,EventDefinition.jurisdiction
 name,EventDefinition,string,EventDefinition.name
-predecessor,EventDefinition,reference,EventDefinition.relatedArtifact.where
+predecessor,EventDefinition,reference,EventDefinition.relatedArtifact.where(type='predecessor').resource
 publisher,EventDefinition,string,EventDefinition.publisher
 status,EventDefinition,token,EventDefinition.status
-successor,EventDefinition,reference,EventDefinition.relatedArtifact.where
+successor,EventDefinition,reference,EventDefinition.relatedArtifact.where(type='successor').resource
 title,EventDefinition,string,EventDefinition.title
 topic,EventDefinition,token,EventDefinition.topic
 url,EventDefinition,uri,EventDefinition.url
 version,EventDefinition,token,EventDefinition.version
 context-type-quantity,EventDefinition,composite,EventDefinition.useContext
 context-type-value,EventDefinition,composite,EventDefinition.useContext
-composed-of,Evidence,reference,Evidence.relatedArtifact.where
+composed-of,Evidence,reference,Evidence.relatedArtifact.where(type='composed-of').resource
 context,Evidence,token,
 context-quantity,Evidence,quantity,
 context-type,Evidence,token,Evidence.useContext.code
 date,Evidence,date,Evidence.date
-depends-on,Evidence,reference,Evidence.relatedArtifact.where
-derived-from,Evidence,reference,Evidence.relatedArtifact.where
+depends-on,Evidence,reference,Evidence.relatedArtifact.where(type='depends-on').resource
+derived-from,Evidence,reference,Evidence.relatedArtifact.where(type='derived-from').resource
 description,Evidence,string,Evidence.description
 effective,Evidence,date,Evidence.effectivePeriod
 identifier,Evidence,token,Evidence.identifier
 jurisdiction,Evidence,token,Evidence.jurisdiction
 name,Evidence,string,Evidence.name
-predecessor,Evidence,reference,Evidence.relatedArtifact.where
+predecessor,Evidence,reference,Evidence.relatedArtifact.where(type='predecessor').resource
 publisher,Evidence,string,Evidence.publisher
 status,Evidence,token,Evidence.status
-successor,Evidence,reference,Evidence.relatedArtifact.where
+successor,Evidence,reference,Evidence.relatedArtifact.where(type='successor').resource
 title,Evidence,string,Evidence.title
 topic,Evidence,token,Evidence.topic
 url,Evidence,uri,Evidence.url
 version,Evidence,token,Evidence.version
 context-type-quantity,Evidence,composite,Evidence.useContext
 context-type-value,Evidence,composite,Evidence.useContext
-composed-of,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where
+composed-of,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where(type='composed-of').resource
 context,EvidenceVariable,token,
 context-quantity,EvidenceVariable,quantity,
 context-type,EvidenceVariable,token,EvidenceVariable.useContext.code
 date,EvidenceVariable,date,EvidenceVariable.date
-depends-on,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where
-derived-from,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where
+depends-on,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where(type='depends-on').resource
+derived-from,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where(type='derived-from').resource
 description,EvidenceVariable,string,EvidenceVariable.description
 effective,EvidenceVariable,date,EvidenceVariable.effectivePeriod
 identifier,EvidenceVariable,token,EvidenceVariable.identifier
 jurisdiction,EvidenceVariable,token,EvidenceVariable.jurisdiction
 name,EvidenceVariable,string,EvidenceVariable.name
-predecessor,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where
+predecessor,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where(type='predecessor').resource
 publisher,EvidenceVariable,string,EvidenceVariable.publisher
 status,EvidenceVariable,token,EvidenceVariable.status
-successor,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where
+successor,EvidenceVariable,reference,EvidenceVariable.relatedArtifact.where(type='successor').resource
 title,EvidenceVariable,string,EvidenceVariable.title
 topic,EvidenceVariable,token,EvidenceVariable.topic
 url,EvidenceVariable,uri,EvidenceVariable.url
@@ -913,7 +913,7 @@ type,Group,token,Group.type
 value,Group,token,
 characteristic-value,Group,composite,Group.characteristic
 identifier,GuidanceResponse,token,GuidanceResponse.identifier
-patient,GuidanceResponse,reference,GuidanceResponse.subject.where
+patient,GuidanceResponse,reference,GuidanceResponse.subject.where(resolve() is Patient)
 request,GuidanceResponse,token,GuidanceResponse.requestIdentifier
 subject,GuidanceResponse,reference,GuidanceResponse.subject
 active,HealthcareService,token,HealthcareService.active
@@ -995,30 +995,30 @@ identifier,Invoice,token,Invoice.identifier
 issuer,Invoice,reference,Invoice.issuer
 participant,Invoice,reference,Invoice.participant.actor
 participant-role,Invoice,token,Invoice.participant.role
-patient,Invoice,reference,Invoice.subject.where
+patient,Invoice,reference,Invoice.subject.where(resolve() is Patient)
 recipient,Invoice,reference,Invoice.recipient
 status,Invoice,token,Invoice.status
 subject,Invoice,reference,Invoice.subject
 totalgross,Invoice,quantity,Invoice.totalGross
 totalnet,Invoice,quantity,Invoice.totalNet
 type,Invoice,token,Invoice.type
-composed-of,Library,reference,Library.relatedArtifact.where
+composed-of,Library,reference,Library.relatedArtifact.where(type='composed-of').resource
 content-type,Library,token,Library.content.contentType
 context,Library,token,
 context-quantity,Library,quantity,
 context-type,Library,token,Library.useContext.code
 date,Library,date,Library.date
-depends-on,Library,reference,Library.relatedArtifact.where
-derived-from,Library,reference,Library.relatedArtifact.where
+depends-on,Library,reference,Library.relatedArtifact.where(type='depends-on').resource
+derived-from,Library,reference,Library.relatedArtifact.where(type='derived-from').resource
 description,Library,string,Library.description
 effective,Library,date,Library.effectivePeriod
 identifier,Library,token,Library.identifier
 jurisdiction,Library,token,Library.jurisdiction
 name,Library,string,Library.name
-predecessor,Library,reference,Library.relatedArtifact.where
+predecessor,Library,reference,Library.relatedArtifact.where(type='predecessor').resource
 publisher,Library,string,Library.publisher
 status,Library,token,Library.status
-successor,Library,reference,Library.relatedArtifact.where
+successor,Library,reference,Library.relatedArtifact.where(type='successor').resource
 title,Library,string,Library.title
 topic,Library,token,Library.topic
 type,Library,token,Library.type
@@ -1051,22 +1051,22 @@ organization,Location,reference,Location.managingOrganization
 partof,Location,reference,Location.partOf
 status,Location,token,Location.status
 type,Location,token,Location.type
-composed-of,Measure,reference,Measure.relatedArtifact.where
+composed-of,Measure,reference,Measure.relatedArtifact.where(type='composed-of').resource
 context,Measure,token,
 context-quantity,Measure,quantity,
 context-type,Measure,token,Measure.useContext.code
 date,Measure,date,Measure.date
-depends-on,Measure,reference,Measure.relatedArtifact.where
-derived-from,Measure,reference,Measure.relatedArtifact.where
+depends-on,Measure,reference,Measure.relatedArtifact.where(type='depends-on').resource
+derived-from,Measure,reference,Measure.relatedArtifact.where(type='derived-from').resource
 description,Measure,string,Measure.description
 effective,Measure,date,Measure.effectivePeriod
 identifier,Measure,token,Measure.identifier
 jurisdiction,Measure,token,Measure.jurisdiction
 name,Measure,string,Measure.name
-predecessor,Measure,reference,Measure.relatedArtifact.where
+predecessor,Measure,reference,Measure.relatedArtifact.where(type='predecessor').resource
 publisher,Measure,string,Measure.publisher
 status,Measure,token,Measure.status
-successor,Measure,reference,Measure.relatedArtifact.where
+successor,Measure,reference,Measure.relatedArtifact.where(type='successor').resource
 title,Measure,string,Measure.title
 topic,Measure,token,Measure.topic
 url,Measure,uri,Measure.url
@@ -1077,7 +1077,7 @@ date,MeasureReport,date,MeasureReport.date
 evaluated-resource,MeasureReport,reference,MeasureReport.evaluatedResource
 identifier,MeasureReport,token,MeasureReport.identifier
 measure,MeasureReport,reference,MeasureReport.measure
-patient,MeasureReport,reference,MeasureReport.subject.where
+patient,MeasureReport,reference,MeasureReport.subject.where(resolve() is Patient)
 period,MeasureReport,date,MeasureReport.period
 reporter,MeasureReport,reference,MeasureReport.reporter
 status,MeasureReport,token,MeasureReport.status
@@ -1089,7 +1089,7 @@ encounter,Media,reference,Media.encounter
 identifier,Media,token,Media.identifier
 modality,Media,token,Media.modality
 operator,Media,reference,Media.operator
-patient,Media,reference,Media.subject.where
+patient,Media,reference,Media.subject.where(resolve() is Patient)
 site,Media,token,Media.bodySite
 status,Media,token,Media.status
 subject,Media,reference,Media.subject
@@ -1280,13 +1280,13 @@ phonetic,Organization,string,Organization.name
 type,Organization,token,Organization.type
 active,OrganizationAffiliation,token,OrganizationAffiliation.active
 date,OrganizationAffiliation,date,OrganizationAffiliation.period
-email,OrganizationAffiliation,token,OrganizationAffiliation.telecom.where
+email,OrganizationAffiliation,token,OrganizationAffiliation.telecom.where(system='email')
 endpoint,OrganizationAffiliation,reference,OrganizationAffiliation.endpoint
 identifier,OrganizationAffiliation,token,OrganizationAffiliation.identifier
 location,OrganizationAffiliation,reference,OrganizationAffiliation.location
 network,OrganizationAffiliation,reference,OrganizationAffiliation.network
 participating-organization,OrganizationAffiliation,reference,OrganizationAffiliation.participatingOrganization
-phone,OrganizationAffiliation,token,OrganizationAffiliation.telecom.where
+phone,OrganizationAffiliation,token,OrganizationAffiliation.telecom.where(system='phone')
 primary-organization,OrganizationAffiliation,reference,OrganizationAffiliation.organization
 role,OrganizationAffiliation,token,OrganizationAffiliation.code
 service,OrganizationAffiliation,reference,OrganizationAffiliation.healthcareService
@@ -1322,11 +1322,11 @@ birthdate,Person,date,Person.birthDate
 birthdate,RelatedPerson,date,RelatedPerson.birthDate
 death-date,Patient,date,
 deceased,Patient,token,Patient.deceased.exists
-email,Patient,token,Patient.telecom.where
-email,Person,token,Person.telecom.where
-email,Practitioner,token,Practitioner.telecom.where
-email,PractitionerRole,token,PractitionerRole.telecom.where
-email,RelatedPerson,token,RelatedPerson.telecom.where
+email,Patient,token,Patient.telecom.where(system='email')
+email,Person,token,Person.telecom.where(system='email')
+email,Practitioner,token,Practitioner.telecom.where(system='email')
+email,PractitionerRole,token,PractitionerRole.telecom.where(system='email')
+email,RelatedPerson,token,RelatedPerson.telecom.where(system='email')
 family,Patient,string,Patient.name.family
 family,Practitioner,string,Practitioner.name.family
 gender,Patient,token,Patient.gender
@@ -1341,11 +1341,11 @@ language,Patient,token,Patient.communication.language
 link,Patient,reference,Patient.link.other
 name,Patient,string,Patient.name
 organization,Patient,reference,Patient.managingOrganization
-phone,Patient,token,Patient.telecom.where
-phone,Person,token,Person.telecom.where
-phone,Practitioner,token,Practitioner.telecom.where
-phone,PractitionerRole,token,PractitionerRole.telecom.where
-phone,RelatedPerson,token,RelatedPerson.telecom.where
+phone,Patient,token,Patient.telecom.where(system='phone')
+phone,Person,token,Person.telecom.where(system='phone')
+phone,Practitioner,token,Practitioner.telecom.where(system='phone')
+phone,PractitionerRole,token,PractitionerRole.telecom.where(system='phone')
+phone,RelatedPerson,token,RelatedPerson.telecom.where(system='phone')
 phonetic,Patient,string,Patient.name
 phonetic,Person,string,Person.name
 phonetic,Practitioner,string,Practitioner.name
@@ -1374,26 +1374,26 @@ identifier,Person,token,Person.identifier
 link,Person,reference,Person.link.target
 name,Person,string,Person.name
 organization,Person,reference,Person.managingOrganization
-patient,Person,reference,Person.link.target.where
-practitioner,Person,reference,Person.link.target.where
-relatedperson,Person,reference,Person.link.target.where
-composed-of,PlanDefinition,reference,PlanDefinition.relatedArtifact.where
+patient,Person,reference,Person.link.target.where(resolve() is Patient)
+practitioner,Person,reference,Person.link.target.where(resolve() is Practitioner)
+relatedperson,Person,reference,Person.link.target.where(resolve() is RelatedPerson)
+composed-of,PlanDefinition,reference,PlanDefinition.relatedArtifact.where(type='composed-of').resource
 context,PlanDefinition,token,
 context-quantity,PlanDefinition,quantity,
 context-type,PlanDefinition,token,PlanDefinition.useContext.code
 date,PlanDefinition,date,PlanDefinition.date
 definition,PlanDefinition,reference,PlanDefinition.action.definition
-depends-on,PlanDefinition,reference,PlanDefinition.relatedArtifact.where
-derived-from,PlanDefinition,reference,PlanDefinition.relatedArtifact.where
+depends-on,PlanDefinition,reference,PlanDefinition.relatedArtifact.where(type='depends-on').resource
+derived-from,PlanDefinition,reference,PlanDefinition.relatedArtifact.where(type='derived-from').resource
 description,PlanDefinition,string,PlanDefinition.description
 effective,PlanDefinition,date,PlanDefinition.effectivePeriod
 identifier,PlanDefinition,token,PlanDefinition.identifier
 jurisdiction,PlanDefinition,token,PlanDefinition.jurisdiction
 name,PlanDefinition,string,PlanDefinition.name
-predecessor,PlanDefinition,reference,PlanDefinition.relatedArtifact.where
+predecessor,PlanDefinition,reference,PlanDefinition.relatedArtifact.where(type='predecessor').resource
 publisher,PlanDefinition,string,PlanDefinition.publisher
 status,PlanDefinition,token,PlanDefinition.status
-successor,PlanDefinition,reference,PlanDefinition.relatedArtifact.where
+successor,PlanDefinition,reference,PlanDefinition.relatedArtifact.where(type='successor').resource
 title,PlanDefinition,string,PlanDefinition.title
 topic,PlanDefinition,token,PlanDefinition.topic
 type,PlanDefinition,token,PlanDefinition.type
@@ -1431,7 +1431,7 @@ agent-role,Provenance,token,Provenance.agent.role
 agent-type,Provenance,token,Provenance.agent.type
 entity,Provenance,reference,Provenance.entity.what
 location,Provenance,reference,Provenance.location
-patient,Provenance,reference,Provenance.target.where
+patient,Provenance,reference,Provenance.target.where(resolve() is Patient)
 recorded,Provenance,date,Provenance.recorded
 signature-type,Provenance,token,Provenance.signature.type
 target,Provenance,reference,Provenance.target
@@ -1461,7 +1461,7 @@ based-on,QuestionnaireResponse,reference,QuestionnaireResponse.basedOn
 encounter,QuestionnaireResponse,reference,QuestionnaireResponse.encounter
 identifier,QuestionnaireResponse,token,QuestionnaireResponse.identifier
 part-of,QuestionnaireResponse,reference,QuestionnaireResponse.partOf
-patient,QuestionnaireResponse,reference,QuestionnaireResponse.subject.where
+patient,QuestionnaireResponse,reference,QuestionnaireResponse.subject.where(resolve() is Patient)
 questionnaire,QuestionnaireResponse,reference,QuestionnaireResponse.questionnaire
 source,QuestionnaireResponse,reference,QuestionnaireResponse.source
 status,QuestionnaireResponse,token,QuestionnaireResponse.status
@@ -1481,48 +1481,48 @@ instantiates-canonical,RequestGroup,reference,RequestGroup.instantiatesCanonical
 instantiates-uri,RequestGroup,uri,RequestGroup.instantiatesUri
 intent,RequestGroup,token,RequestGroup.intent
 participant,RequestGroup,reference,RequestGroup.action.participant
-patient,RequestGroup,reference,RequestGroup.subject.where
+patient,RequestGroup,reference,RequestGroup.subject.where(resolve() is Patient)
 priority,RequestGroup,token,RequestGroup.priority
 status,RequestGroup,token,RequestGroup.status
 subject,RequestGroup,reference,RequestGroup.subject
-composed-of,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where
+composed-of,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where(type='composed-of').resource
 context,ResearchDefinition,token,
 context-quantity,ResearchDefinition,quantity,
 context-type,ResearchDefinition,token,ResearchDefinition.useContext.code
 date,ResearchDefinition,date,ResearchDefinition.date
-depends-on,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where
-derived-from,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where
+depends-on,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where(type='depends-on').resource
+derived-from,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where(type='derived-from').resource
 description,ResearchDefinition,string,ResearchDefinition.description
 effective,ResearchDefinition,date,ResearchDefinition.effectivePeriod
 identifier,ResearchDefinition,token,ResearchDefinition.identifier
 jurisdiction,ResearchDefinition,token,ResearchDefinition.jurisdiction
 name,ResearchDefinition,string,ResearchDefinition.name
-predecessor,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where
+predecessor,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where(type='predecessor').resource
 publisher,ResearchDefinition,string,ResearchDefinition.publisher
 status,ResearchDefinition,token,ResearchDefinition.status
-successor,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where
+successor,ResearchDefinition,reference,ResearchDefinition.relatedArtifact.where(type='successor').resource
 title,ResearchDefinition,string,ResearchDefinition.title
 topic,ResearchDefinition,token,ResearchDefinition.topic
 url,ResearchDefinition,uri,ResearchDefinition.url
 version,ResearchDefinition,token,ResearchDefinition.version
 context-type-quantity,ResearchDefinition,composite,ResearchDefinition.useContext
 context-type-value,ResearchDefinition,composite,ResearchDefinition.useContext
-composed-of,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where
+composed-of,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where(type='composed-of').resource
 context,ResearchElementDefinition,token,
 context-quantity,ResearchElementDefinition,quantity,
 context-type,ResearchElementDefinition,token,ResearchElementDefinition.useContext.code
 date,ResearchElementDefinition,date,ResearchElementDefinition.date
-depends-on,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where
-derived-from,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where
+depends-on,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where(type='depends-on').resource
+derived-from,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where(type='derived-from').resource
 description,ResearchElementDefinition,string,ResearchElementDefinition.description
 effective,ResearchElementDefinition,date,ResearchElementDefinition.effectivePeriod
 identifier,ResearchElementDefinition,token,ResearchElementDefinition.identifier
 jurisdiction,ResearchElementDefinition,token,ResearchElementDefinition.jurisdiction
 name,ResearchElementDefinition,string,ResearchElementDefinition.name
-predecessor,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where
+predecessor,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where(type='predecessor').resource
 publisher,ResearchElementDefinition,string,ResearchElementDefinition.publisher
 status,ResearchElementDefinition,token,ResearchElementDefinition.status
-successor,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where
+successor,ResearchElementDefinition,reference,ResearchElementDefinition.relatedArtifact.where(type='successor').resource
 title,ResearchElementDefinition,string,ResearchElementDefinition.title
 topic,ResearchElementDefinition,token,ResearchElementDefinition.topic
 url,ResearchElementDefinition,uri,ResearchElementDefinition.url
@@ -1616,7 +1616,7 @@ container,Specimen,token,Specimen.container.type
 container-id,Specimen,token,Specimen.container.identifier
 identifier,Specimen,token,Specimen.identifier
 parent,Specimen,reference,Specimen.parent
-patient,Specimen,reference,Specimen.subject.where
+patient,Specimen,reference,Specimen.subject.where(resolve() is Patient)
 status,Specimen,token,Specimen.status
 subject,Specimen,reference,Specimen.subject
 type,Specimen,token,Specimen.type
@@ -1669,7 +1669,7 @@ intent,Task,token,Task.intent
 modified,Task,date,Task.lastModified
 owner,Task,reference,Task.owner
 part-of,Task,reference,Task.partOf
-patient,Task,reference,Task.for.where
+patient,Task,reference,Task.for.where(resolve() is Patient)
 performer,Task,token,Task.performerType
 period,Task,date,Task.executionPeriod
 priority,Task,token,Task.priority

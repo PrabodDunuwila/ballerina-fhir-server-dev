@@ -28,8 +28,10 @@ This FHIR R4 server implements the HL7 FHIR (Fast Healthcare Interoperability Re
 - ✅ Full FHIR R4 resource support (130+ resource types)
 - ✅ RESTful CRUD operations (Create, Read, Update, Patch, Delete)
 - ✅ Resource search with FHIR search parameters
+- ✅ `_include` search parameter to fetch related resources
 - ✅ Resource reference validation and management
 - ✅ Version history tracking (`_history` endpoint)
+- ✅ Configurable resource ID generation (server-generated or client-provided)
 
 ## Prerequisites
 
@@ -38,14 +40,47 @@ This FHIR R4 server implements the HL7 FHIR (Fast Healthcare Interoperability Re
 
 ## Configuration
 
-Configure the database connection in `Config.toml` for the in-memory database:
+The server is configured via the `Config.toml` file in the `fhir-service` directory. Below are the available configuration options:
+
+### Database Configuration
+
+Configure the H2 database connection:
 
 ```toml
 [ballerina_fhir_server.handlers]
-dbUrl = "jdbc:h2:~./fhir-data-db"
+dbUrl = "jdbc:h2:./data/fhir-db"
 dbUser = "sa"
 dbPassword = ""
+# Set to true to clear all data and reinitialize the database on startup
+# Set to false to keep existing data from previous runs
+clearDataOnStartup = true
 ```
+
+**Parameters:**
+- `dbUrl`: JDBC connection string for the H2 database. The database files will be stored at the specified path.
+- `dbUser`: Database username (default: `sa` for H2)
+- `dbPassword`: Database password (empty by default for H2)
+- `clearDataOnStartup`: When `true`, the database is cleared and reinitialized on each server startup. When `false`, existing data is preserved across restarts.
+
+### Resource ID Generation Configuration
+
+Control how resource IDs are generated:
+
+```toml
+[ballerina_fhir_server.utils]
+# If true, the server generates unique IDs for new resources (client-provided IDs are ignored)
+# If false, the server uses the ID provided by the client in the resource JSON (if not provided, returns error)
+useServerGeneratedIds = false
+```
+
+**Parameters:**
+- `useServerGeneratedIds`: 
+  - `true`: The server automatically generates unique IDs for new resources using UUID Type 1 (time-based). Any ID provided in the client's request body is ignored.
+  - `false`: The server requires the client to provide the `id` field in the resource JSON. If the `id` is missing, the request will fail with an error.
+
+**Use Cases:**
+- Set to `true` for public-facing APIs where the server should control ID generation
+- Set to `false` when integrating with systems that manage their own IDs
 
 ## Running the Server
 
@@ -281,6 +316,91 @@ GET http://localhost:9090/fhir/r4/Appointment?status=booked
 # Search by code with system
 GET http://localhost:9090/fhir/r4/Observation?code=http://loinc.org|8867-4
 ```
+
+**_include Search Parameter:**
+
+The `_include` parameter allows you to request that related resources be included in search results, reducing the number of API calls needed to fetch related data.
+
+**Format:**
+```
+GET /{resourceType}?_include={SourceResourceType}:{searchParam}
+GET /{resourceType}?_include={SourceResourceType}:{searchParam}:{targetType}
+GET /{resourceType}?_include=*
+```
+
+**Parameters:**
+- `SourceResourceType`: The type of resource being searched (e.g., `Appointment`)
+- `searchParam`: The name of the reference parameter to follow (e.g., `patient`, `actor`)
+- `targetType` (optional): The target resource type to include (e.g., `Patient`, `Practitioner`)
+- `*`: Wildcard to include all referenced resources
+
+**Examples:**
+
+1. **Include Patient in Appointment search:**
+```bash
+GET http://localhost:9090/fhir/r4/Appointment?_include=Appointment:patient
+```
+
+2. **Include with target type filter:**
+```bash
+GET http://localhost:9090/fhir/r4/Appointment?_include=Appointment:actor:Patient
+```
+This will only include `Patient` resources referenced by the `actor` field, excluding other types like `Practitioner`.
+
+3. **Wildcard include (all references):**
+```bash
+GET http://localhost:9090/fhir/r4/Appointment?_include=*
+```
+This will include ALL referenced resources from the matched Appointments (Patients, Practitioners, Locations, etc.).
+
+4. **Combine with other search parameters:**
+```bash
+GET http://localhost:9090/fhir/r4/Appointment?status=booked&date=2024-01-15&_include=Appointment:patient
+```
+
+**Response Structure:**
+
+The Bundle entries use the `search.mode` field to distinguish between:
+- `match`: Resources that match the search criteria
+- `include`: Resources included via `_include` parameter
+
+Example response:
+```json
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 2,
+  "entry": [
+    {
+      "fullUrl": "https://example.com/fhir/Appointment/apt-123",
+      "resource": {
+        "resourceType": "Appointment",
+        "id": "apt-123",
+        "status": "booked"
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://example.com/fhir/Patient/pat-456",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "pat-456",
+        "name": [{"family": "Smith", "given": ["John"]}]
+      },
+      "search": {
+        "mode": "include"
+      }
+    }
+  ]
+}
+```
+
+**Notes:**
+- Missing or deleted referenced resources are silently skipped (won't cause errors)
+- Multiple `_include` parameters can be used in a single request
+- The total count includes both matched and included resources
 
 ## Reference Management
 
