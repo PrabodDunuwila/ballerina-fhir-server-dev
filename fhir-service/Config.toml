@@ -5,7 +5,7 @@ dbUser = "sa"
 dbPassword = ""
 # Set to true to clear all data and reinitialize the database on startup
 # Set to false to keep existing data from previous runs
-clearDataOnStartup = true
+clearDataOnStartup = false
 
 # Resource ID Generation Configuration
 [ballerina_fhir_server.utils]

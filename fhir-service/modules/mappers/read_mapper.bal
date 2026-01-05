@@ -171,14 +171,14 @@ public class ReadMapper {
                 continue;
             }
 
-            // Skip _count parameter (sent by default) and _include parameter (handled separately after main search)
-            if paramName == "_count" || paramName == "_include" {
+            // Skip _count parameter (sent by default) and _include/_revinclude parameters (handled separately after main search)
+            if paramName == "_count" || paramName == "_include" || paramName == "_revinclude" {
                 continue;
             }
 
             // Handle other unsupported FHIR control parameters that start with _
             if paramName.startsWith("_") && paramName != "_lastUpdated" && paramName != "_id" {
-                return error(string `Unsupported search parameter: ${paramName}. Only common resource parameters of _id, _lastUpdated, and _include are currently supported.`);
+                return error(string `Unsupported search parameter: ${paramName}. Only common resource parameters of _id, _lastUpdated, _include, and _revinclude are currently supported.`);
             }
 
             string operator = "=";
@@ -349,6 +349,9 @@ public class ReadMapper {
         }
 
         // Handle _include parameters
+        // Track included resources to avoid duplicates (same resource shouldn't appear multiple times)
+        map<boolean> includedResourceKeys = {};
+        
         if queryParams.hasKey("_include") {
             string[] includeParams = queryParams.get("_include");
             foreach string includeParam in includeParams {
@@ -361,7 +364,18 @@ public class ReadMapper {
                     foreach string sourceId in matchedResourceIds {
                         json[] includedResources = check self.fetchAllReferencedResources(jdbcClient, resourceType, sourceId);
                         foreach json includedEntry in includedResources {
-                            entries.push(includedEntry);
+                            // Check for duplicates using resourceType/id as key
+                            map<json> entryMap = <map<json>>includedEntry;
+                            json includedResource = entryMap.get("resource");
+                            map<json> resourceMap = <map<json>>includedResource;
+                            string resType = resourceMap.get("resourceType").toString();
+                            string resId = resourceMap.get("id").toString();
+                            string resourceKey = string `${resType}/${resId}`;
+                            
+                            if !includedResourceKeys.hasKey(resourceKey) {
+                                entries.push(includedEntry);
+                                includedResourceKeys[resourceKey] = true;
+                            }
                         }
                     }
                 } else {
@@ -377,7 +391,84 @@ public class ReadMapper {
                             foreach string sourceId in matchedResourceIds {
                                 json[] includedResources = check self.fetchIncludedResources(jdbcClient, sourceResourceType, sourceId, searchParamName, targetResourceType);
                                 foreach json includedEntry in includedResources {
-                                    entries.push(includedEntry);
+                                    // Check for duplicates using resourceType/id as key
+                                    map<json> entryMap = <map<json>>includedEntry;
+                                    json includedResource = entryMap.get("resource");
+                                    map<json> resourceMap = <map<json>>includedResource;
+                                    string resType = resourceMap.get("resourceType").toString();
+                                    string resId = resourceMap.get("id").toString();
+                                    string resourceKey = string `${resType}/${resId}`;
+                                    
+                                    if !includedResourceKeys.hasKey(resourceKey) {
+                                        entries.push(includedEntry);
+                                        includedResourceKeys[resourceKey] = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Handle _revinclude parameters (reverse include)
+        if queryParams.hasKey("_revinclude") {
+            string[] revIncludeParams = queryParams.get("_revinclude");
+            foreach string revIncludeParam in revIncludeParams {
+                // Parse _revinclude parameter: format is ResourceType:searchParam or ResourceType:searchParam:sourceType
+                // Example: Provenance:target or Provenance:target:MedicationRequest
+                // Also support wildcard: _revinclude=* (include all resources that reference these results)
+                
+                if revIncludeParam == "*" {
+                    // Include all resources that reference the matched results
+                    foreach string targetId in matchedResourceIds {
+                        json[] revIncludedResources = check self.fetchAllReferencingResources(jdbcClient, resourceType, targetId);
+                        foreach json revIncludedEntry in revIncludedResources {
+                            // Check for duplicates using resourceType/id as key
+                            map<json> entryMap = <map<json>>revIncludedEntry;
+                            json revIncludedResource = entryMap.get("resource");
+                            map<json> resourceMap = <map<json>>revIncludedResource;
+                            string resType = resourceMap.get("resourceType").toString();
+                            string resId = resourceMap.get("id").toString();
+                            string resourceKey = string `${resType}/${resId}`;
+                            
+                            if !includedResourceKeys.hasKey(resourceKey) {
+                                entries.push(revIncludedEntry);
+                                includedResourceKeys[resourceKey] = true;
+                            }
+                        }
+                    }
+                } else {
+                    // Parse specific revinclude parameter
+                    string[] parts = regexp:split(re `:`, revIncludeParam);
+                    if parts.length() >= 2 {
+                        string sourceResourceType = parts[0]; // The resource type that references the current results
+                        string searchParamName = parts[1];    // The search parameter on sourceResourceType
+                        string? targetResourceFilter = parts.length() > 2 ? parts[2] : ();
+                        
+                        // Process reverse include for each matched resource
+                        // We need to find resources of sourceResourceType that reference our matched results
+                        foreach string targetId in matchedResourceIds {
+                            json[] revIncludedResources = check self.fetchReverseIncludedResources(
+                                jdbcClient, 
+                                sourceResourceType,  // e.g., "Provenance"
+                                searchParamName,     // e.g., "target"
+                                resourceType,        // e.g., "MedicationRequest" (what we searched for)
+                                targetId,            // ID of the matched resource
+                                targetResourceFilter // Optional filter if specified
+                            );
+                            foreach json revIncludedEntry in revIncludedResources {
+                                // Check for duplicates using resourceType/id as key
+                                map<json> entryMap = <map<json>>revIncludedEntry;
+                                json revIncludedResource = entryMap.get("resource");
+                                map<json> resourceMap = <map<json>>revIncludedResource;
+                                string resType = resourceMap.get("resourceType").toString();
+                                string resId = resourceMap.get("id").toString();
+                                string resourceKey = string `${resType}/${resId}`;
+                                
+                                if !includedResourceKeys.hasKey(resourceKey) {
+                                    entries.push(revIncludedEntry);
+                                    includedResourceKeys[resourceKey] = true;
                                 }
                             }
                         }
@@ -711,6 +802,162 @@ public class ReadMapper {
         }
 
         return includedEntries;
+    }
+
+    // Fetch resources that reference the target resource (reverse include)
+    // Example: GET /MedicationRequest?_revinclude=Provenance:target
+    // This finds Provenance resources where their "target" search parameter points to the MedicationRequest
+    private isolated function fetchReverseIncludedResources(
+        jdbc:Client? jdbcClient, 
+        string sourceResourceType,      // e.g., "Provenance" - the resource type that references our results
+        string searchParamName,          // e.g., "target" - the search parameter on Provenance
+        string targetResourceType,       // e.g., "MedicationRequest" - the resource type we searched for
+        string targetResourceId,         // e.g., "med-123" - the ID of the matched resource
+        string? sourceResourceFilter     // Optional filter for source resource type
+    ) returns json[]|error {
+        if jdbcClient is () {
+            return error("JDBC client is not initialized");
+        }
+
+        json[] revIncludedEntries = [];
+        
+        // Get the FHIRPath expression for this search parameter
+        // For Provenance:target, we get the expression like "Provenance.target.where(resolve() is MedicationRequest)"
+        string searchParamQuery = string `SELECT EXPRESSION FROM "SEARCH_PARAM_RES_EXPRESSIONS" WHERE RESOURCE_NAME = '${utils:escapeSql(sourceResourceType)}' AND SEARCH_PARAM_NAME = '${utils:escapeSql(searchParamName)}' AND SEARCH_PARAM_TYPE = 'reference'`;
+        sql:ParameterizedQuery spQuery = new utils:RawSQLQuery(searchParamQuery);
+        
+        stream<record {|string EXPRESSION;|}, sql:Error?> spStream = jdbcClient->query(spQuery);
+        record {|string EXPRESSION;|}[] spResults = check from var sp in spStream
+            select sp;
+        
+        if spResults.length() == 0 {
+            return revIncludedEntries;
+        }
+        
+        string fhirPathExpr = spResults[0].EXPRESSION;
+        
+        // Extract the reference field name and expected target type from FHIRPath
+        // Example: "Provenance.target.where(resolve() is MedicationRequest)" -> field: "target", type: "MedicationRequest"
+        string[] pathParts = regexp:split(re `\.`, fhirPathExpr);
+        string? referenceField = ();
+        string? extractedTargetType = ();
+        
+        foreach int i in 0 ..< pathParts.length() {
+            string part = pathParts[i];
+            if part == "where" {
+                if i > 0 {
+                    referenceField = pathParts[i - 1];
+                }
+                break;
+            } else if part.startsWith("where(") {
+                if i > 0 {
+                    referenceField = pathParts[i - 1];
+                }
+                
+                // Extract target resource type from "where(resolve() is ResourceType)"
+                string wherePattern = "where(resolve() is ";
+                if part.startsWith(wherePattern) {
+                    string whereContent = part.substring(wherePattern.length());
+                    int? closeParenPos = whereContent.indexOf(")");
+                    if closeParenPos is int && closeParenPos > 0 {
+                        extractedTargetType = whereContent.substring(0, closeParenPos).trim();
+                    }
+                }
+                break;
+            } else if i == pathParts.length() - 1 {
+                referenceField = part;
+            }
+        }
+        
+        // Build query to find resources that reference our target
+        // We're looking in REFERENCES table where:
+        // - SOURCE_RESOURCE_TYPE = the resource type that references us (e.g., "Provenance")
+        // - TARGET_RESOURCE_TYPE = the resource type we searched for (e.g., "MedicationRequest")
+        // - TARGET_RESOURCE_ID = the ID of our matched resource
+        // - SOURCE_EXPRESSION = the field name (e.g., "target")
+        
+        string whereClause = string `TARGET_RESOURCE_TYPE = '${utils:escapeSql(targetResourceType)}' AND TARGET_RESOURCE_ID = '${utils:escapeSql(targetResourceId)}' AND SOURCE_RESOURCE_TYPE = '${utils:escapeSql(sourceResourceType)}'`;
+        
+        if referenceField is string {
+            whereClause = whereClause + string ` AND SOURCE_EXPRESSION = '${utils:escapeSql(referenceField)}'`;
+        }
+        
+        // Optional: filter by expected target type from the expression
+        // This ensures we only get references where the search parameter actually points to our resource type
+        if extractedTargetType is string && extractedTargetType == targetResourceType {
+            // The expression specifies the exact target type, which matches our target
+            // This is already filtered by TARGET_RESOURCE_TYPE above
+        }
+        
+        string refQuery = string `SELECT DISTINCT SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID FROM "REFERENCES" WHERE ${whereClause}`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(refQuery);
+
+        stream<record {|string SOURCE_RESOURCE_TYPE; string SOURCE_RESOURCE_ID;|}, sql:Error?> refStream = jdbcClient->query(query);
+        record {|string SOURCE_RESOURCE_TYPE; string SOURCE_RESOURCE_ID;|}[] refResults = check from var ref in refStream
+            select ref;
+
+        // Fetch each referencing resource
+        foreach var refRecord in refResults {
+            string sourceType = refRecord.SOURCE_RESOURCE_TYPE;
+            string sourceId = refRecord.SOURCE_RESOURCE_ID;
+            
+            // Use existing readResourceById to fetch the resource
+            json|error resourceResult = self.readResourceById(jdbcClient, sourceType, sourceId);
+            
+            if resourceResult is json {
+                json entry = {
+                    "fullUrl": string `https://example.com/fhir/${sourceType}/${sourceId}`,
+                    "resource": resourceResult,
+                    "search": {
+                        "mode": "include"
+                    }
+                };
+                revIncludedEntries.push(entry);
+            }
+            // Silently skip resources that can't be fetched
+        }
+
+        return revIncludedEntries;
+    }
+
+    // Fetch all resources that reference the target resource (wildcard _revinclude=*)
+    private isolated function fetchAllReferencingResources(jdbc:Client? jdbcClient, string targetResourceType, string targetResourceId) returns json[]|error {
+        if jdbcClient is () {
+            return error("JDBC client is not initialized");
+        }
+
+        json[] revIncludedEntries = [];
+        
+        // Query all resources that reference this target resource
+        string refQuery = string `SELECT DISTINCT SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID FROM "REFERENCES" WHERE TARGET_RESOURCE_TYPE = '${utils:escapeSql(targetResourceType)}' AND TARGET_RESOURCE_ID = '${utils:escapeSql(targetResourceId)}'`;
+        sql:ParameterizedQuery query = new utils:RawSQLQuery(refQuery);
+
+        stream<record {|string SOURCE_RESOURCE_TYPE; string SOURCE_RESOURCE_ID;|}, sql:Error?> refStream = jdbcClient->query(query);
+        record {|string SOURCE_RESOURCE_TYPE; string SOURCE_RESOURCE_ID;|}[] refResults = check from var ref in refStream
+            select ref;
+
+        // Fetch each referencing resource
+        foreach var refRecord in refResults {
+            string sourceType = refRecord.SOURCE_RESOURCE_TYPE;
+            string sourceId = refRecord.SOURCE_RESOURCE_ID;
+            
+            // Use existing readResourceById to fetch the resource
+            json|error resourceResult = self.readResourceById(jdbcClient, sourceType, sourceId);
+            
+            if resourceResult is json {
+                json entry = {
+                    "fullUrl": string `https://example.com/fhir/${sourceType}/${sourceId}`,
+                    "resource": resourceResult,
+                    "search": {
+                        "mode": "include"
+                    }
+                };
+                revIncludedEntries.push(entry);
+            }
+            // Silently skip resources that can't be fetched
+        }
+
+        return revIncludedEntries;
     }
 }
 

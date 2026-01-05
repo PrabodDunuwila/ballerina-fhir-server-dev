@@ -225,6 +225,49 @@ GET http://localhost:9090/fhir/r4/Practitioner?specialty=cardiology
 
 Date and numeric parameters support prefixes (`gt`, `ge`, `lt`, `le`, etc.) for range queries. String parameters use partial matching (LIKE search).
 
+**Including Related Resources (_include and _revinclude):**
+
+The server supports the `_include` and `_revinclude` parameters to fetch related resources in a single request:
+
+**_include** - Include resources that are referenced by the search results:
+```bash
+# Search for Appointments and include the referenced Practitioners
+GET http://localhost:9090/fhir/r4/Appointment?_include=Appointment:practitioner
+
+# Search for Patients and include their referenced general practitioners
+GET http://localhost:9090/fhir/r4/Patient?_include=Patient:general-practitioner
+
+# Search Appointments by status and include Patients
+GET http://localhost:9090/fhir/r4/Appointment?status=booked&_include=Appointment:patient
+```
+
+**_revinclude** - Include resources that reference the search results (reverse include):
+```bash
+# Search for Practitioners and include Appointments that reference them
+GET http://localhost:9090/fhir/r4/Practitioner?_revinclude=Appointment:practitioner
+
+# Search for Patients and include Observations that reference them
+GET http://localhost:9090/fhir/r4/Patient?_revinclude=Observation:patient
+
+# Search for MedicationRequests and include Provenance resources that reference them
+GET http://localhost:9090/fhir/r4/MedicationRequest?_revinclude=Provenance:target
+```
+
+**Format:**
+- `_include={SourceResourceType}:{searchParameter}`
+- `_revinclude={ReferencingResourceType}:{searchParameter}`
+
+**Supported wildcards:**
+```bash
+# Include all resources referenced by the search results
+GET http://localhost:9090/fhir/r4/Appointment?_include=*
+
+# Include all resources that reference the search results
+GET http://localhost:9090/fhir/r4/Patient?_revinclude=*
+```
+
+The included resources are returned in the same Bundle with `search.mode` set to `"include"`, while the original search results have `search.mode` set to `"match"`. Duplicate resources are automatically eliminated from the response.
+
 **Search Response Format:**
 
 Search operations return a FHIR Bundle resource containing matching results:
