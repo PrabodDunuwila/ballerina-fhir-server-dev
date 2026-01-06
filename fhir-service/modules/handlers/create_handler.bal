@@ -64,6 +64,21 @@ public class CreateHandler {
 
             log:printDebug(string `Created ${resourceType} with ID: ${resourceId}`);
 
+            // Special handling for SearchParameter resources - sync to expressions table
+            if resourceType == "SearchParameter" {
+                log:printDebug(string `Syncing SearchParameter/${resourceId} to SEARCH_PARAM_RES_EXPRESSIONS`);
+                error? syncResult = utils:syncSearchParameterToExpressions(self.jdbcClient, resourceJson);
+                if syncResult is error {
+                    log:printError(string `Failed to sync SearchParameter/${resourceId}: ${syncResult.message()}`);
+                    error? rollbackResult = self.transactionHandler.rollbackCreateTransaction(self.jdbcClient, 'transaction, resourceType);
+                    if (rollbackResult is error) {
+                        log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
+                    }
+                    return syncResult;
+                }
+                log:printInfo(string `Successfully synced SearchParameter/${resourceId} to expressions table`);
+            }
+
             // Save to history after creation
             log:printDebug(string `Saving initial version of ${resourceType}/${resourceId} to history`);
             error? historyResult = self.historyHandler.saveToHistory(resourceType, resourceId, insertModel, "POST");
@@ -74,6 +89,18 @@ public class CreateHandler {
                     log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
                 }
                 return historyResult;
+            }
+
+            // Extract and save search parameters for indexed searching
+            log:printDebug(string `Extracting search parameters for ${resourceType}/${resourceId}`);
+            error? extractResult = utils:extractSearchParametersForResource(validatedClient, resourceType, resourceId, resourceJson);
+            if extractResult is error {
+                log:printError(string `Failed to extract search parameters for ${resourceType}/${resourceId}: ${extractResult.message()}`);
+                error? rollbackResult = self.transactionHandler.rollbackCreateTransaction(self.jdbcClient, 'transaction, resourceType);
+                if (rollbackResult is error) {
+                    log:printError(string `Rollback failed for ${resourceType}/${resourceId}: ${rollbackResult.message()}`);
+                }
+                return extractResult;
             }
 
             // Save all references

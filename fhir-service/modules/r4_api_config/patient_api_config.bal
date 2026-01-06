@@ -307,6 +307,21 @@ public final r4:ResourceAPIConfig patientApiConfig = {
                 builtin: false,
                 documentation: "http://hl7.org/fhir/SearchParameter/Patient-general-practitioner"
             }
+        },
+
+        // Custom extension search parameter
+        // This entry is required for API validation to accept "blood-type" as a valid search parameter.
+        // The actual search logic routes to CUSTOM_EXTENSION_SEARCH_PARAMS table
+        // rather than querying PatientTable columns. The SearchParameter resource must be created
+        // separately to sync expression metadata to SEARCH_PARAM_RES_EXPRESSIONS with IS_CUSTOM=true.
+        {
+            name: "blood-type",
+            active: true,
+            information: {
+                description: "Search for patients by their blood type from the blood-type extension",
+                builtin: false,
+                documentation: "http://example.org/fhir/SearchParameter/Patient-blood-type"
+            }
         }
 
     ],

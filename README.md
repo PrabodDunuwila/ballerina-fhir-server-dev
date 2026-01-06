@@ -1100,6 +1100,227 @@ The server uses the following core tables:
 - **Resource Tables**: One table per FHIR resource type (e.g., `PATIENT`, `PRACTITIONER`, `APPOINTMENT`)
 - **REFERENCES Table**: Tracks all resource references for validation and cascade operations
 - **History Tables**: Store version history for each resource
+- **CUSTOM_EXTENSION_SEARCH_PARAMS Table**: Stores extracted values from custom extensions for fast indexed searching
+
+---
+
+## Custom Search Parameters and Extensions
+
+This section covers how to extend the FHIR server with custom search parameters for extension-based fields, enabling fast searches on custom data without JSON parsing overhead.
+
+### Overview
+
+The server supports creating custom SearchParameter resources that define how to search for data in extensions. When you create a Patient (or any resource) with custom extensions, the server automatically extracts for fast searching.
+
+**Key Components:**
+1. **SearchParameter Resource**: Defines what extension to search and how
+2. **Custom Extensions**: Add custom fields to FHIR resources
+3. **Extraction**: Values are extracted and stored in `CUSTOM_EXTENSION_SEARCH_PARAMS` table
+4. **Fast Search**: Direct database lookups instead of JSON parsing
+
+### Step 1: Create a Custom SearchParameter
+
+First, create a SearchParameter resource that defines how to search for an extension field.
+
+**Example: Blood Type Search Parameter**
+
+```bash
+POST http://localhost:9090/fhir/r4/SearchParameter
+Content-Type: application/fhir+json
+```
+
+```json
+{
+  "resourceType": "SearchParameter",
+  "id": "Patient-blood-type",
+  "url": "http://example.org/fhir/SearchParameter/Patient-blood-type",
+  "version": "1.0.0",
+  "name": "BloodType",
+  "status": "active",
+  "code": "blood-type",
+  "base": ["Patient"],
+  "type": "string",
+  "expression": "Patient.extension.where(url='http://example.org/fhir/StructureDefinition/blood-type')",
+  "description": "Search for patients by their blood type from the blood-type extension"
+}
+```
+
+**Important Fields:**
+- `code`: The parameter name used in search URLs (e.g., `?blood-type=A+`)
+- `base`: Which resource types this parameter applies to
+- `type`: Only supports for `string`
+- `expression`: FHIRPath expression ending at `.where(url='...')`
+
+**What Happens:**
+1. SearchParameter is stored as a regular FHIR resource
+2. Metadata is synced to `SEARCH_PARAM_RES_EXPRESSIONS` table with `IS_CUSTOM=true`
+3. System is now ready to extract values when resources are created
+
+### Step 2: Configure API to Accept the Search Parameter
+
+Add the custom search parameter to the resource's API configuration file.
+
+**Edit:** `fhir-service/modules/r4_api_config/patient_api_config.bal`
+
+```ballerina
+searchParameters: [
+    // ... existing parameters ...
+    
+    // Custom extension search parameter
+    // This entry is required for API validation to accept "blood-type" as a valid search parameter.
+    // The actual search logic routes to CUSTOM_EXTENSION_SEARCH_PARAMS table (indexed extraction)
+    // rather than querying PatientTable columns. The SearchParameter resource must be created
+    // separately to sync expression metadata to SEARCH_PARAM_RES_EXPRESSIONS with IS_CUSTOM=true.
+    {
+        name: "blood-type",
+        active: true,
+        information: {
+            description: "Search for patients by their blood type from the blood-type extension",
+            builtin: false,
+            documentation: "http://example.org/fhir/SearchParameter/Patient-blood-type"
+        }
+    }
+]
+```
+
+**Rebuild the server:**
+```bash
+cd fhir-service
+bal build
+bal run
+```
+
+### Step 3: Create Resources with Custom Extensions
+
+Now create Patient resources with the blood-type extension.
+
+```bash
+POST http://localhost:9090/fhir/r4/Patient
+Content-Type: application/fhir+json
+```
+
+```json
+{
+  "resourceType": "Patient",
+  "id": "patient-001",
+  "name": [
+    {
+      "family": "Smith",
+      "given": ["John"]
+    }
+  ],
+  "gender": "male",
+  "birthDate": "1980-01-15",
+  "extension": [
+    {
+      "url": "http://example.org/fhir/StructureDefinition/blood-type",
+      "valueString": "A+"
+    }
+  ]
+}
+```
+
+**What Happens During Creation:**
+1. Patient resource is validated and stored in `PATIENT` table
+2. System queries `SEARCH_PARAM_RES_EXPRESSIONS` for custom parameters (WHERE `IS_CUSTOM=true`)
+3. Finds the `blood-type` SearchParameter
+4. Extracts value from extension: `"A+"`
+5. Inserts into `CUSTOM_EXTENSION_SEARCH_PARAMS`:
+   ```
+   RESOURCE_TYPE: Patient
+   RESOURCE_ID: patient-001
+   PARAM_NAME: blood-type
+   PARAM_TYPE: string
+   VALUE_STRING: A+
+   ```
+
+**Create Another Patient:**
+
+```json
+{
+  "resourceType": "Patient",
+  "id": "patient-002",
+  "name": [
+    {
+      "family": "Johnson",
+      "given": ["Jane"]
+    }
+  ],
+  "gender": "female",
+  "birthDate": "1992-05-20",
+  "extension": [
+    {
+      "url": "http://example.org/fhir/StructureDefinition/blood-type",
+      "valueString": "O+"
+    }
+  ]
+}
+```
+
+### Step 4: Search Using Custom Parameters
+
+Now you can search for patients by blood type using fast indexed lookups.
+
+**Search for Blood Type A+:**
+
+```bash
+GET http://localhost:9090/fhir/r4/Patient?blood-type=A%2B
+```
+
+**Note:** URL encode `+` as `%2B` because `+` is interpreted as a space in URLs.
+
+**Response:**
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 1,
+  "entry": [
+    {
+      "fullUrl": "https://example.com/fhir/Patient/patient-001",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-001",
+        "name": [{"family": "Smith", "given": ["John"]}],
+        "extension": [
+          {
+            "url": "http://example.org/fhir/StructureDefinition/blood-type",
+            "valueString": "A+"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    }
+  ]
+}
+```
+
+**Search for Blood Type O+:**
+
+```bash
+GET http://localhost:9090/fhir/r4/Patient?blood-type=O%2B
+```
+
+Returns `patient-002`.
+
+**Combine with Standard Parameters:**
+
+```bash
+GET http://localhost:9090/fhir/r4/Patient?blood-type=A%2B&gender=male
+```
+
+The search system combines:
+- Custom extension search (queries `CUSTOM_EXTENSION_SEARCH_PARAMS`)
+- Standard field search (queries `PATIENT` table columns)
+- Returns intersection of results
+
+**Current Limitation:**
+- Only `valueString` fields are tested
+
+---
 
 ## Testing
 

@@ -43,6 +43,37 @@ public class ReadMapper {
             return error("JDBC client is not initialized");
         }
 
+        // First, check if there are any custom extension search parameters
+        map<string[]> customParams = {};
+        map<string[]> standardParams = {};
+        
+        foreach var [paramName, paramValues] in queryParams.entries() {
+            // Skip control parameters
+            if paramName.startsWith("_") || paramName.includes("/") {
+                standardParams[paramName] = paramValues;
+                continue;
+            }
+            
+            // Check if this is a custom extension parameter
+            boolean isCustom = check self.isCustomSearchParam(jdbcClient, resourceType, paramName);
+            if isCustom {
+                customParams[paramName] = paramValues;
+            } else {
+                standardParams[paramName] = paramValues;
+            }
+        }
+        
+        // Get resource IDs from custom extension search if applicable
+        string[]? customResourceIds = ();
+        if customParams.length() > 0 {
+            customResourceIds = check utils:searchResourcesByCustomParams(jdbcClient, resourceType, customParams);
+            
+            // If custom search returned no results, return empty bundle
+            if customResourceIds is string[] && customResourceIds.length() == 0 {
+                return self.createEmptyBundle();
+            }
+        }
+
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
@@ -128,11 +159,32 @@ public class ReadMapper {
             return bundle;
         }
 
-        // Build WHERE clause for ID filtering if we have reference matches
+        // Build WHERE clause for ID filtering if we have reference matches or custom extension matches
         string whereClause = "";
-        if matchingResourceIds is string[] && matchingResourceIds.length() > 0 {
-            string idList = string:'join("', '", ...matchingResourceIds);
+        
+        // Combine reference and custom resource IDs if both exist
+        string[]? finalResourceIds = ();
+        if matchingResourceIds is string[] && customResourceIds is string[] {
+            // Intersect both lists
+            string[] intersection = [];
+            foreach string id in customResourceIds {
+                if self.arrayContains(matchingResourceIds, id) {
+                    intersection.push(id);
+                }
+            }
+            finalResourceIds = intersection;
+        } else if matchingResourceIds is string[] {
+            finalResourceIds = matchingResourceIds;
+        } else if customResourceIds is string[] {
+            finalResourceIds = customResourceIds;
+        }
+        
+        if finalResourceIds is string[] && finalResourceIds.length() > 0 {
+            string idList = string:'join("', '", ...finalResourceIds);
             whereClause = string ` WHERE ${primaryKey} IN ('${idList}')`;
+        } else if finalResourceIds is string[] && finalResourceIds.length() == 0 {
+            // No matches from filtering, return empty bundle
+            return self.createEmptyBundle();
         }
 
         // Handle _id parameter
@@ -147,8 +199,8 @@ public class ReadMapper {
             }
         }
 
-        // Handle other search parameters (map to database columns)
-        foreach var [paramName, paramValues] in queryParams.entries() {
+        // Handle other search parameters (map to database columns) - skip custom params
+        foreach var [paramName, paramValues] in standardParams.entries() {
             if paramValues.length() == 0 {
                 continue;
             }
@@ -958,6 +1010,37 @@ public class ReadMapper {
         }
 
         return revIncludedEntries;
+    }
+
+    // Check if a search parameter is a custom extension parameter
+    private isolated function isCustomSearchParam(jdbc:Client jdbcClient, string resourceType, string paramName) returns boolean|error {
+        sql:ParameterizedQuery query = `
+            SELECT COUNT(*) as count
+            FROM SEARCH_PARAM_RES_EXPRESSIONS 
+            WHERE RESOURCE_NAME = ${resourceType}
+            AND SEARCH_PARAM_NAME = ${paramName}
+            AND IS_CUSTOM = ${true}
+        `;
+        
+        stream<record {int count;}, sql:Error?> resultStream = jdbcClient->query(query);
+        record {|record {int count;} value;|}|sql:Error? nextRecord = resultStream.next();
+        check resultStream.close();
+        
+        if nextRecord is record {|record {int count;} value;|} {
+            return nextRecord.value.count > 0;
+        }
+        
+        return false;
+    }
+
+    // Create an empty FHIR Bundle
+    private isolated function createEmptyBundle() returns json {
+        return {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "total": 0,
+            "entry": []
+        };
     }
 }
 

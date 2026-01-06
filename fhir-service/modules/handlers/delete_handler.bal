@@ -73,6 +73,32 @@ public class DeleteHandler {
 
             // Delete main resource
             log:printDebug(string `Deleting main ${resourceType}/${resourceId} record`);
+            
+            // Delete search parameters for this resource
+            jdbc:Client? jdbcConn = self.jdbcClient;
+            if jdbcConn is jdbc:Client {
+                log:printDebug(string `Deleting search parameters for ${resourceType}/${resourceId}`);
+                error? deleteSearchResult = utils:deleteSearchParametersForResource(jdbcConn, resourceType, resourceId);
+                if deleteSearchResult is error {
+                    log:printError(string `Failed to delete search parameters for ${resourceType}/${resourceId}: ${deleteSearchResult.message()}`);
+                    // Continue with delete even if search param cleanup fails
+                    log:printWarn(string `Continuing with delete despite search parameter cleanup failure`);
+                }
+            }
+            
+            // Special handling for SearchParameter resources - remove from expressions table
+            if resourceType == "SearchParameter" {
+                log:printDebug(string `Removing SearchParameter/${resourceId} from SEARCH_PARAM_RES_EXPRESSIONS`);
+                error? syncResult = utils:removeSearchParameterById(self.jdbcClient, resourceId);
+                if syncResult is error {
+                    log:printError(string `Failed to remove SearchParameter/${resourceId} from expressions: ${syncResult.message()}`);
+                    // Continue with delete even if sync fails (log warning)
+                    log:printWarn(string `Continuing with delete despite expression cleanup failure`);
+                } else {
+                    log:printInfo(string `Successfully removed SearchParameter/${resourceId} from expressions table`);
+                }
+            }
+            
             error? deleteResult = utils:deleteResource(self.jdbcClient, resourceType, resourceId);
 
             if deleteResult is error {

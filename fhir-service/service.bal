@@ -1470,13 +1470,13 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
     }
 
     // Read the state of a specific version of a resource based on its id.
-    isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
-        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CapabilityStatement", id, vid);
-        if result is any {
-            return <CapabilityStatement>result;
-        }
-        return result;
-    }
+    // isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
+    //     any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("CapabilityStatement", id, vid);
+    //     if result is any {
+    //         return <CapabilityStatement>result;
+    //     }
+    //     return result;
+    // }
 
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, CapabilityStatement capabilitystatement) returns CapabilityStatement|r4:OperationOutcome|r4:FHIRError {
@@ -1511,14 +1511,14 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
     }
 
     // Retrieve the update history for a particular resource.
-    isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceHistory("CapabilityStatement", id);
-    }
+    // isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    //     return performResourceHistory("CapabilityStatement", id);
+    // }
 
     // Retrieve the update history for all resources.
-    isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performAllResourceHistory("CapabilityStatement");
-    }
+    // isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    //     return performAllResourceHistory("CapabilityStatement");
+    // }
 }
 
 // // # Measure API                                                                                                          #
@@ -4119,13 +4119,13 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
     }
 
     // Read the state of a specific version of a resource based on its id.
-    isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
-        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SearchParameter", id, vid);
-        if result is any {
-            return <SearchParameter>result;
-        }
-        return result;
-    }
+    // isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns SearchParameter|r4:OperationOutcome|r4:FHIRError {
+    //     any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("SearchParameter", id, vid);
+    //     if result is any {
+    //         return <SearchParameter>result;
+    //     }
+    //     return result;
+    // }
 
 
     // Create a new resource.
@@ -4161,14 +4161,14 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
     }
 
     // Retrieve the update history for a particular resource.
-    isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceHistory("SearchParameter", id);
-    }
+    // isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    //     return performResourceHistory("SearchParameter", id);
+    // }
 
     // Retrieve the update history for all resources.
-    isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performAllResourceHistory("SearchParameter");
-    }
+    // isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    //     return performAllResourceHistory("SearchParameter");
+    // }
 }
 
 // // # Communication API                                                                                                          #
@@ -5588,13 +5588,13 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
     }
 
     // Read the state of a specific version of a resource based on its id.
-    isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
-        any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("StructureDefinition", id, vid);
-        if result is any {
-            return <StructureDefinition>result;
-        }
-        return result;
-    }
+    // isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
+    //     any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("StructureDefinition", id, vid);
+    //     if result is any {
+    //         return <StructureDefinition>result;
+    //     }
+    //     return result;
+    // }
 
 
     // Create a new resource.
@@ -5630,14 +5630,14 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
     }
 
     // Retrieve the update history for a particular resource.
-    isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performResourceHistory("StructureDefinition", id);
-    }
+    // isolated resource function get [string id]/_history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    //     return performResourceHistory("StructureDefinition", id);
+    // }
 
     // Retrieve the update history for all resources.
-    isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performAllResourceHistory("StructureDefinition");
-    }
+    // isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    //     return performAllResourceHistory("StructureDefinition");
+    // }
 }
 
 // // # ChargeItemDefinition API                                                                                                          #
