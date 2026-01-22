@@ -5587,23 +5587,62 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
         return result;
     }
 
-    // Read the state of a specific version of a resource based on its id.
-    // isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
-    //     any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("StructureDefinition", id, vid);
-    //     if result is any {
-    //         return <StructureDefinition>result;
-    //     }
-    //     return result;
-    // }
-
-
     // Create a new resource.
-    isolated resource function post .(r4:FHIRContext fhirContext, StructureDefinition structuredefinition) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
-        any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("StructureDefinition", structuredefinition.toJson());
-        if result is any {
-            return <StructureDefinition>result;
+    resource function post .(r4:FHIRContext fhirContext, StructureDefinition structuredefinition) returns StructureDefinition|r4:OperationOutcome|r4:FHIRError {
+        do {
+            any|r4:OperationOutcome|r4:FHIRError createResult = performResourceCreate("StructureDefinition", structuredefinition.toJson());
+            
+            if createResult is r4:OperationOutcome || createResult is r4:FHIRError {
+                return createResult;
+            }
+            
+            json structDefJson = structuredefinition.toJson();
+            string? customUrl = check structDefJson.url.ensureType(string);
+            string? resourceType = check structDefJson.'type.ensureType(string);
+            
+            if customUrl is string && resourceType is string {
+                log:printInfo(string `Registering profile in FHIR registry: ${customUrl} for ${resourceType}`);
+                
+                readonly & r4:Profile customProfile = {
+                    url: customUrl,
+                    resourceType: resourceType,
+                    modelType: json
+                }.cloneReadOnly();
+                
+                readonly & r4:IGInfoRecord customIG = {
+                    title: "Custom Profiles IG",
+                    name: "custom-profiles",
+                    terminology: {
+                        codeSystems: [],
+                        valueSets: []
+                    },
+                    profiles: {
+                        [customUrl]: customProfile
+                    },
+                    searchParameters: []
+                }.cloneReadOnly();
+                
+                r4:FHIRImplementationGuide ig = new(customIG);
+                r4:FHIRError? regResult = r4:fhirRegistry.addImplementationGuide(ig);
+                
+                if regResult is r4:FHIRError {
+                    log:printWarn(string `Failed to register profile in registry: ${regResult.message()}`);
+                } else {
+                    log:printInfo(string `Successfully registered profile: ${customUrl}`);
+                }
+            }
+            
+            return <StructureDefinition>createResult;
+            
+        } on fail error e {
+            log:printError(string `Error creating StructureDefinition: ${e.message()}`);
+            return r4:createFHIRError(
+                string `Failed to create StructureDefinition: ${e.message()}`,
+                r4:ERROR,
+                r4:PROCESSING,
+                httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR
+            );
         }
-        return result;
     }
 
     // Update the current state of a resource completely.
@@ -9514,10 +9553,18 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     // Create a new resource.
     isolated resource function post .(r4:FHIRContext fhirContext, Patient patient) returns Patient|r4:OperationOutcome|r4:FHIRError {
         any|r4:OperationOutcome|r4:FHIRError result = performResourceCreate("Patient", patient.toJson());
-        if result is any {
-            return <Patient>result;
+        if result is r4:OperationOutcome|r4:FHIRError {
+            return result;
+        } else if result is Patient {
+            return result;
+        } else {
+            json jsonResult = <json>result;
+            Patient|error patientResult = jsonResult.cloneWithType(Patient);
+            if patientResult is error {
+                return r4:createFHIRError("Invalid Patient resource structure", r4:CODE_SEVERITY_ERROR, r4:PROCESSING);
+            }
+            return patientResult;
         }
-        return result;
     }
 
     // Update the current state of a resource completely.

@@ -24,7 +24,8 @@ import ballerinax/health.fhir.r4;
 public final r4:ResourceAPIConfig patientApiConfig = {
     resourceType: "Patient",
     profiles: [
-        "http://hl7.org/fhir/StructureDefinition/Patient"
+        "http://hl7.org/fhir/StructureDefinition/Patient",
+        "http://example.org/fhir/StructureDefinition/CustomPatient"
 
     ],
     defaultProfile: (),
