@@ -325,6 +325,95 @@ function init() returns error? {
     if (dbStatus is boolean && dbStatus == true) {
         log:printInfo("DB Init Successfully");
     }
+    
+    // Load all StructureDefinitions from database and register them in FHIR registry
+    error? profileLoadStatus = loadCustomProfiles();
+    if (profileLoadStatus is error) {
+        log:printError("Failed to load custom profiles: " + profileLoadStatus.message());
+    }
+}
+
+// Load all StructureDefinition resources from database and register them in FHIR registry
+function loadCustomProfiles() returns error? {
+    log:printInfo("Loading custom profiles from database...");
+    
+    handlers:ReadHandler readHandler = new handlers:ReadHandler();
+    json|error allStructureDefinitions = readHandler.readAllResources(jdbcClient, "StructureDefinition", ());
+    
+    if allStructureDefinitions is error {
+        log:printError("Failed to read StructureDefinitions from database: " + allStructureDefinitions.message());
+        return allStructureDefinitions;
+    }
+    
+    // Parse the Bundle response
+    r4:Bundle|error bundle = fhirParser:parse(allStructureDefinitions).ensureType();
+    if bundle is error {
+        log:printError("Failed to parse StructureDefinition bundle: " + bundle.message());
+        return bundle;
+    }
+    
+    // Process each StructureDefinition entry
+    int registeredCount = 0;
+    r4:BundleEntry[]? entries = bundle.entry;
+    if entries is r4:BundleEntry[] {
+        foreach var entry in entries {
+            anydata|r4:FHIRWireFormat resourceField = entry?.'resource;
+            if resourceField is () {
+                continue;
+            }
+            
+            // Try to get JSON representation for field access
+            json|error resourceJson = trap resourceField.toJson();
+            if resourceJson is error {
+                log:printWarn("Failed to convert StructureDefinition to JSON: " + resourceJson.message());
+                continue;
+            }
+            
+            string|error urlResult = resourceJson.url.ensureType(string);
+            string|error typeResult = resourceJson.'type.ensureType(string);
+            
+            if urlResult is error || typeResult is error {
+                log:printWarn("Skipping StructureDefinition without url or type");
+                continue;
+            }
+            
+            string customUrl = urlResult;
+            string resourceType = typeResult;
+            
+            // Register the profile in FHIR registry using the same structure as POST endpoint
+            readonly & r4:Profile customProfile = {
+                url: customUrl,
+                resourceType: resourceType,
+                modelType: json
+            }.cloneReadOnly();
+            
+            readonly & r4:IGInfoRecord customIG = {
+                title: "Custom Profiles IG",
+                name: "custom-profiles",
+                terminology: {
+                    codeSystems: [],
+                    valueSets: []
+                },
+                profiles: {
+                    [customUrl]: customProfile
+                },
+                searchParameters: []
+            }.cloneReadOnly();
+            
+            r4:FHIRImplementationGuide ig = new(customIG);
+            r4:FHIRError? regResult = r4:fhirRegistry.addImplementationGuide(ig);
+            
+            if regResult is r4:FHIRError {
+                log:printWarn(string `Failed to register profile ${customUrl}: ${regResult.message()}`);
+            } else {
+                registeredCount += 1;
+                log:printDebug(string `Registered profile: ${customUrl} for resource type: ${resourceType}`);
+            }
+        }
+    }
+    
+    log:printInfo(string `Successfully loaded and registered ${registeredCount} custom profile(s) from database`);
+    return;
 }
 
 // Utility function to handle search operations for resources
