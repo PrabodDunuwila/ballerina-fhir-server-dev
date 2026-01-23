@@ -1,0 +1,1186 @@
+{
+  "info": {
+    "_postman_id": "93913e11-3cea-4194-8f85-30467539a621",
+    "name": "FHIR Server",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "10866771"
+  },
+  "item": [
+    {
+      "name": "Appointment",
+      "item": [
+        {
+          "name": "appointment-create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Appointment\",\n  \"id\": \"appointment01\",\n  \"status\": \"booked\",\n  \"serviceCategory\": [\n    {\n      \"coding\": [\n        {\n          \"system\": \"http://terminology.hl7.org/CodeSystem/service-category\",\n          \"code\": \"17\",\n          \"display\": \"General Practice\"\n        }\n      ]\n    }\n  ],\n  \"serviceType\": [\n    {\n      \"coding\": [\n        {\n          \"system\": \"http://terminology.hl7.org/CodeSystem/service-type\",\n          \"code\": \"124\",\n          \"display\": \"General Practice\"\n        }\n      ]\n    }\n  ],\n  \"specialty\": [\n    {\n      \"coding\": [\n        {\n          \"system\": \"http://snomed.info/sct\",\n          \"code\": \"394814009\",\n          \"display\": \"General practice\"\n        }\n      ]\n    }\n  ],\n  \"appointmentType\": {\n    \"coding\": [\n      {\n        \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0276\",\n        \"code\": \"ROUTINE\",\n        \"display\": \"Routine appointment\"\n      }\n    ]\n  },\n  \"reasonCode\": [\n    {\n      \"coding\": [\n        {\n          \"system\": \"http://snomed.info/sct\",\n          \"code\": \"386661006\",\n          \"display\": \"Fever\"\n        }\n      ],\n      \"text\": \"Patient complaining of fever\"\n    }\n  ],\n  \"priority\": 5,\n  \"description\": \"Routine check-up for patient with fever symptoms\",\n  \"start\": \"2025-11-25T10:00:00Z\",\n  \"end\": \"2025-11-25T10:30:00Z\",\n  \"created\": \"2025-11-24T14:00:00Z\",\n  \"comment\": \"Patient prefers morning appointments\",\n  \"participant\": [\n    {\n      \"actor\": {\n        \"reference\": \"Patient/patient01\",\n        \"display\": \"John Doe\"\n      },\n      \"required\": \"required\",\n      \"status\": \"accepted\"\n    },\n    {\n      \"type\": [\n        {\n          \"coding\": [\n            {\n              \"system\": \"http://terminology.hl7.org/CodeSystem/v3-ParticipationType\",\n              \"code\": \"PPRF\",\n              \"display\": \"primary performer\"\n            }\n          ]\n        }\n      ],\n      \"actor\": {\n        \"reference\": \"Practitioner/practitioner01\",\n        \"display\": \"Dr. Jane Smith\"\n      },\n      \"required\": \"required\",\n      \"status\": \"accepted\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "appointment-put",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Appointment\",\n  \"id\": \"appointment01\",\n  \"status\": \"booked\",\n  \"participant\": [\n    {\n      \"actor\": {\n        \"reference\": \"Patient/patient01\",\n        \"display\": \"John Doe\"\n      },\n      \"required\": \"required\",\n      \"status\": \"accepted\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment/appointment01",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment",
+                "appointment01"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "appointment-patch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participant\": [\n    {\n      \"actor\": {\n        \"reference\": \"Practitioner/practitioner01\",\n        \"display\": \"Dr. Jane Smiths\"\n      },\n      \"required\": \"required\",\n      \"status\": \"declined\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment/appointment01",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment",
+                "appointment01"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "appointment-get",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment/appointment01",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment",
+                "appointment01"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "appointment- search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment?status=booked",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "appointment01",
+                  "disabled": true
+                },
+                {
+                  "key": "_lastUpdated",
+                  "value": "gt2010-10-01",
+                  "disabled": true
+                },
+                {
+                  "key": "_text",
+                  "value": "abcd",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "booked"
+                },
+                {
+                  "key": "date",
+                  "value": "lt2030-10-01",
+                  "disabled": true
+                },
+                {
+                  "key": "service-category",
+                  "value": "17",
+                  "disabled": true
+                },
+                {
+                  "key": "service-category",
+                  "value": "http://terminology.hl7.org/CodeSystem",
+                  "disabled": true
+                },
+                {
+                  "key": "service-category",
+                  "value": "http://terminology.hl7.org/CodeSystem/service-category|17",
+                  "disabled": true
+                },
+                {
+                  "key": "appointment-type",
+                  "value": "http://terminology.hl7.org/CodeSystem/v2-0276|ROUTINE",
+                  "disabled": true
+                },
+                {
+                  "key": "specialty",
+                  "value": "http://snomed.info/sct|394814009",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "appointment- revinclude",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Practitioner?_revinclude=Appointment:practitioner",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Practitioner"
+              ],
+              "query": [
+                {
+                  "key": "_revinclude",
+                  "value": "Appointment:practitioner"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "specific resource id all history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment/appointment01/_history",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment",
+                "appointment01",
+                "_history"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "specific resource id - specific history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment/appointment01/_history/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment",
+                "appointment01",
+                "_history",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "resource all history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment/_history",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment",
+                "_history"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "appointment-delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Appointment/appointment02",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Appointment",
+                "appointment02"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Patient",
+      "item": [
+        {
+          "name": "Create Patient",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"id\": \"patient01\",\n  \"meta\": {\n    \"versionId\": \"1\",\n    \"lastUpdated\": \"2025-11-24T10:00:00Z\"\n  },\n  \"text\": {\n    \"status\": \"generated\",\n    \"div\": \"<div xmlns=\\\"http://www.w3.org/1999/xhtml\\\">John Doe</div>\"\n  },\n  \"identifier\": [\n    {\n      \"use\": \"official\",\n      \"type\": {\n        \"coding\": [\n          {\n            \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0203\",\n            \"code\": \"MR\",\n            \"display\": \"Medical Record Number\"\n          }\n        ]\n      },\n      \"system\": \"http://hospital.example.org/patients\",\n      \"value\": \"MRN123456\"\n    },\n    {\n      \"use\": \"secondary\",\n      \"type\": {\n        \"coding\": [\n          {\n            \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0203\",\n            \"code\": \"SS\",\n            \"display\": \"Social Security Number\"\n          }\n        ]\n      },\n      \"system\": \"http://hl7.org/fhir/sid/us-ssn\",\n      \"value\": \"123-45-6789\"\n    }\n  ],\n  \"active\": true,\n  \"name\": [\n    {\n      \"use\": \"official\",\n      \"family\": \"Doe\",\n      \"given\": [\"John\", \"Michael\"],\n      \"prefix\": [\"Mr.\"],\n      \"suffix\": [\"Jr.\"]\n    },\n    {\n      \"use\": \"nickname\",\n      \"given\": [\"Johnny\"]\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"+1-555-123-4567\",\n      \"use\": \"home\",\n      \"rank\": 1\n    },\n    {\n      \"system\": \"phone\",\n      \"value\": \"+1-555-987-6543\",\n      \"use\": \"mobile\",\n      \"rank\": 2\n    },\n    {\n      \"system\": \"email\",\n      \"value\": \"john.doe@example.com\",\n      \"use\": \"home\"\n    }\n  ],\n  \"gender\": \"male\",\n  \"birthDate\": \"1985-06-15\",\n  \"deceasedBoolean\": false,\n  \"address\": [\n    {\n      \"use\": \"home\",\n      \"type\": \"physical\",\n      \"line\": [\"123 Main Street\", \"Apartment 4B\"],\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"postalCode\": \"62701\",\n      \"country\": \"USA\",\n      \"period\": {\n        \"start\": \"2020-01-01\"\n      }\n    }\n  ],\n  \"maritalStatus\": {\n    \"coding\": [\n      {\n        \"system\": \"http://terminology.hl7.org/CodeSystem/v3-MaritalStatus\",\n        \"code\": \"M\",\n        \"display\": \"Married\"\n      }\n    ]\n  },\n  \"multipleBirthBoolean\": false,\n  \"contact\": [\n    {\n      \"relationship\": [\n        {\n          \"coding\": [\n            {\n              \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0131\",\n              \"code\": \"C\",\n              \"display\": \"Emergency Contact\"\n            }\n          ]\n        }\n      ],\n      \"name\": {\n        \"family\": \"Doe\",\n        \"given\": [\"Jane\"]\n      },\n      \"telecom\": [\n        {\n          \"system\": \"phone\",\n          \"value\": \"+1-555-111-2222\",\n          \"use\": \"mobile\"\n        }\n      ],\n      \"address\": {\n        \"use\": \"home\",\n        \"line\": [\"123 Main Street\", \"Apartment 4B\"],\n        \"city\": \"Springfield\",\n        \"state\": \"IL\",\n        \"postalCode\": \"62701\",\n        \"country\": \"USA\"\n      },\n      \"gender\": \"female\"\n    }\n  ],\n  \"communication\": [\n    {\n      \"language\": {\n        \"coding\": [\n          {\n            \"system\": \"urn:ietf:bcp:47\",\n            \"code\": \"en-US\",\n            \"display\": \"English (United States)\"\n          }\n        ],\n        \"text\": \"English\"\n      },\n      \"preferred\": true\n    }\n  ],\n  \"generalPractitioner\": [\n    {\n      \"reference\": \"Practitioner/practitioner01\",\n      \"display\": \"Dr. Sarah Smith\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Patient",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Patient"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST http://localhost:9090/fhir/r4/Patient \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"resourceType\": \"Patient\",\n    \"id\": \"example\",\n    \"name\": [{\n      \"family\": \"Chalmers\",\n      \"given\": [\"Peter\", \"James\"]\n    }],\n    \"gender\": \"male\",\n    \"birthDate\": \"1974-12-25\"\n  }'"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Patient",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Patient/patient01",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Patient",
+                "patient01"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "abcd",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST http://localhost:9090/fhir/r4/Patient \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"resourceType\": \"Patient\",\n    \"id\": \"example\",\n    \"name\": [{\n      \"family\": \"Chalmers\",\n      \"given\": [\"Peter\", \"James\"]\n    }],\n    \"gender\": \"male\",\n    \"birthDate\": \"1974-12-25\"\n  }'"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Patient",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Patient/patient-custom-002",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Patient",
+                "patient-custom-002"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Practitioner",
+      "item": [
+        {
+          "name": "Create Practitioner",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Practitioner\",\n  \"id\": \"practitioner01\",\n  \"active\": true,\n  \"name\": [\n    {\n      \"use\": \"official\",\n      \"family\": \"Smith\",\n      \"given\": [\"Dr.\", \"John\"],\n      \"prefix\": [\"Dr.\"]\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"+1-555-123-4567\",\n      \"use\": \"work\"\n    },\n    {\n      \"system\": \"email\",\n      \"value\": \"dr.smith@healthcare.org\",\n      \"use\": \"work\"\n    }\n  ],\n  \"address\": [\n    {\n      \"use\": \"work\",\n      \"type\": \"both\",\n      \"line\": [\"123 Medical Center Drive\"],\n      \"city\": \"Boston\",\n      \"state\": \"MA\",\n      \"postalCode\": \"02101\",\n      \"country\": \"USA\"\n    }\n  ],\n  \"gender\": \"male\",\n  \"qualification\": [\n    {\n      \"identifier\": [\n        {\n          \"system\": \"http://example.org/medical-licenses\",\n          \"value\": \"MD-12345\"\n        }\n      ],\n      \"code\": {\n        \"coding\": [\n          {\n            \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0360\",\n            \"code\": \"MD\",\n            \"display\": \"Doctor of Medicine\"\n          }\n        ]\n      },\n      \"period\": {\n        \"start\": \"2010-06-15\"\n      },\n      \"issuer\": {\n        \"display\": \"State Medical Board\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Practitioner",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Practitioner"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST http://localhost:9090/fhir/r4/Patient \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"resourceType\": \"Patient\",\n    \"id\": \"example\",\n    \"name\": [{\n      \"family\": \"Chalmers\",\n      \"given\": [\"Peter\", \"James\"]\n    }],\n    \"gender\": \"male\",\n    \"birthDate\": \"1974-12-25\"\n  }'"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Practitioner",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Practitioner/practitioner01",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Practitioner",
+                "practitioner01"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST http://localhost:9090/fhir/r4/Patient \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"resourceType\": \"Patient\",\n    \"id\": \"example\",\n    \"name\": [{\n      \"family\": \"Chalmers\",\n      \"given\": [\"Peter\", \"James\"]\n    }],\n    \"gender\": \"male\",\n    \"birthDate\": \"1974-12-25\"\n  }'"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Practitioner",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9090/fhir/r4/Practitioner/practitioner01",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9090",
+              "path": [
+                "fhir",
+                "r4",
+                "Practitioner",
+                "practitioner01"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Custom Profile",
+      "item": [
+        {
+          "name": "Structure Definition",
+          "item": [
+            {
+              "name": "Patient StructureDefinition",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"resourceType\": \"StructureDefinition\",\n    \"id\": \"CustomPatient\",\n    \"url\": \"http://example.org/fhir/StructureDefinition/CustomPatient\",\n    \"version\": \"1.0.0\",\n    \"name\": \"CustomPatient\",\n    \"title\": \"Custom Patient Profile\",\n    \"status\": \"active\",\n    \"experimental\": false,\n    \"date\": \"2026-01-06\",\n    \"publisher\": \"Example Healthcare Organization\",\n    \"description\": \"A custom Patient profile that extends the base Patient resource with blood type extension\",\n    \"fhirVersion\": \"4.0.1\",\n    \"kind\": \"resource\",\n    \"abstract\": false,\n    \"type\": \"Patient\",\n    \"baseDefinition\": \"http://hl7.org/fhir/StructureDefinition/Patient\",\n    \"derivation\": \"constraint\",\n    \"differential\": {\n      \"element\": [\n        {\n          \"id\": \"Patient.extension:bloodType\",\n          \"path\": \"Patient.extension\",\n          \"sliceName\": \"bloodType\",\n          \"short\": \"Blood type of the patient\",\n          \"min\": 0,\n          \"max\": \"1\",\n          \"type\": [\n            {\n              \"code\": \"Extension\",\n              \"profile\": [\"http://example.org/fhir/StructureDefinition/blood-type\"]\n            }\n          ]\n        }\n      ]\n    }\n  }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/StructureDefinition",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "StructureDefinition"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Cusom Search Paramater",
+          "item": [
+            {
+              "name": "SearchParameter-blood-type",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"SearchParameter\",\n  \"id\": \"Patient-blood-type\",\n  \"url\": \"http://example.org/fhir/SearchParameter/Patient-blood-type\",\n  \"version\": \"1.0.0\",\n  \"name\": \"BloodType\",\n  \"status\": \"active\",\n  \"code\": \"blood-type\",\n  \"base\": [\"Patient\"],\n  \"type\": \"string\",\n  \"expression\": \"Patient.extension.where(url='http://example.org/fhir/StructureDefinition/blood-type')\",\n  \"description\": \"Search for patients by their blood type from the blood-type extension\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/SearchParameter",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "SearchParameter"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Default patient",
+          "item": [
+            {
+              "name": "Creating Default Patient",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"id\": \"patient-default-001\",\n  \"identifier\": [\n    {\n      \"use\": \"official\",\n      \"system\": \"http://example.org/fhir/patient-ids\",\n      \"value\": \"CUST-001\"\n    }\n  ],\n  \"active\": true,\n  \"name\": [\n    {\n      \"use\": \"official\",\n      \"family\": \"Smith\",\n      \"given\": [\"John\", \"Michael\"]\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"+1-555-0100\",\n      \"use\": \"home\"\n    },\n    {\n      \"system\": \"email\",\n      \"value\": \"john.smith@example.com\",\n      \"use\": \"work\"\n    }\n  ],\n  \"gender\": \"male\",\n  \"birthDate\": \"1985-06-15\",\n  \"address\": [\n    {\n      \"use\": \"home\",\n      \"type\": \"both\",\n      \"line\": [\"123 Main Street\", \"Apt 4B\"],\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"postalCode\": \"62701\",\n      \"country\": \"USA\"\n    }\n  ],\n  \"contact\": [\n    {\n      \"relationship\": [\n        {\n          \"coding\": [\n            {\n              \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0131\",\n              \"code\": \"C\",\n              \"display\": \"Emergency Contact\"\n            }\n          ],\n          \"text\": \"Emergency Contact\"\n        }\n      ],\n      \"name\": {\n        \"use\": \"official\",\n        \"family\": \"Smith\",\n        \"given\": [\"Sarah\"]\n      },\n      \"telecom\": [\n        {\n          \"system\": \"phone\",\n          \"value\": \"+1-555-0101\",\n          \"use\": \"mobile\"\n        }\n      ],\n      \"address\": {\n        \"use\": \"home\",\n        \"line\": [\"456 Oak Avenue\"],\n        \"city\": \"Springfield\",\n        \"state\": \"IL\",\n        \"postalCode\": \"62702\",\n        \"country\": \"USA\"\n      }\n    }\n  ]\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Patch Default Patient",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": [\n    {\n      \"use\": \"official\",\n      \"system\": \"http://example.org/fhir/patient-ids\",\n      \"value\": \"CUST-001\"\n    }\n  ],\n  \"active\": true\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient/patient-default-001",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient",
+                    "patient-default-001"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Put Default Patient",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"id\": \"patient-default-001\",\n  \"identifier\": [\n    {\n      \"use\": \"official\",\n      \"system\": \"http://example.org/fhir/patient-ids\",\n      \"value\": \"CUST-001\"\n    }\n  ],\n  \"active\": true,\n  \"name\": [\n    {\n      \"use\": \"official\",\n      \"family\": \"Smith\",\n      \"given\": [\"John\", \"Michael\"]\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"+1-555-0100\",\n      \"use\": \"home\"\n    },\n    {\n      \"system\": \"email\",\n      \"value\": \"john.smith@example.com\",\n      \"use\": \"work\"\n    }\n  ],\n  \"gender\": \"male\",\n  \"birthDate\": \"1985-06-15\",\n  \"address\": [\n    {\n      \"use\": \"home\",\n      \"type\": \"both\",\n      \"line\": [\"123 Main Street\", \"Apt 4B\"],\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"postalCode\": \"62701\",\n      \"country\": \"USA\"\n    }\n  ],\n  \"contact\": [\n    {\n      \"relationship\": [\n        {\n          \"coding\": [\n            {\n              \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0131\",\n              \"code\": \"C\",\n              \"display\": \"Emergency Contact\"\n            }\n          ],\n          \"text\": \"Emergency Contact\"\n        }\n      ],\n      \"name\": {\n        \"use\": \"official\",\n        \"family\": \"Smith\",\n        \"given\": [\"Sarah\"]\n      },\n      \"telecom\": [\n        {\n          \"system\": \"phone\",\n          \"value\": \"+1-555-0101\",\n          \"use\": \"mobile\"\n        }\n      ],\n      \"address\": {\n        \"use\": \"home\",\n        \"line\": [\"456 Oak Avenue\"],\n        \"city\": \"Springfield\",\n        \"state\": \"IL\",\n        \"postalCode\": \"62702\",\n        \"country\": \"USA\"\n      }\n    }\n  ]\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient/patient-default-001",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient",
+                    "patient-default-001"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Default Patient",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "disabled": true
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient/patient-default-001",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient",
+                    "patient-default-001"
+                  ],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "abcd",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Generated from cURL: curl -X POST http://localhost:9090/fhir/r4/Patient \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"resourceType\": \"Patient\",\n    \"id\": \"example\",\n    \"name\": [{\n      \"family\": \"Chalmers\",\n      \"given\": [\"Peter\", \"James\"]\n    }],\n    \"gender\": \"male\",\n    \"birthDate\": \"1974-12-25\"\n  }'"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Default Patient",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient/patient-default-001",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient",
+                    "patient-default-001"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Custom patient",
+          "item": [
+            {
+              "name": "Creating Custom Patient",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"id\": \"patient-custom-002\",\n  \"meta\": {\n    \"profile\": [\n        \"http://example.org/fhir/StructureDefinition/CustomPatient\"\n    ]\n  },\n  \"extension\": [\n    {\n      \"url\": \"http://example.org/fhir/StructureDefinition/blood-type\",\n      \"valueString\": \"B\"\n    }\n  ],\n  \"identifier\": [\n    {\n      \"use\": \"official\",\n      \"system\": \"http://example.org/fhir/patient-ids\",\n      \"value\": \"CUST-002\"\n    }\n  ],\n  \"active\": true,\n  \"name\": [\n    {\n      \"use\": \"official\",\n      \"family\": \"Johnson\",\n      \"given\": [\"Jane\", \"Marie\"]\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"+1-555-0200\",\n      \"use\": \"home\"\n    },\n    {\n      \"system\": \"email\",\n      \"value\": \"jane.johnson@example.com\",\n      \"use\": \"work\"\n    }\n  ],\n  \"gender\": \"female\",\n  \"birthDate\": \"1990-03-22\",\n  \"address\": [\n    {\n      \"use\": \"home\",\n      \"type\": \"both\",\n      \"line\": [\"789 Elm Street\"],\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"postalCode\": \"62703\",\n      \"country\": \"USA\"\n    }\n  ],\n  \"contact\": [\n    {\n      \"relationship\": [\n        {\n          \"coding\": [\n            {\n              \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0131\",\n              \"code\": \"C\",\n              \"display\": \"Emergency Contact\"\n            }\n          ],\n          \"text\": \"Emergency Contact\"\n        }\n      ],\n      \"name\": {\n        \"use\": \"official\",\n        \"family\": \"Johnson\",\n        \"given\": [\"Robert\"]\n      },\n      \"telecom\": [\n        {\n          \"system\": \"phone\",\n          \"value\": \"+1-555-0201\",\n          \"use\": \"mobile\"\n        }\n      ],\n      \"address\": {\n        \"use\": \"home\",\n        \"line\": [\"789 Elm Street\"],\n        \"city\": \"Springfield\",\n        \"state\": \"IL\",\n        \"postalCode\": \"62703\",\n        \"country\": \"USA\"\n      }\n    }\n  ]\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Patch Custom Patient",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": [\n    {\n      \"use\": \"official\",\n      \"system\": \"http://example.org/fhir/patient-ids\",\n      \"value\": \"CUST-001\"\n    }\n  ],\n  \"active\": false\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient/patient-custom-001",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient",
+                    "patient-custom-001"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Put Custom Patient",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"id\": \"patient-custom-001\",\n  \"meta\": {\n    \"profile\": [\n        \"http://example.org/fhir/StructureDefinition/CustomPatient\"\n    ]\n  },\n  \"extension\": [\n    {\n      \"url\": \"http://example.org/fhir/StructureDefinition/blood-type\",\n      \"valueString\": \"B\"\n    }\n  ],\n  \"identifier\": [\n    {\n      \"use\": \"official\",\n      \"system\": \"http://example.org/fhir/patient-ids\",\n      \"value\": \"CUST-002\"\n    }\n  ],\n  \"active\": true,\n  \"name\": [\n    {\n      \"use\": \"official\",\n      \"family\": \"Johnson\",\n      \"given\": [\"Jane\", \"Marie\"]\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"+1-555-0200\",\n      \"use\": \"home\"\n    },\n    {\n      \"system\": \"email\",\n      \"value\": \"jane.johnson@example.com\",\n      \"use\": \"work\"\n    }\n  ],\n  \"gender\": \"female\",\n  \"birthDate\": \"1990-03-22\",\n  \"address\": [\n    {\n      \"use\": \"home\",\n      \"type\": \"both\",\n      \"line\": [\"789 Elm Street\"],\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"postalCode\": \"62703\",\n      \"country\": \"USA\"\n    }\n  ],\n  \"contact\": [\n    {\n      \"relationship\": [\n        {\n          \"coding\": [\n            {\n              \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0131\",\n              \"code\": \"C\",\n              \"display\": \"Emergency Contact\"\n            }\n          ],\n          \"text\": \"Emergency Contact\"\n        }\n      ],\n      \"name\": {\n        \"use\": \"official\",\n        \"family\": \"Johnson\",\n        \"given\": [\"Robert\"]\n      },\n      \"telecom\": [\n        {\n          \"system\": \"phone\",\n          \"value\": \"+1-555-0201\",\n          \"use\": \"mobile\"\n        }\n      ],\n      \"address\": {\n        \"use\": \"home\",\n        \"line\": [\"789 Elm Street\"],\n        \"city\": \"Springfield\",\n        \"state\": \"IL\",\n        \"postalCode\": \"62703\",\n        \"country\": \"USA\"\n      }\n    }\n  ]\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient/patient-custom-001",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient",
+                    "patient-custom-001"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Custom Patient",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "disabled": true
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient/patient-custom-001",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient",
+                    "patient-custom-001"
+                  ],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "abcd",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Generated from cURL: curl -X POST http://localhost:9090/fhir/r4/Patient \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"resourceType\": \"Patient\",\n    \"id\": \"example\",\n    \"name\": [{\n      \"family\": \"Chalmers\",\n      \"given\": [\"Peter\", \"James\"]\n    }],\n    \"gender\": \"male\",\n    \"birthDate\": \"1974-12-25\"\n  }'"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Custom Patient",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"id\": \"patient-custom-129\",\n  \"meta\": {\n    \"profile\": [\n        //\"http://hl7.org/fhir/StructureDefinition/Patient\"\n        \"http://example.org/fhir/StructureDefinition/CustomPatient\"\n    ]\n  },\n  \"extension\": [\n    {\n      \"url\": \"http://example.org/fhir/StructureDefinition/blood-type\",\n      \"valueString\": \"B\"\n    }\n  ],\n  \"identifier\": [\n    {\n      \"use\": \"official\",\n      \"system\": \"http://example.org/fhir/patient-ids\",\n      \"value\": \"CUST-002\"\n    }\n  ],\n  \"active\": true,\n  \"name\": [\n    {\n      \"use\": \"official\",\n      \"family\": \"Johnson\",\n      \"given\": [\"Jane\", \"Marie\"]\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"+1-555-0200\",\n      \"use\": \"home\"\n    },\n    {\n      \"system\": \"email\",\n      \"value\": \"jane.johnson@example.com\",\n      \"use\": \"work\"\n    }\n  ],\n  \"gender\": \"female\",\n  \"birthDate\": \"1990-03-22\",\n  \"address\": [\n    {\n      \"use\": \"home\",\n      \"type\": \"both\",\n      \"line\": [\"789 Elm Street\"],\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"postalCode\": \"62703\",\n      \"country\": \"USA\"\n    }\n  ],\n  \"contact\": [\n    {\n      \"relationship\": [\n        {\n          \"coding\": [\n            {\n              \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0131\",\n              \"code\": \"C\",\n              \"display\": \"Emergency Contact\"\n            }\n          ],\n          \"text\": \"Emergency Contact\"\n        }\n      ],\n      \"name\": {\n        \"use\": \"official\",\n        \"family\": \"Johnson\",\n        \"given\": [\"Robert\"]\n      },\n      \"telecom\": [\n        {\n          \"system\": \"phone\",\n          \"value\": \"+1-555-0201\",\n          \"use\": \"mobile\"\n        }\n      ],\n      \"address\": {\n        \"use\": \"home\",\n        \"line\": [\"789 Elm Street\"],\n        \"city\": \"Springfield\",\n        \"state\": \"IL\",\n        \"postalCode\": \"62703\",\n        \"country\": \"USA\"\n      }\n    }\n  ]\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Custom search",
+          "item": [
+            {
+              "name": "Custom patient search",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient?blood-type=B",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient"
+                  ],
+                  "query": [
+                    {
+                      "key": "_id",
+                      "value": "patient-custom-127",
+                      "disabled": true
+                    },
+                    {
+                      "key": "blood-type",
+                      "value": "B"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Search Patient",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/fhir+json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:9090/fhir/r4/Patient?_include=*",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "9090",
+                  "path": [
+                    "fhir",
+                    "r4",
+                    "Patient"
+                  ],
+                  "query": [
+                    {
+                      "key": "_id",
+                      "value": "appointment01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "_lastUpdated",
+                      "value": "gt2010-10-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "_text",
+                      "value": "abcd",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "booked",
+                      "disabled": true
+                    },
+                    {
+                      "key": "date",
+                      "value": "lt2030-10-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "service-category",
+                      "value": "17",
+                      "disabled": true
+                    },
+                    {
+                      "key": "service-category",
+                      "value": "http://terminology.hl7.org/CodeSystem",
+                      "disabled": true
+                    },
+                    {
+                      "key": "service-category",
+                      "value": "http://terminology.hl7.org/CodeSystem/service-category|17",
+                      "disabled": true
+                    },
+                    {
+                      "key": "appointment-type",
+                      "value": "http://terminology.hl7.org/CodeSystem/v2-0276|ROUTINE",
+                      "disabled": true
+                    },
+                    {
+                      "key": "specialty",
+                      "value": "http://snomed.info/sct|394814009",
+                      "disabled": true
+                    },
+                    {
+                      "key": "practitioner",
+                      "value": "Practitioner/practitioner01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "patient",
+                      "value": "Patient/patient-001",
+                      "disabled": true
+                    },
+                    {
+                      "key": "_include",
+                      "value": "Appointment:practitioner",
+                      "disabled": true
+                    },
+                    {
+                      "key": "_include",
+                      "value": "*"
+                    },
+                    {
+                      "key": "_include",
+                      "value": "Appointment:actor:Patient",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
