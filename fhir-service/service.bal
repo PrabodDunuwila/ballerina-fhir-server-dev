@@ -9624,19 +9624,35 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     // Read the current state of single resource based on its id.
     isolated resource function get [string id](r4:FHIRContext fhirContext) returns Patient|r4:OperationOutcome|r4:FHIRError {
         any|r4:OperationOutcome|r4:FHIRError result = performResourceRead("Patient", id);
-        if result is any {
-            return <Patient>result;
+        if result is r4:OperationOutcome|r4:FHIRError {
+            return result;
+        } else if result is Patient {
+            return result;
+        } else {
+            json jsonResult = <json>result;
+            Patient|error patientResult = jsonResult.cloneWithType(Patient);
+            if patientResult is error {
+                return r4:createFHIRError("Invalid Patient resource structure", r4:CODE_SEVERITY_ERROR, r4:PROCESSING);
+            }
+            return patientResult;
         }
-        return result;
     }
 
     // Read the state of a specific version of a resource based on its id.
     isolated resource function get [string id]/_history/[string vid](r4:FHIRContext fhirContext) returns Patient|r4:OperationOutcome|r4:FHIRError {
         any|r4:OperationOutcome|r4:FHIRError result = performResourceVersionRead("Patient", id, vid);
-        if result is any {
-            return <Patient>result;
+        if result is r4:OperationOutcome|r4:FHIRError {
+            return result;
+        } else if result is Patient {
+            return result;
+        } else {
+            json jsonResult = <json>result;
+            Patient|error patientResult = jsonResult.cloneWithType(Patient);
+            if patientResult is error {
+                return r4:createFHIRError("Invalid Patient resource structure", r4:CODE_SEVERITY_ERROR, r4:PROCESSING);
+            }
+            return patientResult;
         }
-        return result;
     }
 
     // Create a new resource.
@@ -9659,19 +9675,35 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     // Update the current state of a resource completely.
     isolated resource function put [string id](r4:FHIRContext fhirContext, Patient patient) returns Patient|r4:OperationOutcome|r4:FHIRError {
         any|r4:OperationOutcome|r4:FHIRError result = performResourceUpdate("Patient", id, patient.toJson());
-        if result is any {
-            return <Patient>result;
+        if result is r4:OperationOutcome|r4:FHIRError {
+            return result;
+        } else if result is Patient {
+            return result;
+        } else {
+            json jsonResult = <json>result;
+            Patient|error patientResult = jsonResult.cloneWithType(Patient);
+            if patientResult is error {
+                return r4:createFHIRError("Invalid Patient resource structure", r4:CODE_SEVERITY_ERROR, r4:PROCESSING);
+            }
+            return patientResult;
         }
-        return result;
     }
 
     // Update the current state of a resource partially.
     isolated resource function patch [string id](r4:FHIRContext fhirContext, json patch) returns Patient|r4:OperationOutcome|r4:FHIRError {
         any|r4:OperationOutcome|r4:FHIRError result = performResourcePatch("Patient", id, patch);
-        if result is any {
-            return <Patient>result;
+        if result is r4:OperationOutcome|r4:FHIRError {
+            return result;
+        } else if result is Patient {
+            return result;
+        } else {
+            json jsonResult = <json>result;
+            Patient|error patientResult = jsonResult.cloneWithType(Patient);
+            if patientResult is error {
+                return r4:createFHIRError("Invalid Patient resource structure", r4:CODE_SEVERITY_ERROR, r4:PROCESSING);
+            }
+            return patientResult;
         }
-        return result;
     }
 
     // Delete a resource.
