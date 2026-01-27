@@ -217,6 +217,22 @@ public class ReadMapper {
             }
         }
 
+        // Handle _profile parameter (search by meta.profile)
+        if queryParams.hasKey("_profile") {
+            string[] profileValues = queryParams.get("_profile");
+            if profileValues.length() > 0 {
+                string profileUrl = profileValues[0];
+                string sanitizedProfile = utils:escapeSql(profileUrl);
+                // Search for profile URL in the RESOURCE_JSON meta.profile array
+                // Format: "profile":["http://example.org/fhir/StructureDefinition/CustomPatient"]
+                if whereClause == "" {
+                    whereClause = string ` WHERE RESOURCE_JSON LIKE '%"profile":%"${sanitizedProfile}"%'`;
+                } else {
+                    whereClause = whereClause + string ` AND RESOURCE_JSON LIKE '%"profile":%"${sanitizedProfile}"%'`;
+                }
+            }
+        }
+
         // Handle other search parameters (map to database columns) - skip custom params
         foreach var [paramName, paramValues] in standardParams.entries() {
             if paramValues.length() == 0 {
@@ -241,14 +257,14 @@ public class ReadMapper {
                 continue;
             }
 
-            // Skip _count parameter (sent by default) and _include/_revinclude parameters (handled separately after main search)
-            if paramName == "_count" || paramName == "_include" || paramName == "_revinclude" {
+            // Skip _count parameter (sent by default) and _include/_revinclude/_profile parameters (handled separately after main search)
+            if paramName == "_count" || paramName == "_include" || paramName == "_revinclude" || paramName == "_profile" {
                 continue;
             }
 
             // Handle other unsupported FHIR control parameters that start with _
             if paramName.startsWith("_") && paramName != "_lastUpdated" && paramName != "_id" {
-                return error(string `Unsupported search parameter: ${paramName}. Only common resource parameters of _id, _lastUpdated, _include, and _revinclude are currently supported.`);
+                return error(string `Unsupported search parameter: ${paramName}. Only common resource parameters of _id, _lastUpdated, _profile, _include, and _revinclude are currently supported.`);
             }
 
             string operator = "=";
