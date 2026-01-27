@@ -39,14 +39,9 @@ public class HistoryHandler {
         
         log:printDebug(string `New history version for ${resourceType}/${resourceId}: ${newVersionId}`);
         
-        // Get current timestamp
+        // Get current timestamp - use formatTimestamp for consistency and safety
         time:Civil now = time:utcToCivil(time:utcNow());
-        // Ensure seconds are within valid range (0-59)
-        int seconds = <int>now.second;
-        if seconds >= 60 {
-            seconds = 59;
-        }
-        string timestamp = string `'${now.year}-${utils:padZero(now.month)}-${utils:padZero(now.day)} ${utils:padZero(now.hour)}:${utils:padZero(now.minute)}:${utils:padZero(seconds)}'`;
+        string timestamp = string `'${utils:formatTimestamp(now)}'`;
         
         // Insert into unified RESOURCE_HISTORY table with incremented version
         string sqlQuery = string `INSERT INTO "RESOURCE_HISTORY" (RESOURCE_TYPE, RESOURCE_ID, VERSION_ID, OPERATION, CREATED_AT, RESOURCE_JSON) VALUES ('${utils:escapeSql(resourceType)}', '${utils:escapeSql(resourceId)}', ${newVersionId}, '${operation}', ${timestamp}, X'${resourceJsonBytes.toBase16()}')`;
@@ -88,7 +83,7 @@ public class HistoryHandler {
         
         // Format timestamp as ISO 8601 string
         time:Civil createdAt = results[0].CREATED_AT;
-        string timestamp = string `${createdAt.year}-${utils:padZero(createdAt.month)}-${utils:padZero(createdAt.day)}T${utils:padZero(createdAt.hour)}:${utils:padZero(createdAt.minute)}:${utils:padZero(<int>createdAt.second)}.000Z`;
+        string timestamp = utils:formatTimestampISO8601(createdAt);
         metaMap["lastUpdated"] = timestamp;
         
         resourceMap["meta"] = metaMap;
@@ -124,7 +119,7 @@ public class HistoryHandler {
             
             // Format timestamp as ISO 8601 string
             time:Civil createdAt = historyRecord.CREATED_AT;
-            string timestamp = string `${createdAt.year}-${utils:padZero(createdAt.month)}-${utils:padZero(createdAt.day)}T${utils:padZero(createdAt.hour)}:${utils:padZero(createdAt.minute)}:${utils:padZero(<int>createdAt.second)}.000Z`;
+            string timestamp = utils:formatTimestampISO8601(createdAt);
             metaMap["lastUpdated"] = timestamp;
             
             resourceMap["meta"] = metaMap;
@@ -163,7 +158,7 @@ public class HistoryHandler {
             
             // Format timestamp as ISO 8601 string
             time:Civil createdAt = historyRecord.CREATED_AT;
-            string timestamp = string `${createdAt.year}-${utils:padZero(createdAt.month)}-${utils:padZero(createdAt.day)}T${utils:padZero(createdAt.hour)}:${utils:padZero(createdAt.minute)}:${utils:padZero(<int>createdAt.second)}.000Z`;
+            string timestamp = utils:formatTimestampISO8601(createdAt);
             metaMap["lastUpdated"] = timestamp;
             
             resourceMap["meta"] = metaMap;

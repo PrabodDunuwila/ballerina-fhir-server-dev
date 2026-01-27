@@ -99,6 +99,17 @@ public isolated function formatTimestamp(time:Civil timestamp) returns string {
     return string `${timestamp.year}-${padZero(timestamp.month)}-${padZero(timestamp.day)} ${padZero(timestamp.hour)}:${padZero(timestamp.minute)}:${formatSeconds(seconds)}`;
 }
 
+// Format timestamp to ISO 8601 format (for FHIR responses)
+public isolated function formatTimestampISO8601(time:Civil timestamp) returns string {
+    decimal seconds = timestamp.second ?: 0.0d;
+    // Extract just the whole seconds part safely (0-59)
+    int wholeSeconds = <int>seconds;
+    if wholeSeconds >= 60 {
+        wholeSeconds = 59;
+    }
+    return string `${timestamp.year}-${padZero(timestamp.month)}-${padZero(timestamp.day)}T${padZero(timestamp.hour)}:${padZero(timestamp.minute)}:${padZero(wholeSeconds)}.000Z`;
+}
+
 // Validate if a referenced resource exists in the database using generic JDBC query
 public isolated function validateReferenceExists(jdbc:Client? jdbcClient, string resourceType, string resourceId) returns boolean|error {
     jdbc:Client validatedClient = check getValidatedJdbcClient(jdbcClient);
@@ -351,21 +362,36 @@ isolated function formatSeconds(decimal seconds) returns string {
     // Ensure seconds is non-negative
     decimal absSeconds = seconds < 0.0d ? 0.0d : seconds;
     
-    // Handle edge case where seconds might round to 60
+    // Handle edge case where seconds might be >= 60 (should not happen but just in case)
     if absSeconds >= 60.0d {
         absSeconds = 59.999d;
     }
     
-    int wholePart = <int>absSeconds;
-    decimal fractionalPart = absSeconds - <decimal>wholePart;
+    // Round to 3 decimal places to avoid precision issues
+    decimal roundedSeconds = <decimal>(<int>(absSeconds * 1000.0d)) / 1000.0d;
+    
+    int wholePart = <int>roundedSeconds;
+    decimal fractionalPart = roundedSeconds - <decimal>wholePart;
     int millis = <int>(fractionalPart * 1000.0d);
     
-    // Ensure millis is non-negative and within valid range
+    // Final safety check: if rounding caused seconds to reach 60, cap at 59.999
+    if wholePart >= 60 {
+        wholePart = 59;
+        millis = 999;
+    }
+    
+    // Ensure millis is within valid range
     if millis < 0 {
         millis = 0;
     }
     if millis >= 1000 {
-        millis = 999;
+        wholePart = wholePart + 1;
+        millis = 0;
+        // Check again if this pushed seconds to 60
+        if wholePart >= 60 {
+            wholePart = 59;
+            millis = 999;
+        }
     }
     
     string secondStr = wholePart < 10 ? string `0${wholePart}` : wholePart.toString();

@@ -47,7 +47,7 @@ public class ReadMapper {
         
         // Format timestamp as ISO 8601 string
         time:Civil lastUpdated = results[0].LAST_UPDATED;
-        string timestamp = string `${lastUpdated.year}-${utils:padZero(lastUpdated.month)}-${utils:padZero(lastUpdated.day)}T${utils:padZero(lastUpdated.hour)}:${utils:padZero(lastUpdated.minute)}:${utils:padZero(<int>lastUpdated.second)}.000Z`;
+        string timestamp = utils:formatTimestampISO8601(lastUpdated);
         metaMap["lastUpdated"] = timestamp;
         
         resourceMap["meta"] = metaMap;
@@ -423,7 +423,7 @@ public class ReadMapper {
             
             // Format timestamp as ISO 8601 string
             time:Civil lastUpdated = result.LAST_UPDATED;
-            string timestamp = string `${lastUpdated.year}-${utils:padZero(lastUpdated.month)}-${utils:padZero(lastUpdated.day)}T${utils:padZero(lastUpdated.hour)}:${utils:padZero(lastUpdated.minute)}:${utils:padZero(<int>lastUpdated.second)}.000Z`;
+            string timestamp = utils:formatTimestampISO8601(lastUpdated);
             metaMap["lastUpdated"] = timestamp;
             
             resourceMap["meta"] = metaMap;
@@ -620,7 +620,7 @@ public class ReadMapper {
             
             // Format timestamp as ISO 8601 string
             time:Civil lastUpdated = result.LAST_UPDATED;
-            string timestamp = string `${lastUpdated.year}-${utils:padZero(lastUpdated.month)}-${utils:padZero(lastUpdated.day)}T${utils:padZero(lastUpdated.hour)}:${utils:padZero(lastUpdated.minute)}:${utils:padZero(<int>lastUpdated.second)}.000Z`;
+            string timestamp = utils:formatTimestampISO8601(lastUpdated);
             metaMap["lastUpdated"] = timestamp;
             
             resourceMap["meta"] = metaMap;
