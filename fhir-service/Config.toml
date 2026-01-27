@@ -12,3 +12,7 @@ clearDataOnStartup = false
 # If true, the server generates unique IDs for new resources (client-provided IDs are ignored)
 # If false, the server uses the ID provided by the client in the resource JSON (if not provided, returns error)
 useServerGeneratedIds = false
+
+# Server Base URL Configuration for mappers module
+[ballerina_fhir_server.mappers]
+baseUrl = "http://localhost:9090"

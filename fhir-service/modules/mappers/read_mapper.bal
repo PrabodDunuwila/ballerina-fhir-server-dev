@@ -4,6 +4,9 @@ import ballerina/sql;
 import ballerina/lang.regexp;
 import ballerinax/java.jdbc;
 
+// Server base URL configuration
+configurable string baseUrl = "http://localhost:9090";
+
 public class ReadMapper {
 
     public isolated function init() {
@@ -391,7 +394,7 @@ public class ReadMapper {
             }
 
             json entry = {
-                "fullUrl": string `https://example.com/fhir/${resourceType}/${resourceId}`,
+                "fullUrl": string `${baseUrl}/fhir/r4/${resourceType}/${resourceId}`,
                 "resource": resourceJson,
                 "search": {
                     "mode": "match"
@@ -573,7 +576,7 @@ public class ReadMapper {
             }
 
             json entry = {
-                "fullUrl": string `https://example.com/fhir/${resourceType}/${resourceId}`,
+                "fullUrl": string `${baseUrl}/fhir/r4/${resourceType}/${resourceId}`,
                 "resource": resourceJson
             };
             entries.push(entry);
@@ -802,7 +805,7 @@ public class ReadMapper {
             
             if resourceResult is json {
                 json entry = {
-                    "fullUrl": string `https://example.com/fhir/${targetType}/${targetId}`,
+                    "fullUrl": string `${baseUrl}/fhir/r4/${targetType}/${targetId}`,
                     "resource": resourceResult,
                     "search": {
                         "mode": "include"
@@ -842,7 +845,7 @@ public class ReadMapper {
             
             if resourceResult is json {
                 json entry = {
-                    "fullUrl": string `https://example.com/fhir/${targetType}/${targetId}`,
+                    "fullUrl": string `${baseUrl}/fhir/r4/${targetType}/${targetId}`,
                     "resource": resourceResult,
                     "search": {
                         "mode": "include"
@@ -958,7 +961,7 @@ public class ReadMapper {
             
             if resourceResult is json {
                 json entry = {
-                    "fullUrl": string `https://example.com/fhir/${sourceType}/${sourceId}`,
+                    "fullUrl": string `${baseUrl}/fhir/r4/${sourceType}/${sourceId}`,
                     "resource": resourceResult,
                     "search": {
                         "mode": "include"
@@ -998,7 +1001,7 @@ public class ReadMapper {
             
             if resourceResult is json {
                 json entry = {
-                    "fullUrl": string `https://example.com/fhir/${sourceType}/${sourceId}`,
+                    "fullUrl": string `${baseUrl}/fhir/r4/${sourceType}/${sourceId}`,
                     "resource": resourceResult,
                     "search": {
                         "mode": "include"
