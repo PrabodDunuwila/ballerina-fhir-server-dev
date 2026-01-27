@@ -116,15 +116,17 @@ public class UpdateMapper {
             }
         }
         
+        time:Civil currentTime = time:utcToCivil(time:utcNow());
+        
         // Add standard metadata fields (only if they exist in table)
         if columnSet.hasKey("VERSION_ID") {
             updateRecord["VERSION_ID"] = newVersion;
         }
         if columnSet.hasKey("UPDATED_AT") {
-            updateRecord["UPDATED_AT"] = time:utcToCivil(time:utcNow());
+            updateRecord["UPDATED_AT"] = currentTime;
         }
         if columnSet.hasKey("LAST_UPDATED") {
-            updateRecord["LAST_UPDATED"] = time:utcToCivil(time:utcNow());
+            updateRecord["LAST_UPDATED"] = currentTime;
         }
         if columnSet.hasKey("RESOURCE_JSON") {
             updateRecord["RESOURCE_JSON"] = resourceJsonBytes;

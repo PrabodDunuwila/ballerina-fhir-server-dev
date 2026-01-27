@@ -62,12 +62,12 @@ public class HistoryHandler {
         log:printDebug(string `Fetching ${resourceType}/${resourceId}/_history/${versionId}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND RESOURCE_ID = '${utils:escapeSql(resourceId)}' AND VERSION_ID = ${versionId}`;
+        string sqlQuery = string `SELECT RESOURCE_JSON, VERSION_ID, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND RESOURCE_ID = '${utils:escapeSql(resourceId)}' AND VERSION_ID = ${versionId}`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
-        stream<record {|byte[] RESOURCE_JSON; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);
+        stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);
 
-        record {|byte[] RESOURCE_JSON; string OPERATION; time:Civil CREATED_AT;|}[] results = check from var result in resultStream
+        record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}[] results = check from var result in resultStream
             select result;
 
         if results.length() == 0 {
@@ -79,12 +79,22 @@ public class HistoryHandler {
         string jsonStr = check string:fromBytes(results[0].RESOURCE_JSON);
         json resourceJson = check jsonStr.fromJsonString();
 
+        // Add/update meta section with versionId and lastUpdated
+        map<json> resourceMap = <map<json>>resourceJson;
+        json existingMeta = resourceMap["meta"];
+        map<json> metaMap = existingMeta is map<json> ? existingMeta : {};
+        
+        metaMap["versionId"] = results[0].VERSION_ID.toString();
+        
         // Format timestamp as ISO 8601 string
         time:Civil createdAt = results[0].CREATED_AT;
         string timestamp = string `${createdAt.year}-${utils:padZero(createdAt.month)}-${utils:padZero(createdAt.day)}T${utils:padZero(createdAt.hour)}:${utils:padZero(createdAt.minute)}:${utils:padZero(<int>createdAt.second)}.000Z`;
+        metaMap["lastUpdated"] = timestamp;
+        
+        resourceMap["meta"] = metaMap;
 
         log:printDebug(string `Retrieved version ${versionId} of ${resourceType}/${resourceId} from history`);
-        return {"resource": resourceJson, "operation": results[0].OPERATION, "lastModified": timestamp};
+        return {"resource": resourceMap, "operation": results[0].OPERATION, "lastModified": timestamp};
     }
     
     // Get all history versions of a specific resource
@@ -92,12 +102,12 @@ public class HistoryHandler {
         log:printDebug(string `Fetching all history for ${resourceType}/${resourceId}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND RESOURCE_ID = '${utils:escapeSql(resourceId)}' ORDER BY VERSION_ID DESC`;
+        string sqlQuery = string `SELECT RESOURCE_JSON, VERSION_ID, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND RESOURCE_ID = '${utils:escapeSql(resourceId)}' ORDER BY VERSION_ID DESC`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
-        stream<record {|byte[] RESOURCE_JSON; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);
+        stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);
 
-        record {|byte[] RESOURCE_JSON; string OPERATION; time:Civil CREATED_AT;|}[] results = check from var result in resultStream
+        record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}[] results = check from var result in resultStream
             select result;
 
         map<json>[] versions = [];
@@ -105,11 +115,21 @@ public class HistoryHandler {
             string jsonStr = check string:fromBytes(historyRecord.RESOURCE_JSON);
             json resourceJson = check jsonStr.fromJsonString();
             
+            // Add/update meta section with versionId and lastUpdated
+            map<json> resourceMap = <map<json>>resourceJson;
+            json existingMeta = resourceMap["meta"];
+            map<json> metaMap = existingMeta is map<json> ? existingMeta : {};
+            
+            metaMap["versionId"] = historyRecord.VERSION_ID.toString();
+            
             // Format timestamp as ISO 8601 string
             time:Civil createdAt = historyRecord.CREATED_AT;
             string timestamp = string `${createdAt.year}-${utils:padZero(createdAt.month)}-${utils:padZero(createdAt.day)}T${utils:padZero(createdAt.hour)}:${utils:padZero(createdAt.minute)}:${utils:padZero(<int>createdAt.second)}.000Z`;
+            metaMap["lastUpdated"] = timestamp;
             
-            versions.push({"resource": resourceJson, "operation": historyRecord.OPERATION, "lastModified": timestamp});
+            resourceMap["meta"] = metaMap;
+            
+            versions.push({"resource": resourceMap, "operation": historyRecord.OPERATION, "lastModified": timestamp});
         }
 
         log:printDebug(string `Retrieved ${versions.length()} history version(s) for ${resourceType}/${resourceId}`);
@@ -121,12 +141,12 @@ public class HistoryHandler {
         log:printDebug(string `Fetching all history for resource type: ${resourceType}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' ORDER BY CREATED_AT DESC`;
+        string sqlQuery = string `SELECT RESOURCE_JSON, VERSION_ID, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' ORDER BY CREATED_AT DESC`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
-        stream<record {|byte[] RESOURCE_JSON; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);
+        stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);
 
-        record {|byte[] RESOURCE_JSON; string OPERATION; time:Civil CREATED_AT;|}[] results = check from var result in resultStream
+        record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}[] results = check from var result in resultStream
             select result;
 
         map<json>[] versions = [];
@@ -134,11 +154,21 @@ public class HistoryHandler {
             string jsonStr = check string:fromBytes(historyRecord.RESOURCE_JSON);
             json resourceJson = check jsonStr.fromJsonString();
             
+            // Add/update meta section with versionId and lastUpdated
+            map<json> resourceMap = <map<json>>resourceJson;
+            json existingMeta = resourceMap["meta"];
+            map<json> metaMap = existingMeta is map<json> ? existingMeta : {};
+            
+            metaMap["versionId"] = historyRecord.VERSION_ID.toString();
+            
             // Format timestamp as ISO 8601 string
             time:Civil createdAt = historyRecord.CREATED_AT;
             string timestamp = string `${createdAt.year}-${utils:padZero(createdAt.month)}-${utils:padZero(createdAt.day)}T${utils:padZero(createdAt.hour)}:${utils:padZero(createdAt.minute)}:${utils:padZero(<int>createdAt.second)}.000Z`;
+            metaMap["lastUpdated"] = timestamp;
             
-            versions.push({"resource": resourceJson, "operation": historyRecord.OPERATION, "lastModified": timestamp});
+            resourceMap["meta"] = metaMap;
+            
+            versions.push({"resource": resourceMap, "operation": historyRecord.OPERATION, "lastModified": timestamp});
         }
 
         log:printDebug(string `Retrieved ${versions.length()} history version(s) for all ${resourceType} resources`);

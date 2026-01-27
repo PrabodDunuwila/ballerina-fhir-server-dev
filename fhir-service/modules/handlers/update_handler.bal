@@ -432,7 +432,13 @@ public class UpdateHandler {
         // Build UPDATE SET clause dynamically from updateModel fields
         string[] setClauses = [];
         foreach var [key, value] in updateModel.entries() {
-            string formattedValue = self.transactionHandler.formatValue(value);
+            string formattedValue;
+            // Use special formatting for DATE columns (date only, no time)
+            if key == "DATE" {
+                formattedValue = utils:formatDateValue(value);
+            } else {
+                formattedValue = self.transactionHandler.formatValue(value);
+            }
             setClauses.push(string `${key} = ${formattedValue}`);
         }
 

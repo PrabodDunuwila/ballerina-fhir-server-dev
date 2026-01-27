@@ -1,6 +1,7 @@
 import ballerina_fhir_server.utils;
 
 import ballerina/sql;
+import ballerina/time;
 import ballerina/lang.regexp;
 import ballerinax/java.jdbc;
 
@@ -21,12 +22,12 @@ public class ReadMapper {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        string sqlQuery = string `SELECT RESOURCE_JSON, VERSION_ID, LAST_UPDATED FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
-        stream<record {|byte[] RESOURCE_JSON;|}, sql:Error?> resultStream = jdbcClient->query(query);
+        stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED;|}, sql:Error?> resultStream = jdbcClient->query(query);
 
-        record {|byte[] RESOURCE_JSON;|}[] results = check from var result in resultStream
+        record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED;|}[] results = check from var result in resultStream
             select result;
 
         if results.length() == 0 {
@@ -37,7 +38,21 @@ public class ReadMapper {
         string resourceJsonString = check string:fromBytes(resourceJsonBytes);
         json resourceJson = check resourceJsonString.fromJsonString();
 
-        return resourceJson;
+        // Add/update meta section with versionId and lastUpdated
+        map<json> resourceMap = <map<json>>resourceJson;
+        json existingMeta = resourceMap["meta"];
+        map<json> metaMap = existingMeta is map<json> ? existingMeta : {};
+        
+        metaMap["versionId"] = results[0].VERSION_ID.toString();
+        
+        // Format timestamp as ISO 8601 string
+        time:Civil lastUpdated = results[0].LAST_UPDATED;
+        string timestamp = string `${lastUpdated.year}-${utils:padZero(lastUpdated.month)}-${utils:padZero(lastUpdated.day)}T${utils:padZero(lastUpdated.hour)}:${utils:padZero(lastUpdated.minute)}:${utils:padZero(<int>lastUpdated.second)}.000Z`;
+        metaMap["lastUpdated"] = timestamp;
+        
+        resourceMap["meta"] = metaMap;
+
+        return resourceMap;
     }
 
     // Search resources with filters - basic implementation
@@ -366,12 +381,12 @@ public class ReadMapper {
             }
         }
 
-        string sqlQuery = string `SELECT ${primaryKey}, RESOURCE_JSON FROM "${tableName}"${whereClause}`;
+        string sqlQuery = string `SELECT ${primaryKey}, RESOURCE_JSON, VERSION_ID, LAST_UPDATED FROM "${tableName}"${whereClause}`;
         sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
 
-        stream<record {|byte[] RESOURCE_JSON; string...;|}, sql:Error?> resultStream = jdbcClient->query(query);
+        stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED; string...;|}, sql:Error?> resultStream = jdbcClient->query(query);
 
-        record {|byte[] RESOURCE_JSON; string...;|}[] results = check from var result in resultStream
+        record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED; string...;|}[] results = check from var result in resultStream
             select result;
 
         // Convert to FHIR Bundle
@@ -383,10 +398,24 @@ public class ReadMapper {
             string resourceJsonString = check string:fromBytes(resourceJsonBytes);
             json resourceJson = check resourceJsonString.fromJsonString();
 
+            // Add/update meta section with versionId and lastUpdated
+            map<json> resourceMap = <map<json>>resourceJson;
+            json existingMeta = resourceMap["meta"];
+            map<json> metaMap = existingMeta is map<json> ? existingMeta : {};
+            
+            metaMap["versionId"] = result.VERSION_ID.toString();
+            
+            // Format timestamp as ISO 8601 string
+            time:Civil lastUpdated = result.LAST_UPDATED;
+            string timestamp = string `${lastUpdated.year}-${utils:padZero(lastUpdated.month)}-${utils:padZero(lastUpdated.day)}T${utils:padZero(lastUpdated.hour)}:${utils:padZero(lastUpdated.minute)}:${utils:padZero(<int>lastUpdated.second)}.000Z`;
+            metaMap["lastUpdated"] = timestamp;
+            
+            resourceMap["meta"] = metaMap;
+
             // Get the resource ID
             string resourceId = "";
             foreach var [key, value] in result.entries() {
-                if key != "RESOURCE_JSON" && value is string {
+                if key != "RESOURCE_JSON" && key != "VERSION_ID" && key != "LAST_UPDATED" && value is string {
                     resourceId = value;
                     matchedResourceIds.push(resourceId);
                     break;
@@ -395,7 +424,7 @@ public class ReadMapper {
 
             json entry = {
                 "fullUrl": string `${baseUrl}/fhir/r4/${resourceType}/${resourceId}`,
-                "resource": resourceJson,
+                "resource": resourceMap,
                 "search": {
                     "mode": "match"
                 }
@@ -552,12 +581,12 @@ public class ReadMapper {
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
         string limitClause = 'limit is int ? string ` LIMIT ${'limit}` : "";
-        string sqlQuery = string `SELECT ${primaryKey}, RESOURCE_JSON FROM "${tableName}"${limitClause}`;
+        string sqlQuery = string `SELECT ${primaryKey}, RESOURCE_JSON, VERSION_ID, LAST_UPDATED FROM "${tableName}"${limitClause}`;
         sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
 
-        stream<record {|byte[] RESOURCE_JSON; string...;|}, sql:Error?> resultStream = jdbcClient->query(query);
+        stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED; string...;|}, sql:Error?> resultStream = jdbcClient->query(query);
 
-        record {|byte[] RESOURCE_JSON; string...;|}[] results = check from var result in resultStream
+        record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED; string...;|}[] results = check from var result in resultStream
             select result;
 
         json[] entries = [];
@@ -566,10 +595,24 @@ public class ReadMapper {
             string resourceJsonString = check string:fromBytes(resourceJsonBytes);
             json resourceJson = check resourceJsonString.fromJsonString();
 
+            // Add/update meta section with versionId and lastUpdated
+            map<json> resourceMap = <map<json>>resourceJson;
+            json existingMeta = resourceMap["meta"];
+            map<json> metaMap = existingMeta is map<json> ? existingMeta : {};
+            
+            metaMap["versionId"] = result.VERSION_ID.toString();
+            
+            // Format timestamp as ISO 8601 string
+            time:Civil lastUpdated = result.LAST_UPDATED;
+            string timestamp = string `${lastUpdated.year}-${utils:padZero(lastUpdated.month)}-${utils:padZero(lastUpdated.day)}T${utils:padZero(lastUpdated.hour)}:${utils:padZero(lastUpdated.minute)}:${utils:padZero(<int>lastUpdated.second)}.000Z`;
+            metaMap["lastUpdated"] = timestamp;
+            
+            resourceMap["meta"] = metaMap;
+
             // Get the resource ID
             string resourceId = "";
             foreach var [key, value] in result.entries() {
-                if key != "RESOURCE_JSON" && value is string {
+                if key != "RESOURCE_JSON" && key != "VERSION_ID" && key != "LAST_UPDATED" && value is string {
                     resourceId = value;
                     break;
                 }
@@ -577,7 +620,7 @@ public class ReadMapper {
 
             json entry = {
                 "fullUrl": string `${baseUrl}/fhir/r4/${resourceType}/${resourceId}`,
-                "resource": resourceJson
+                "resource": resourceMap
             };
             entries.push(entry);
         }

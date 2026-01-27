@@ -169,8 +169,16 @@ public class CreateHandler {
         
         // Build values string using consolidated formatting utility
         string[] valueStrings = [];
+        int index = 0;
         foreach any val in columnValues {
-            valueStrings.push(utils:formatSqlValue(val));
+            string columnName = columnNames[index];
+            // Use special formatting for DATE columns (date only, no time)
+            if columnName == "DATE" {
+                valueStrings.push(utils:formatDateValue(val));
+            } else {
+                valueStrings.push(utils:formatSqlValue(val));
+            }
+            index = index + 1;
         }
         
         string valuesStr = string:'join(", ", ...valueStrings);

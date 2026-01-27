@@ -50,14 +50,38 @@ public isolated function formatSqlValue(anydata value) returns string {
         return value.toString();
     } else if value is boolean {
         return value ? "TRUE" : "FALSE";
+    } else if value is time:Civil {
+        return string `'${formatTimestamp(value)}'`;
+    } else if value is time:Date {
+        time:Date dateVal = <time:Date>value;
+        return string `'${dateVal.year}-${padZero(dateVal.month)}-${padZero(dateVal.day)}'`;
+    } else if value is byte[] {
+        byte[] bytes = <byte[]>value;
+        return string `X'${bytes.toBase16()}'`;
+    } else {
+        string escaped = escapeSql(value.toString());
+        return string `'${escaped}'`;
+    }
+}
+
+// Format value specifically for DATE columns (date only, no time)
+public isolated function formatDateValue(anydata value) returns string {
+    if value is () {
+        return "NULL";
     } else if value is time:Date {
         time:Date dateVal = <time:Date>value;
         return string `'${dateVal.year}-${padZero(dateVal.month)}-${padZero(dateVal.day)}'`;
     } else if value is time:Civil {
-        return string `'${formatTimestamp(value)}'`;
-    } else if value is byte[] {
-        byte[] bytes = <byte[]>value;
-        return string `X'${bytes.toBase16()}'`;
+        // Extract only the date part from Civil
+        return string `'${value.year}-${padZero(value.month)}-${padZero(value.day)}'`;
+    } else if value is string {
+        // If it's already a string, try to parse and extract date part
+        string escaped = escapeSql(value);
+        // If format is YYYY-MM-DD or YYYY-MM-DD..., extract date part
+        if escaped.length() >= 10 {
+            return string `'${escaped.substring(0, 10)}'`;
+        }
+        return string `'${escaped}'`;
     } else {
         string escaped = escapeSql(value.toString());
         return string `'${escaped}'`;

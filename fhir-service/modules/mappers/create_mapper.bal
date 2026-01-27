@@ -119,14 +119,17 @@ public class CreateMapper {
         if columnSet.hasKey("VERSION_ID") {
             insertRecord["VERSION_ID"] = 1;
         }
+        
+        time:Civil currentTime = time:utcToCivil(time:utcNow());
+        
         if columnSet.hasKey("CREATED_AT") {
-            insertRecord["CREATED_AT"] = time:utcToCivil(time:utcNow());
+            insertRecord["CREATED_AT"] = currentTime;
         }
         if columnSet.hasKey("UPDATED_AT") {
-            insertRecord["UPDATED_AT"] = time:utcToCivil(time:utcNow());
+            insertRecord["UPDATED_AT"] = currentTime;
         }
         if columnSet.hasKey("LAST_UPDATED") {
-            insertRecord["LAST_UPDATED"] = time:utcToCivil(time:utcNow());
+            insertRecord["LAST_UPDATED"] = currentTime;
         }
         if columnSet.hasKey("RESOURCE_JSON") {
             insertRecord["RESOURCE_JSON"] = resourceJsonBytes;
