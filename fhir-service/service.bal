@@ -770,6 +770,87 @@ isolated function performResourcePatch(string resourceType, string id, json patc
     }
 }
 
+// Utility function to handle $validate operation
+isolated function performValidateOperation(string resourceType, Parameters params) returns Parameters|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Validate - Start Execution`);
+    do {
+        // Extract the resource from Parameters
+        international401:ParametersParameter[]? parameters = params.'parameter;
+        
+        if parameters is () || parameters.length() == 0 {
+            return r4:createFHIRError("No parameters provided for validation", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
+
+        json? resourceToValidate = ();
+        string mode = "create"; // Default mode
+        
+        // Extract resource and mode from parameters
+        foreach var param in parameters {
+            if param.name == "resource" {
+                anydata? resourceData = param.'resource;
+                if resourceData is () {
+                    return r4:createFHIRError("No resource found in Parameters", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+                }
+                resourceToValidate = resourceData.toJson();
+            } else if param.name == "mode" {
+                string? modeValue = param.valueCode;
+                if modeValue is string {
+                    mode = modeValue;
+                }
+            }
+        }
+
+        if resourceToValidate is () {
+            return r4:createFHIRError("No resource found in Parameters", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
+        }
+
+        // Try to parse and validate the resource using the parser
+        anydata|error parsedResource = fhirParser:parseWithValidation(resourceToValidate).ensureType();
+        
+        r4:OperationOutcome outcome;
+        
+        if parsedResource is error {
+            // Validation/Parse failed
+            log:printInfo(string `${resourceType}: Validation - Failed with errors`);
+            outcome = {
+                resourceType: "OperationOutcome",
+                issue: [{
+                    severity: "error",
+                    code: "invalid",
+                    diagnostics: parsedResource.message()
+                }]
+            };
+        } else {
+            // Validation successful
+            log:printInfo(string `${resourceType}: Validation - Success`);
+            outcome = {
+                resourceType: "OperationOutcome",
+                issue: [{
+                    severity: "information",
+                    code: "informational",
+                    diagnostics: "Validation successful"
+                }]
+            };
+        }
+
+        // Return Parameters with OperationOutcome
+        Parameters response = {
+            resourceType: "Parameters",
+            'parameter: [
+                {
+                    name: "outcome",
+                    'resource: outcome
+                }
+            ]
+        };
+        
+        return response;
+    } on fail error e {
+        log:printError(string `Error validating ${resourceType}: ${e.message()}`);
+        return r4:createFHIRError(string `Validation operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+    }
+}
+
 // // # Appointment API                                                                                                          #
 // 
 service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appointmentApiConfig) {
@@ -826,6 +907,11 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Appointment");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns Parameters|r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Appointment", params);
     }
 }
 
