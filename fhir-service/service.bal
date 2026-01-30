@@ -770,6 +770,110 @@ isolated function performResourcePatch(string resourceType, string id, json patc
     }
 }
 
+// Helper function to extract all references from a FHIR resource
+isolated function extractReferences(json resourceJson) returns string[] {
+    string[] references = [];
+    
+    if resourceJson is map<json> {
+        // First check if THIS object itself is a Reference
+        if resourceJson.hasKey("reference") {
+            json refValue = resourceJson["reference"];
+            if refValue is string {
+                references.push(refValue);
+                // Don't recurse into Reference objects, just return
+                return references;
+            }
+        }
+        
+        // Otherwise, iterate through all fields
+        foreach var [key, value] in resourceJson.entries() {
+            if value is map<json> {
+                // Recursively check nested objects
+                string[] nestedRefs = extractReferences(value);
+                foreach string ref in nestedRefs {
+                    references.push(ref);
+                }
+            } else if value is json[] {
+                // Check arrays
+                foreach json item in value {
+                    string[] arrayRefs = extractReferences(item);
+                    foreach string ref in arrayRefs {
+                        references.push(ref);
+                    }
+                }
+            }
+        }
+    }
+    
+    return references;
+}
+
+// Utility function to handle $everything operation
+isolated function performEverythingOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Everything - Start Execution for ID: ${id}`);
+    do {
+        handlers:ReadHandler readHandler = new handlers:ReadHandler();
+        
+        // First, get the main resource
+        json|error mainResource = readHandler.readResource(jdbcClient, resourceType, id);
+        
+        if mainResource is error {
+            string errorMsg = mainResource.message();
+            log:printError(string `Read failed: ${errorMsg}`);
+            if errorMsg.includes("not found") {
+                return r4:createFHIRError(string `${resourceType}/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+            }
+            return r4:createFHIRError(string `Failed to fetch ${resourceType}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+        
+        // Create bundle entries array
+        r4:BundleEntry[] entries = [];
+        
+        // Add the main resource as first entry
+        entries.push({
+            fullUrl: string `${resourceType}/${id}`,
+            'resource: mainResource
+        });
+        
+        // Extract all references from the main resource
+        string[] allReferences = extractReferences(mainResource);
+        
+        // Fetch all referenced resources
+        foreach string reference in allReferences {
+            int? slashIndex = reference.indexOf("/");
+            if slashIndex is int {
+                string refResourceType = reference.substring(0, slashIndex);
+                string refId = reference.substring(slashIndex + 1);
+                
+                // Fetch the referenced resource
+                json|error referencedResource = readHandler.readResource(jdbcClient, refResourceType, refId);
+                if referencedResource is json {
+                    entries.push({
+                        fullUrl: string `${refResourceType}/${refId}`,
+                        'resource: referencedResource
+                    });
+                } else {
+                    log:printWarn(string `Failed to fetch ${refResourceType}/${refId}: ${referencedResource.message()}`);
+                }
+            }
+        }
+        
+        // Create the bundle
+        r4:Bundle bundle = {
+            resourceType: "Bundle",
+            'type: "searchset",
+            entry: entries
+        };
+        
+        log:printInfo(string `${resourceType}: Everything - Retrieved ${entries.length()} resources`);
+        return bundle;
+        
+    } on fail error e {
+        log:printError(string `Error processing ${resourceType}/$everything: ${e.message()}`);
+        return r4:createFHIRError(string `Everything operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+    }
+}
+
 // Utility function to handle $validate operation
 isolated function performValidateOperation(string resourceType, Parameters params) returns Parameters|r4:OperationOutcome|r4:FHIRError {
     log:printInfo(string `${resourceType}: Validate - Start Execution`);
@@ -8521,6 +8625,11 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Patient");
+    }
+
+        // Everything operation - returns the Patient and all related resources
+    isolated resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performEverythingOperation("Patient", id);
     }
 }
 
