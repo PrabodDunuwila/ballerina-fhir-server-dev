@@ -335,6 +335,15 @@ public final r4:ResourceAPIConfig patientApiConfig = {
                builtin: false,
                documentation: "http://hl7.org/fhir/OperationDefinition/Patient-everything"
            }
+       },
+       {
+           name: "summary",
+           active: true,
+           information: {
+               description: "Fetch key clinical summary resources for the Patient",
+               builtin: false,
+               documentation: "http://hl7.org/fhir/OperationDefinition/Patient-summary"
+           }
        }
 
     ],

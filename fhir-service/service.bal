@@ -874,6 +874,96 @@ isolated function performEverythingOperation(string resourceType, string id) ret
     }
 }
 
+// Utility function to handle $summary operation (Patient Summary)
+isolated function performSummaryOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Summary - Start Execution for ID: ${id}`);
+    
+    // Define the key resource types to include in the summary
+    string[] summaryResourceTypes = [
+        "AllergyIntolerance",
+        "Condition",
+        "MedicationStatement",
+        "MedicationRequest",
+        "Immunization",
+        "Procedure",
+        "DiagnosticReport",
+        "Observation"
+    ];
+    
+    do {
+        handlers:ReadHandler readHandler = new handlers:ReadHandler();
+        
+        // First, get the main resource
+        json|error mainResource = readHandler.readResource(jdbcClient, resourceType, id);
+        
+        if mainResource is error {
+            string errorMsg = mainResource.message();
+            log:printError(string `Read failed: ${errorMsg}`);
+            if errorMsg.includes("not found") {
+                return r4:createFHIRError(string `${resourceType}/${id} not found`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+            }
+            return r4:createFHIRError(string `Failed to fetch ${resourceType}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        }
+        
+        // Create bundle entries array
+        r4:BundleEntry[] entries = [];
+        
+        // Add the main resource as first entry
+        entries.push({
+            fullUrl: string `${resourceType}/${id}`,
+            'resource: mainResource
+        });
+        
+        // Extract all references from the main resource
+        string[] allReferences = extractReferences(mainResource);
+        
+        // Fetch only the summary-relevant referenced resources
+        foreach string reference in allReferences {
+            int? slashIndex = reference.indexOf("/");
+            if slashIndex is int {
+                string refResourceType = reference.substring(0, slashIndex);
+                string refId = reference.substring(slashIndex + 1);
+                
+                // Check if this resource type is in the summary list
+                boolean isSummaryResource = false;
+                foreach string summaryType in summaryResourceTypes {
+                    if refResourceType == summaryType {
+                        isSummaryResource = true;
+                        break;
+                    }
+                }
+                
+                if isSummaryResource {
+                    // Fetch the referenced resource
+                    json|error referencedResource = readHandler.readResource(jdbcClient, refResourceType, refId);
+                    if referencedResource is json {
+                        entries.push({
+                            fullUrl: string `${refResourceType}/${refId}`,
+                            'resource: referencedResource
+                        });
+                    } else {
+                        log:printWarn(string `Failed to fetch ${refResourceType}/${refId}: ${referencedResource.message()}`);
+                    }
+                }
+            }
+        }
+        
+        // Create the bundle
+        r4:Bundle bundle = {
+            resourceType: "Bundle",
+            'type: "collection",
+            entry: entries
+        };
+        
+        log:printInfo(string `${resourceType}: Summary - Retrieved ${entries.length()} resources`);
+        return bundle;
+        
+    } on fail error e {
+        log:printError(string `Error processing ${resourceType}/$summary: ${e.message()}`);
+        return r4:createFHIRError(string `Summary operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+    }
+}
+
 // Utility function to handle $validate operation
 isolated function performValidateOperation(string resourceType, Parameters params) returns Parameters|r4:OperationOutcome|r4:FHIRError {
     log:printInfo(string `${resourceType}: Validate - Start Execution`);
@@ -8630,6 +8720,11 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
         // Everything operation - returns the Patient and all related resources
     isolated resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performEverythingOperation("Patient", id);
+    }
+
+        // Summary operation - returns the Patient and key clinical summary resources
+    isolated resource function get [string id]/\$summary(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performSummaryOperation("Patient", id);
     }
 }
 
