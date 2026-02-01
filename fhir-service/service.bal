@@ -29,6 +29,7 @@ import ballerinax/health.fhirr4;
 import ballerinax/health.fhir.r4.international401;
 import ballerinax/java.jdbc;
 import ballerinax/health.fhir.r4.parser as fhirParser;
+import ballerinax/health.fhir.r4.validator;
 
 # Generic types to wrap all implemented profiles for each resource.
 # Add required profile types here.
@@ -770,6 +771,37 @@ isolated function performResourcePatch(string resourceType, string id, json patc
     }
 }
 
+// FHIR validation error details record
+public type FHIRValidationErrorDetail record {
+    *r4:FHIRErrorDetail;
+    [validator:FHIRValidationIssueDetail, validator:FHIRValidationIssueDetail...] issues;
+};
+
+// Helper function to convert FHIR issue detail to OperationOutcome issue
+isolated function issueDetailToOperationOutcomeIssue(r4:FHIRIssueDetail detail) returns r4:OperationOutcomeIssue {
+    r4:OperationOutcomeIssue issueBBE = {
+        severity: detail.severity,
+        code: detail.code
+    };
+
+    r4:CodeableConcept? details = detail.details;
+    if details != () {
+        issueBBE.details = details;
+    }
+
+    string? diagnostic = detail.diagnostic;
+    if diagnostic != () {
+        issueBBE.diagnostics = string `${diagnostic}`;
+    }
+
+    string[]? expression = detail.expression;
+    if expression != () {
+        issueBBE.expression = expression;
+    }
+
+    return issueBBE;
+}
+
 // Helper function to extract all references from a FHIR resource
 isolated function extractReferences(json resourceJson) returns string[] {
     string[] references = [];
@@ -965,7 +997,7 @@ isolated function performSummaryOperation(string resourceType, string id) return
 }
 
 // Utility function to handle $validate operation
-isolated function performValidateOperation(string resourceType, Parameters params) returns Parameters|r4:OperationOutcome|r4:FHIRError {
+isolated function performValidateOperation(string resourceType, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
     log:printInfo(string `${resourceType}: Validate - Start Execution`);
     do {
         // Extract the resource from Parameters
@@ -976,9 +1008,8 @@ isolated function performValidateOperation(string resourceType, Parameters param
         }
 
         json? resourceToValidate = ();
-        string mode = "create"; // Default mode
         
-        // Extract resource and mode from parameters
+        // Extract resource from parameters
         foreach var param in parameters {
             if param.name == "resource" {
                 anydata? resourceData = param.'resource;
@@ -986,11 +1017,6 @@ isolated function performValidateOperation(string resourceType, Parameters param
                     return r4:createFHIRError("No resource found in Parameters", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
                 }
                 resourceToValidate = resourceData.toJson();
-            } else if param.name == "mode" {
-                string? modeValue = param.valueCode;
-                if modeValue is string {
-                    mode = modeValue;
-                }
             }
         }
 
@@ -998,21 +1024,43 @@ isolated function performValidateOperation(string resourceType, Parameters param
             return r4:createFHIRError("No resource found in Parameters", r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
         }
 
-        // Try to parse and validate the resource using the parser
-        anydata|error parsedResource = fhirParser:parseWithValidation(resourceToValidate).ensureType();
+        // Validate using the FHIR validator
+        var validationResult = validator:validate(resourceToValidate);
         
         r4:OperationOutcome outcome;
         
-        if parsedResource is error {
-            // Validation/Parse failed
+        if validationResult is error {
+            // Validation failed - extract detailed errors
             log:printInfo(string `${resourceType}: Validation - Failed with errors`);
+            
+            FHIRValidationErrorDetail & readonly detail = <FHIRValidationErrorDetail & readonly>validationResult.detail();
+            validator:FHIRValidationIssueDetail issues = detail.issues[0];
+            r4:FHIRIssueDetail[] issueArray = [];
+            
+            string[]? errorInIssue = issues.detailedErrors;
+            if errorInIssue != () {
+                foreach var i in 0 ..< errorInIssue.length() {
+                    r4:FHIRIssueDetail issue = {
+                        severity: issues.severity,
+                        code: issues.code,
+                        diagnostic: errorInIssue[i],
+                        expression: issues.expression,
+                        details: ()
+                    };
+                    issueArray.push(issue);
+                }
+            }
+            
+            // Convert FHIRIssueDetail to OperationOutcomeIssue
+            r4:OperationOutcomeIssue[] opIssueArray = [];
+            foreach var i in 0 ..< issueArray.length() {
+                r4:OperationOutcomeIssue opIssue = issueDetailToOperationOutcomeIssue(issueArray[i]);
+                opIssueArray.push(opIssue);
+            }
+            
             outcome = {
                 resourceType: "OperationOutcome",
-                issue: [{
-                    severity: "error",
-                    code: "invalid",
-                    diagnostics: parsedResource.message()
-                }]
+                issue: opIssueArray
             };
         } else {
             // Validation successful
@@ -1027,18 +1075,8 @@ isolated function performValidateOperation(string resourceType, Parameters param
             };
         }
 
-        // Return Parameters with OperationOutcome
-        Parameters response = {
-            resourceType: "Parameters",
-            'parameter: [
-                {
-                    name: "outcome",
-                    'resource: outcome
-                }
-            ]
-        };
-        
-        return response;
+        // Return OperationOutcome directly (HTTP 200)
+        return outcome;
     } on fail error e {
         log:printError(string `Error validating ${resourceType}: ${e.message()}`);
         return r4:createFHIRError(string `Validation operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
@@ -1104,7 +1142,7 @@ service /fhir/r4/Appointment on new fhirr4:Listener(config = r4_api_config:appoi
     }
 
     // Validate operation - accepts Parameters resource containing the resource to validate
-    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns Parameters|r4:OperationOutcome|r4:FHIRError {
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
         return performValidateOperation("Appointment", params);
     }
 }

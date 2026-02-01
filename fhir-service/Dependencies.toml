@@ -395,6 +395,7 @@ dependencies = [
 	{org = "ballerinax", name = "health.fhir.r4"},
 	{org = "ballerinax", name = "health.fhir.r4.international401"},
 	{org = "ballerinax", name = "health.fhir.r4.parser"},
+	{org = "ballerinax", name = "health.fhir.r4.validator"},
 	{org = "ballerinax", name = "health.fhir.r4utils.fhirpath"},
 	{org = "ballerinax", name = "health.fhirr4"},
 	{org = "ballerinax", name = "java.jdbc"}
@@ -519,6 +520,9 @@ dependencies = [
 	{org = "ballerinax", name = "health.fhir.r4"},
 	{org = "ballerinax", name = "health.fhir.r4.international401"},
 	{org = "ballerinax", name = "health.fhir.r4.parser"}
+]
+modules = [
+	{org = "ballerinax", packageName = "health.fhir.r4.validator", moduleName = "health.fhir.r4.validator"}
 ]
 
 [[package]]
