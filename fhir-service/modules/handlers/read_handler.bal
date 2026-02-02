@@ -141,4 +141,36 @@ public class ReadHandler {
         log:printDebug(string `Successfully read ${resourceType}/${resourceId} with ${references.length()} reference(s)`);
         return response;
     }
+
+    // Function to fetch all resources referenced by a source resource (forward includes)
+    public isolated function fetchAllReferencedResources(jdbc:Client? jdbcClient, string sourceResourceType, string sourceResourceId) returns json[]|error {
+        log:printDebug(string `Fetching all resources referenced by ${sourceResourceType}/${sourceResourceId}`);
+
+        // Use ReadMapper to fetch all referenced resources
+        json[]|error references = self.readMapper.fetchAllReferencedResources(jdbcClient, sourceResourceType, sourceResourceId);
+
+        if references is error {
+            log:printError(string `Failed to fetch referenced resources for ${sourceResourceType}/${sourceResourceId}: ${references.message()}`);
+            return references;
+        }
+
+        log:printDebug(string `Successfully fetched ${references.length()} referenced resource(s) for ${sourceResourceType}/${sourceResourceId}`);
+        return references;
+    }
+
+    // Function to fetch all resources that reference a target resource (reverse includes)
+    public isolated function fetchAllReferencingResources(jdbc:Client? jdbcClient, string targetResourceType, string targetResourceId) returns json[]|error {
+        log:printDebug(string `Fetching all resources that reference ${targetResourceType}/${targetResourceId}`);
+
+        // Use ReadMapper to fetch all referencing resources
+        json[]|error references = self.readMapper.fetchAllReferencingResources(jdbcClient, targetResourceType, targetResourceId);
+
+        if references is error {
+            log:printError(string `Failed to fetch referencing resources for ${targetResourceType}/${targetResourceId}: ${references.message()}`);
+            return references;
+        }
+
+        log:printDebug(string `Successfully fetched ${references.length()} referencing resource(s) for ${targetResourceType}/${targetResourceId}`);
+        return references;
+    }
 }

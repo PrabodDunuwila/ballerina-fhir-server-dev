@@ -61,7 +61,15 @@ public final r4:ResourceAPIConfig medicinalproductApiConfig = {
 
     ],
     operations: [
-
+        {
+            name: "everything",
+            active: true,
+            information: {
+                description: "Fetch all resources related to the MedicinalProduct",
+                builtin: false,
+                documentation: "http://hl7.org/fhir/OperationDefinition/MedicinalProduct-everything"
+            }
+        }
     ],
     serverConfig: (),
     authzConfig: ()

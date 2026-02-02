@@ -879,7 +879,7 @@ public class ReadMapper {
     }
 
     // Fetch all referenced resources for wildcard _include=*
-    private isolated function fetchAllReferencedResources(jdbc:Client? jdbcClient, string sourceResourceType, string sourceResourceId) returns json[]|error {
+    public isolated function fetchAllReferencedResources(jdbc:Client? jdbcClient, string sourceResourceType, string sourceResourceId) returns json[]|error {
         if jdbcClient is () {
             return error("JDBC client is not initialized");
         }
@@ -1035,7 +1035,7 @@ public class ReadMapper {
     }
 
     // Fetch all resources that reference the target resource (wildcard _revinclude=*)
-    private isolated function fetchAllReferencingResources(jdbc:Client? jdbcClient, string targetResourceType, string targetResourceId) returns json[]|error {
+    public isolated function fetchAllReferencingResources(jdbc:Client? jdbcClient, string targetResourceType, string targetResourceId) returns json[]|error {
         if jdbcClient is () {
             return error("JDBC client is not initialized");
         }

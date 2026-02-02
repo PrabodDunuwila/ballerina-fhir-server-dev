@@ -830,46 +830,8 @@ isolated function issueDetailToOperationOutcomeIssue(r4:FHIRIssueDetail detail) 
     return issueBBE;
 }
 
-// Helper function to extract all references from a FHIR resource
-isolated function extractReferences(json resourceJson) returns string[] {
-    string[] references = [];
-    
-    if resourceJson is map<json> {
-        // First check if THIS object itself is a Reference
-        if resourceJson.hasKey("reference") {
-            json refValue = resourceJson["reference"];
-            if refValue is string {
-                references.push(refValue);
-                // Don't recurse into Reference objects, just return
-                return references;
-            }
-        }
-        
-        // Otherwise, iterate through all fields
-        foreach var [key, value] in resourceJson.entries() {
-            if value is map<json> {
-                // Recursively check nested objects
-                string[] nestedRefs = extractReferences(value);
-                foreach string ref in nestedRefs {
-                    references.push(ref);
-                }
-            } else if value is json[] {
-                // Check arrays
-                foreach json item in value {
-                    string[] arrayRefs = extractReferences(item);
-                    foreach string ref in arrayRefs {
-                        references.push(ref);
-                    }
-                }
-            }
-        }
-    }
-    
-    return references;
-}
-
-// Utility function to handle $everything operation
-isolated function performEverythingOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+// Utility function to handle $everything operation (reuses _include and _revinclude implementation)
+function performEverythingOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
     log:printInfo(string `${resourceType}: Everything - Start Execution for ID: ${id}`);
     do {
         handlers:ReadHandler readHandler = new handlers:ReadHandler();
@@ -895,27 +857,52 @@ isolated function performEverythingOperation(string resourceType, string id) ret
             'resource: mainResource
         });
         
-        // Extract all references from the main resource
-        string[] allReferences = extractReferences(mainResource);
+        // Track resource IDs already added to avoid duplicates
+        map<boolean> addedResources = {};
+        addedResources[string `${resourceType}/${id}`] = true;
         
-        // Fetch all referenced resources
-        foreach string reference in allReferences {
-            int? slashIndex = reference.indexOf("/");
-            if slashIndex is int {
-                string refResourceType = reference.substring(0, slashIndex);
-                string refId = reference.substring(slashIndex + 1);
+        // STEP 1: Forward includes - Use existing fetchAllReferencedResources from ReadHandler
+        // This queries the REFERENCES table to find all resources referenced by the main resource
+        json[]|error forwardIncluded = readHandler.fetchAllReferencedResources(jdbcClient, resourceType, id);
+        
+        if forwardIncluded is json[] {
+            foreach json entry in forwardIncluded {
+                map<json> entryMap = <map<json>>entry;
+                string? fullUrl = entryMap["fullUrl"] is string ? <string>entryMap["fullUrl"] : ();
+                json? resourceJson = entryMap["resource"];
                 
-                // Fetch the referenced resource
-                json|error referencedResource = readHandler.readResource(jdbcClient, refResourceType, refId);
-                if referencedResource is json {
+                if fullUrl is string && resourceJson is json && !addedResources.hasKey(fullUrl) {
                     entries.push({
-                        fullUrl: string `${refResourceType}/${refId}`,
-                        'resource: referencedResource
+                        fullUrl: fullUrl,
+                        'resource: resourceJson
                     });
-                } else {
-                    log:printWarn(string `Failed to fetch ${refResourceType}/${refId}: ${referencedResource.message()}`);
+                    addedResources[fullUrl] = true;
                 }
             }
+        } else {
+            log:printWarn(string `Failed to fetch forward references: ${forwardIncluded.message()}`);
+        }
+        
+        // STEP 2: Reverse includes - Use existing fetchAllReferencingResources from ReadHandler
+        // This queries the REFERENCES table to find all resources that reference the main resource
+        json[]|error reverseIncluded = readHandler.fetchAllReferencingResources(jdbcClient, resourceType, id);
+        
+        if reverseIncluded is json[] {
+            foreach json entry in reverseIncluded {
+                map<json> entryMap = <map<json>>entry;
+                string? fullUrl = entryMap["fullUrl"] is string ? <string>entryMap["fullUrl"] : ();
+                json? resourceJson = entryMap["resource"];
+                
+                if fullUrl is string && resourceJson is json && !addedResources.hasKey(fullUrl) {
+                    entries.push({
+                        fullUrl: fullUrl,
+                        'resource: resourceJson
+                    });
+                    addedResources[fullUrl] = true;
+                }
+            }
+        } else {
+            log:printWarn(string `Failed to fetch reverse references: ${reverseIncluded.message()}`);
         }
         
         // Create the bundle
@@ -925,7 +912,7 @@ isolated function performEverythingOperation(string resourceType, string id) ret
             entry: entries
         };
         
-        log:printInfo(string `${resourceType}: Everything - Retrieved ${entries.length()} resources`);
+        log:printInfo(string `${resourceType}: Everything - Retrieved ${entries.length()} resources (forward + reverse references)`);
         return bundle;
         
     } on fail error e {
@@ -934,11 +921,11 @@ isolated function performEverythingOperation(string resourceType, string id) ret
     }
 }
 
-// Utility function to handle $summary operation (Patient Summary)
-isolated function performSummaryOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+// Utility function to handle $summary operation (Patient Summary - reuses _include implementation)
+function performSummaryOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
     log:printInfo(string `${resourceType}: Summary - Start Execution for ID: ${id}`);
     
-    // Define the key resource types to include in the summary
+    // Define the key resource types to include in the summary (IPS clinical resources)
     string[] summaryResourceTypes = [
         "AllergyIntolerance",
         "Condition",
@@ -974,38 +961,46 @@ isolated function performSummaryOperation(string resourceType, string id) return
             'resource: mainResource
         });
         
-        // Extract all references from the main resource
-        string[] allReferences = extractReferences(mainResource);
+        // Track resource IDs already added to avoid duplicates
+        map<boolean> addedResources = {};
+        addedResources[string `${resourceType}/${id}`] = true;
         
-        // Fetch only the summary-relevant referenced resources
-        foreach string reference in allReferences {
-            int? slashIndex = reference.indexOf("/");
-            if slashIndex is int {
-                string refResourceType = reference.substring(0, slashIndex);
-                string refId = reference.substring(slashIndex + 1);
+        // Fetch all forward references using existing implementation
+        json[]|error forwardIncluded = readHandler.fetchAllReferencedResources(jdbcClient, resourceType, id);
+        
+        if forwardIncluded is json[] {
+            // Filter to include only summary-relevant resource types
+            foreach json entry in forwardIncluded {
+                map<json> entryMap = <map<json>>entry;
+                json? resourceJson = entryMap["resource"];
+                string? fullUrl = entryMap["fullUrl"] is string ? <string>entryMap["fullUrl"] : ();
                 
-                // Check if this resource type is in the summary list
-                boolean isSummaryResource = false;
-                foreach string summaryType in summaryResourceTypes {
-                    if refResourceType == summaryType {
-                        isSummaryResource = true;
-                        break;
+                if resourceJson is map<json> && fullUrl is string && !addedResources.hasKey(fullUrl) {
+                    string? resType = resourceJson["resourceType"] is string ? <string>resourceJson["resourceType"] : ();
+                    
+                    // Check if this resource type is in the summary list
+                    boolean isSummaryResource = false;
+                    if resType is string {
+                        foreach string summaryType in summaryResourceTypes {
+                            if resType == summaryType {
+                                isSummaryResource = true;
+                                break;
+                            }
+                        }
                     }
-                }
-                
-                if isSummaryResource {
-                    // Fetch the referenced resource
-                    json|error referencedResource = readHandler.readResource(jdbcClient, refResourceType, refId);
-                    if referencedResource is json {
+                    
+                    // Only add if it's a summary resource type
+                    if isSummaryResource {
                         entries.push({
-                            fullUrl: string `${refResourceType}/${refId}`,
-                            'resource: referencedResource
+                            fullUrl: fullUrl,
+                            'resource: resourceJson
                         });
-                    } else {
-                        log:printWarn(string `Failed to fetch ${refResourceType}/${refId}: ${referencedResource.message()}`);
+                        addedResources[fullUrl] = true;
                     }
                 }
             }
+        } else {
+            log:printWarn(string `Failed to fetch references for summary: ${forwardIncluded.message()}`);
         }
         
         // Create the bundle
@@ -1015,7 +1010,7 @@ isolated function performSummaryOperation(string resourceType, string id) return
             entry: entries
         };
         
-        log:printInfo(string `${resourceType}: Summary - Retrieved ${entries.length()} resources`);
+        log:printInfo(string `${resourceType}: Summary - Retrieved ${entries.length()} clinical summary resources`);
         return bundle;
         
     } on fail error e {
@@ -3401,6 +3396,11 @@ service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:ri
 // // # Group API                                                                                                          #
 // 
 service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiConfig) {
+    // Everything operation - returns the Group and all related resources
+    resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performEverythingOperation("Group", id);
+    }
+
     // Search for resources using /Group?params
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performResourceSearch("Group", fhirContext);
@@ -4181,6 +4181,12 @@ service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_c
 // // # Encounter API                                                                                                          #
 // 
 service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encounterApiConfig) {
+
+    // Everything operation - returns the Encounter and all related resources
+    resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performEverythingOperation("Encounter", id);
+    }
+
     // Search for resources using /Encounter?params
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performResourceSearch("Encounter", fhirContext);
@@ -5723,6 +5729,11 @@ service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_con
 // // # EpisodeOfCare API                                                                                                          #
 // 
 service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:episodeofcareApiConfig) {
+    // Everything operation - returns the EpisodeOfCare and all related resources
+    resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performEverythingOperation("EpisodeOfCare", id);
+    }
+
     // Search for resources using /EpisodeOfCare?params
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performResourceSearch("EpisodeOfCare", fhirContext);
@@ -6621,6 +6632,11 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
 // // # MedicinalProduct API                                                                                                          #
 // 
 service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:medicinalproductApiConfig) {
+    // Everything operation - returns the MedicinalProduct and all related resources
+    resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performEverythingOperation("MedicinalProduct", id);
+    }
+
     // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performResourceSearch("MedicinalProduct", fhirContext);
@@ -8969,12 +8985,12 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
 // 
 service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientApiConfig) {
     // Everything operation - returns the Patient and all related resources
-    isolated resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performEverythingOperation("Patient", id);
     }
 
     // Summary operation - returns the Patient and key clinical summary resources
-    isolated resource function get [string id]/\$summary(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    resource function get [string id]/\$summary(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performSummaryOperation("Patient", id);
     }
 

@@ -271,7 +271,15 @@ public final r4:ResourceAPIConfig encounterApiConfig = {
 
     ],
     operations: [
-
+        {
+            name: "everything",
+            active: true,
+            information: {
+                description: "Fetch all resources related to the Encounter",
+                builtin: false,
+                documentation: "http://hl7.org/fhir/OperationDefinition/Encounter-everything"
+            }
+        }
     ],
     serverConfig: (),
     authzConfig: ()

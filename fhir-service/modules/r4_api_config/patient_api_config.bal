@@ -327,7 +327,7 @@ public final r4:ResourceAPIConfig patientApiConfig = {
 
     ],
     operations: [
-{
+    {
            name: "everything",
            active: true,
            information: {

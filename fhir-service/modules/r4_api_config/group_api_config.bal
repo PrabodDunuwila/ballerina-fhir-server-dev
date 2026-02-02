@@ -135,7 +135,15 @@ public final r4:ResourceAPIConfig groupApiConfig = {
 
     ],
     operations: [
-
+        {
+            name: "everything",
+            active: true,
+            information: {
+                description: "Fetch all resources related to the Group",
+                builtin: false,
+                documentation: "http://hl7.org/fhir/OperationDefinition/Group-everything"
+            }
+        }
     ],
     serverConfig: (),
     authzConfig: ()

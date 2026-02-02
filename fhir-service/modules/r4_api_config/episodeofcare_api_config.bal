@@ -121,7 +121,15 @@ public final r4:ResourceAPIConfig episodeofcareApiConfig = {
 
     ],
     operations: [
-
+        {
+            name: "everything",
+            active: true,
+            information: {
+                description: "Fetch all resources related to the EpisodeOfCare",
+                builtin: false,
+                documentation: "http://hl7.org/fhir/OperationDefinition/EpisodeOfCare-everything"
+            }
+        }
     ],
     serverConfig: (),
     authzConfig: ()
