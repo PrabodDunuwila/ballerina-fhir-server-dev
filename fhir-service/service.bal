@@ -22,8 +22,12 @@
 import ballerina_fhir_server.handlers;
 import ballerina_fhir_server.r4_api_config;
 
+import ballerina/file;
 import ballerina/http;
+import ballerina/io;
 import ballerina/log;
+import ballerina/time;
+import ballerina/uuid;
 import ballerinax/health.fhir.r4;
 import ballerinax/health.fhirr4;
 import ballerinax/health.fhir.r4.international401;
@@ -320,6 +324,30 @@ public type Location international401:Location;
 // Global Database Config Objects
 final handlers:DBHandler dbHandler = new handlers:DBHandler();
 final jdbc:Client jdbcClient = check dbHandler.initializeJdbcClient();
+
+// Export Job Management
+type ExportJobStatus "in-progress"|"completed"|"failed";
+
+type ExportFile record {
+    string 'type;  // Resource type
+    string url;    // Download URL
+    int count;     // Number of resources
+};
+
+type ExportJob record {
+    string jobId;
+    ExportJobStatus status;
+    string? errorMessage;
+    string transactionTime;
+    string request;
+    ExportFile[] output;
+};
+
+// In-memory job storage (use database or cache for production)
+map<ExportJob> exportJobs = {};
+
+// Export file storage directory
+const string EXPORT_DIR = "./data/exports/";
 
 function init() returns error? {
     boolean|error? dbStatus = dbHandler.initDatabase(jdbcClient);
@@ -996,6 +1024,232 @@ isolated function performSummaryOperation(string resourceType, string id) return
     }
 }
 
+// Utility function to initiate $export operation (Async - returns 202 Accepted)
+function initiateExportOperation(string resourceType, http:Request request) returns http:Response|r4:FHIRError {
+    log:printInfo(string `${resourceType}: Export - Initiate async export`);
+    
+    // Generate unique job ID
+    string jobId = uuid:createType1AsString();
+    
+    // Create export job record
+    time:Utc currentTime = time:utcNow();
+    string transactionTime = time:utcToString(currentTime);
+    
+    ExportJob job = {
+        jobId: jobId,
+        status: "in-progress",
+        errorMessage: (),
+        transactionTime: transactionTime,
+        request: string `/fhir/r4/${resourceType}/\$export`,
+        output: []
+    };
+    
+    // Store job
+    lock {
+        exportJobs[jobId] = job;
+    }
+    
+    // Start background processing
+    worker ExportWorker {
+        processExportJob(jobId, resourceType);
+    }
+    
+    // Return 202 Accepted with Content-Location header
+    http:Response response = new;
+    response.statusCode = 202;
+    response.setHeader("Content-Location", string `/fhir/_export/status/${jobId}`);
+    
+    log:printInfo(string `${resourceType}: Export - Job ${jobId} initiated`);
+    return response;
+}
+
+// Background worker to process export job
+function processExportJob(string jobId, string resourceType) {
+    log:printInfo(string `Export Job ${jobId}: Starting background processing`);
+    
+    do {
+        handlers:ReadHandler readHandler = new handlers:ReadHandler();
+        
+        // Create export directory if it doesn't exist
+        string jobDir = EXPORT_DIR + jobId + "/";
+        check file:createDir(jobDir, file:RECURSIVE);
+        
+        // Export Patient compartment resources
+        string[] compartmentResourceTypes = [
+            "Patient",
+            "AllergyIntolerance",
+            "Condition",
+            "Observation",
+            "MedicationStatement",
+            "MedicationRequest",
+            "Procedure",
+            "DiagnosticReport",
+            "Immunization",
+            "CarePlan",
+            "Encounter"
+        ];
+        
+        ExportFile[] outputFiles = [];
+        
+        foreach string resType in compartmentResourceTypes {
+            // Search for all resources of this type
+            map<string[]> searchParams = {};
+            json|error searchResult = readHandler.searchResources(jdbcClient, resType, searchParams);
+            
+            if searchResult is json {
+                r4:Bundle|error bundle = fhirParser:parse(searchResult).ensureType();
+                if bundle is r4:Bundle && bundle.entry is r4:BundleEntry[] {
+                    r4:BundleEntry[] entries = <r4:BundleEntry[]>bundle.entry;
+                    
+                    if entries.length() > 0 {
+                        // Create NDJSON file
+                        string fileName = resType + ".ndjson";
+                        string filePath = jobDir + fileName;
+                        
+                        // Write NDJSON (one resource per line)
+                        string ndjsonContent = "";
+                        foreach var entry in entries {
+                            anydata|r4:FHIRWireFormat resourceData = entry?.'resource;
+                            if resourceData is json {
+                                ndjsonContent += resourceData.toJsonString() + "\n";
+                            } else if resourceData is anydata {
+                                // Convert resource to json
+                                json|error resourceJson = resourceData.toJson();
+                                if resourceJson is json {
+                                    ndjsonContent += resourceJson.toJsonString() + "\n";
+                                } else {
+                                    log:printError(string `Export Job ${jobId}: Failed to convert ${resType} resource to json: ${resourceJson.message()}`);
+                                }
+                            }
+                        }
+                        
+                        if ndjsonContent.length() > 0 {
+                            check io:fileWriteString(filePath, ndjsonContent);
+                            
+                            // Add to output manifest
+                            outputFiles.push({
+                                'type: resType,
+                                url: string `/fhir/_export/download/${jobId}/${fileName}`,
+                                count: entries.length()
+                            });
+                            
+                            log:printInfo(string `Export Job ${jobId}: Generated ${fileName} with ${entries.length()} resources`);
+                        } else {
+                            log:printWarn(string `Export Job ${jobId}: No content generated for ${resType} despite ${entries.length()} entries`);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Update job status to completed
+        lock {
+            ExportJob? job = exportJobs[jobId];
+            if job is ExportJob {
+                job.status = "completed";
+                job.output = outputFiles;
+                exportJobs[jobId] = job;
+            }
+        }
+        
+        log:printInfo(string `Export Job ${jobId}: Completed successfully with ${outputFiles.length()} files`);
+        
+    } on fail error e {
+        // Update job status to failed
+        lock {
+            ExportJob? job = exportJobs[jobId];
+            if job is ExportJob {
+                job.status = "failed";
+                job.errorMessage = e.message();
+                exportJobs[jobId] = job;
+            }
+        }
+        log:printError(string `Export Job ${jobId}: Failed - ${e.message()}`);
+    }
+}
+
+// Utility function to check export job status
+function getExportStatus(string jobId) returns http:Response|r4:FHIRError {
+    ExportJob? job;
+    lock {
+        job = exportJobs[jobId];
+    }
+    
+    if job is () {
+        return r4:createFHIRError("Export job not found", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+    }
+    
+    http:Response response = new;
+    
+    if job.status == "in-progress" {
+        // Still processing
+        response.statusCode = 202;
+        response.setHeader("X-Progress", "Processing export job");
+        return response;
+    } else if job.status == "completed" {
+        // Export completed - return manifest
+        response.statusCode = 200;
+        response.setHeader("Content-Type", "application/json");
+        
+        // Convert ExportFile[] to json array
+        json[] outputJson = [];
+        foreach ExportFile exportFile in job.output {
+            outputJson.push({
+                "type": exportFile.'type,
+                "url": exportFile.url,
+                "count": exportFile.count
+            });
+        }
+        
+        json manifest = {
+            "transactionTime": job.transactionTime,
+            "request": job.request,
+            "requiresAccessToken": false,
+            "output": outputJson,
+            "error": []
+        };
+        
+        response.setJsonPayload(manifest);
+        return response;
+    } else {
+        // Failed
+        return r4:createFHIRError(job.errorMessage ?: "Export failed", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+    }
+}
+
+// Utility function to download export file
+function downloadExportFile(string jobId, string fileName) returns http:Response|r4:FHIRError {
+    ExportJob? job;
+    lock {
+        job = exportJobs[jobId];
+    }
+    
+    if job is () {
+        return r4:createFHIRError("Export job not found", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+    }
+    
+    if job.status != "completed" {
+        return r4:createFHIRError("Export job not completed", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_BAD_REQUEST);
+    }
+    
+    // Read file
+    string filePath = EXPORT_DIR + jobId + "/" + fileName;
+    
+    do {
+        string fileContent = check io:fileReadString(filePath);
+        
+        http:Response response = new;
+        response.statusCode = 200;
+        response.setHeader("Content-Type", "application/fhir+ndjson");
+        response.setHeader("Content-Disposition", string `attachment; filename="${fileName}"`);
+        response.setTextPayload(fileContent);
+        
+        return response;
+    } on fail error e {
+        return r4:createFHIRError(string `File not found: ${fileName}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+    }
+}
+
 // Utility function to handle $validate operation
 isolated function performValidateOperation(string resourceType, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
     log:printInfo(string `${resourceType}: Validate - Start Execution`);
@@ -1080,6 +1334,20 @@ isolated function performValidateOperation(string resourceType, Parameters param
     } on fail error e {
         log:printError(string `Error validating ${resourceType}: ${e.message()}`);
         return r4:createFHIRError(string `Validation operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+    }
+}
+
+// # Export Endpoints Service (for async bulk data export)
+service /fhir/_export on new http:Listener(9091) {
+    
+    // Check export job status
+    resource function get status/[string jobId]() returns http:Response|r4:FHIRError {
+        return getExportStatus(jobId);
+    }
+    
+    // Download export file
+    resource function get download/[string jobId]/[string fileName]() returns http:Response|r4:FHIRError {
+        return downloadExportFile(jobId, fileName);
     }
 }
 
@@ -8700,6 +8968,21 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
 // // # Patient API                                                                                                          #
 // 
 service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientApiConfig) {
+    // Everything operation - returns the Patient and all related resources
+    isolated resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performEverythingOperation("Patient", id);
+    }
+
+    // Summary operation - returns the Patient and key clinical summary resources
+    isolated resource function get [string id]/\$summary(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+        return performSummaryOperation("Patient", id);
+    }
+
+    // Export operation - bulk data export for Patient resources (async)
+    resource function get \$export(r4:FHIRContext fhirContext, http:Request request) returns http:Response|r4:FHIRError {
+        return initiateExportOperation("Patient", request);
+    }
+
     // Search for resources
     isolated resource function get .(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performResourceSearch("Patient", fhirContext);
@@ -8753,16 +9036,6 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Patient");
-    }
-
-        // Everything operation - returns the Patient and all related resources
-    isolated resource function get [string id]/\$everything(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performEverythingOperation("Patient", id);
-    }
-
-        // Summary operation - returns the Patient and key clinical summary resources
-    isolated resource function get [string id]/\$summary(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performSummaryOperation("Patient", id);
     }
 }
 

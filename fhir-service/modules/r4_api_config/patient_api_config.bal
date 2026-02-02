@@ -344,6 +344,15 @@ public final r4:ResourceAPIConfig patientApiConfig = {
                builtin: false,
                documentation: "http://hl7.org/fhir/OperationDefinition/Patient-summary"
            }
+       },
+       {
+           name: "export",
+           active: true,
+           information: {
+               description: "Bulk data export for Patient resources",
+               builtin: false,
+               documentation: "http://hl7.org/fhir/uv/bulkdata/OperationDefinition/patient-export"
+           }
        }
 
     ],
