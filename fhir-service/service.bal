@@ -921,26 +921,26 @@ function performEverythingOperation(string resourceType, string id) returns r4:B
     }
 }
 
-// Utility function to handle $summary operation (Patient Summary - reuses _include implementation)
-function performSummaryOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-    log:printInfo(string `${resourceType}: Summary - Start Execution for ID: ${id}`);
+// IPS-compliant summary operation using database access (optimized version)
+// This creates a full International Patient Summary document with Composition resource
+// Uses direct database queries instead of HTTP calls for better performance
+function performIpsSummaryOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
+    log:printInfo(string `${resourceType}: IPS Summary - Start Execution for ID: ${id}`);
     
-    // Define the key resource types to include in the summary (IPS clinical resources)
-    string[] summaryResourceTypes = [
-        "AllergyIntolerance",
-        "Condition",
-        "MedicationStatement",
-        "MedicationRequest",
-        "Immunization",
-        "Procedure",
-        "DiagnosticReport",
-        "Observation"
-    ];
+    // Define IPS sections with their resource types
+    map<string[]> ipsSections = {
+        "problems": ["Condition"],
+        "allergies": ["AllergyIntolerance"],
+        "medications": ["MedicationStatement", "MedicationRequest"],
+        "immunizations": ["Immunization"],
+        "procedures": ["Procedure"],
+        "results": ["Observation", "DiagnosticReport"]
+    };
     
     do {
         handlers:ReadHandler readHandler = new handlers:ReadHandler();
         
-        // First, get the main resource
+        // First, get the main resource (Patient)
         json|error mainResource = readHandler.readResource(jdbcClient, resourceType, id);
         
         if mainResource is error {
@@ -952,24 +952,17 @@ function performSummaryOperation(string resourceType, string id) returns r4:Bund
             return r4:createFHIRError(string `Failed to fetch ${resourceType}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
         }
         
-        // Create bundle entries array
-        r4:BundleEntry[] entries = [];
-        
-        // Add the main resource as first entry
-        entries.push({
-            fullUrl: string `${resourceType}/${id}`,
-            'resource: mainResource
-        });
-        
-        // Track resource IDs already added to avoid duplicates
+        // Track all resources and organize by section
+        map<json[]> resourcesBySection = {};
         map<boolean> addedResources = {};
         addedResources[string `${resourceType}/${id}`] = true;
         
-        // Fetch all forward references using existing implementation
+        // Fetch all FORWARD references (resources the Patient references)
         json[]|error forwardIncluded = readHandler.fetchAllReferencedResources(jdbcClient, resourceType, id);
         
         if forwardIncluded is json[] {
-            // Filter to include only summary-relevant resource types
+            log:printInfo(string `IPS: Found ${forwardIncluded.length()} forward referenced resources`);
+            // Organize resources by IPS section
             foreach json entry in forwardIncluded {
                 map<json> entryMap = <map<json>>entry;
                 json? resourceJson = entryMap["resource"];
@@ -978,44 +971,198 @@ function performSummaryOperation(string resourceType, string id) returns r4:Bund
                 if resourceJson is map<json> && fullUrl is string && !addedResources.hasKey(fullUrl) {
                     string? resType = resourceJson["resourceType"] is string ? <string>resourceJson["resourceType"] : ();
                     
-                    // Check if this resource type is in the summary list
-                    boolean isSummaryResource = false;
                     if resType is string {
-                        foreach string summaryType in summaryResourceTypes {
-                            if resType == summaryType {
-                                isSummaryResource = true;
+                        // Find which IPS section this resource belongs to
+                        foreach var [sectionName, resourceTypes] in ipsSections.entries() {
+                            if resourceTypes.indexOf(resType) != () {
+                                if !resourcesBySection.hasKey(sectionName) {
+                                    resourcesBySection[sectionName] = [];
+                                }
+                                json[]? existingArray = resourcesBySection.get(sectionName);
+                                if existingArray is json[] {
+                                    existingArray.push(resourceJson);
+                                    resourcesBySection[sectionName] = existingArray;
+                                }
+                                addedResources[fullUrl] = true;
                                 break;
                             }
                         }
                     }
+                }
+            }
+        } else {
+            log:printWarn(string `Failed to fetch forward references for IPS: ${forwardIncluded.message()}`);
+        }
+        
+        // Fetch all REVERSE references (resources that reference this Patient)
+        // This is what we need for IPS - clinical resources with subject=Patient/xxx
+        json[]|error reverseIncluded = readHandler.fetchAllReferencingResources(jdbcClient, resourceType, id);
+        
+        if reverseIncluded is json[] {
+            log:printInfo(string `IPS: Found ${reverseIncluded.length()} reverse referenced resources`);
+            // Organize resources by IPS section
+            foreach json entry in reverseIncluded {
+                map<json> entryMap = <map<json>>entry;
+                json? resourceJson = entryMap["resource"];
+                string? fullUrl = entryMap["fullUrl"] is string ? <string>entryMap["fullUrl"] : ();
+                
+                if resourceJson is map<json> && fullUrl is string && !addedResources.hasKey(fullUrl) {
+                    string? resType = resourceJson["resourceType"] is string ? <string>resourceJson["resourceType"] : ();
                     
-                    // Only add if it's a summary resource type
-                    if isSummaryResource {
-                        entries.push({
-                            fullUrl: fullUrl,
-                            'resource: resourceJson
-                        });
-                        addedResources[fullUrl] = true;
+                    if resType is string {
+                        // Find which IPS section this resource belongs to
+                        foreach var [sectionName, resourceTypes] in ipsSections.entries() {
+                            if resourceTypes.indexOf(resType) != () {
+                                if !resourcesBySection.hasKey(sectionName) {
+                                    resourcesBySection[sectionName] = [];
+                                }
+                                json[]? existingArray = resourcesBySection.get(sectionName);
+                                if existingArray is json[] {
+                                    existingArray.push(resourceJson);
+                                    resourcesBySection[sectionName] = existingArray;
+                                }
+                                addedResources[fullUrl] = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
         } else {
-            log:printWarn(string `Failed to fetch references for summary: ${forwardIncluded.message()}`);
+            log:printWarn(string `Failed to fetch reverse references for IPS: ${reverseIncluded.message()}`);
         }
         
-        // Create the bundle
-        r4:Bundle bundle = {
+        // Create Composition resource with IPS sections
+        time:Utc currentTime = time:utcNow();
+        string timestamp = time:utcToString(currentTime);
+        
+        // Build composition sections
+        json[] compositionSections = [];
+        
+        // Section codes according to IPS IG (LOINC codes)
+        map<json> sectionCodes = {
+            "problems": {"system": "http://loinc.org", "code": "11450-4", "display": "Problem list"},
+            "allergies": {"system": "http://loinc.org", "code": "48765-2", "display": "Allergies and adverse reactions"},
+            "medications": {"system": "http://loinc.org", "code": "10160-0", "display": "Medication use"},
+            "immunizations": {"system": "http://loinc.org", "code": "11369-6", "display": "Immunizations"},
+            "procedures": {"system": "http://loinc.org", "code": "47519-4", "display": "Procedures"},
+            "results": {"system": "http://loinc.org", "code": "30954-2", "display": "Results"}
+        };
+        
+        map<string> sectionTitles = {
+            "problems": "Active Problems",
+            "allergies": "Allergies and Intolerances",
+            "medications": "Medication Summary",
+            "immunizations": "Immunizations",
+            "procedures": "History of Procedures",
+            "results": "Results"
+        };
+        
+        foreach var [sectionName, resources] in resourcesBySection.entries() {
+            json[] sectionRefs = [];
+            string divContent = "";
+            
+            foreach json res in resources {
+                map<json> resourceMap = <map<json>>res;
+                string? resId = resourceMap["id"] is string ? <string>resourceMap["id"] : ();
+                string? resType = resourceMap["resourceType"] is string ? <string>resourceMap["resourceType"] : ();
+                
+                if resId is string && resType is string {
+                    sectionRefs.push({"reference": string `${resType}/${resId}`});
+                    divContent += string `${resType}/${resId}, `;
+                }
+            }
+            
+            if sectionRefs.length() > 0 {
+                // Clean up divContent
+                if divContent.endsWith(", ") {
+                    divContent = divContent.substring(0, divContent.length() - 2);
+                }
+                
+                json sectionCode = sectionCodes.hasKey(sectionName) ? sectionCodes.get(sectionName) : {};
+                string sectionTitle = sectionTitles.hasKey(sectionName) ? sectionTitles.get(sectionName) : sectionName;
+                
+                json section = {
+                    "code": {"coding": [sectionCode]},
+                    "title": sectionTitle,
+                    "text": {
+                        "status": "generated",
+                        "div": string `<div xmlns="http://www.w3.org/1999/xhtml">${divContent}</div>`
+                    },
+                    "entry": sectionRefs
+                };
+                compositionSections.push(section);
+            }
+        }
+        
+        // Create Composition resource
+        json composition = {
+            "resourceType": "Composition",
+            "id": string `ips-${id}`,
+            "status": "final",
+            "type": {
+                "coding": [{
+                    "system": "http://loinc.org",
+                    "code": "60591-5",
+                    "display": "Patient summary Document"
+                }]
+            },
+            "subject": {"reference": string `${resourceType}/${id}`},
+            "date": timestamp,
+            "author": [{"reference": "Practitioner/system"}],
+            "title": "International Patient Summary",
+            "custodian": {"reference": "Organization/default-hospital"},
+            "section": compositionSections
+        };
+        
+        // Build final bundle entries
+        r4:BundleEntry[] entries = [];
+        
+        // 1. Composition as first entry (IPS requirement)
+        entries.push({
+            fullUrl: string `Composition/${id}`,
+            'resource: composition
+        });
+        
+        // 2. Patient as second entry
+        entries.push({
+            fullUrl: string `${resourceType}/${id}`,
+            'resource: mainResource
+        });
+        
+        // 3. Add all other resources
+        foreach var resources in resourcesBySection {
+            foreach json res in resources {
+                json|error resTypeField = res.resourceType;
+                json|error resIdField = res.id;
+                if resTypeField is json && resIdField is json {
+                    entries.push({
+                        fullUrl: string `${resTypeField.toString()}/${resIdField.toString()}`,
+                        'resource: res
+                    });
+                }
+            }
+        }
+        
+        // Create the IPS Bundle
+        r4:Bundle ipsBundle = {
             resourceType: "Bundle",
-            'type: "collection",
+            'type: "document",  // IPS requires document type
+            timestamp: timestamp,
+            identifier: {
+                system: "urn:oid:2.16.840.1.113883.2.4.6.3",
+                value: uuid:createType1AsString()
+            },
             entry: entries
         };
         
-        log:printInfo(string `${resourceType}: Summary - Retrieved ${entries.length()} clinical summary resources`);
-        return bundle;
+        log:printInfo(string `${resourceType}: IPS Summary - Generated ${entries.length()} entries using database access`);
+        return ipsBundle;
         
     } on fail error e {
-        log:printError(string `Error processing ${resourceType}/$summary: ${e.message()}`);
-        return r4:createFHIRError(string `Summary operation failed: ${e.message()}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+        log:printError(string `IPS Summary operation failed: ${e.message()}`);
+        return r4:createFHIRError(string `Failed to generate IPS: ${e.message()}`, r4:ERROR, r4:PROCESSING, 
+            httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
     }
 }
 
@@ -8989,9 +9136,9 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
         return performEverythingOperation("Patient", id);
     }
 
-    // Summary operation - returns the Patient and key clinical summary resources
+    // Summary operation - returns the Patient IPS summary
     resource function get [string id]/\$summary(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return performSummaryOperation("Patient", id);
+        return performIpsSummaryOperation("Patient", id);
     }
 
     // Export operation - bulk data export for Patient resources (async)
