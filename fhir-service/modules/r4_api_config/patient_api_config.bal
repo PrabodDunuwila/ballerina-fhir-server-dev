@@ -352,9 +352,14 @@ public final r4:ResourceAPIConfig patientApiConfig = {
                description: "Bulk data export for Patient resources",
                builtin: false,
                documentation: "http://hl7.org/fhir/uv/bulkdata/OperationDefinition/patient-export"
-           }
+           },
+           parameters: [
+               {
+                   name: "_outputFormat",
+                   active: true
+               }
+           ]
        }
-
     ],
     serverConfig: (),
     authzConfig: ()

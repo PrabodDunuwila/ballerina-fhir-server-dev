@@ -358,11 +358,9 @@ type ExportJob record {
     ExportFile[] output;
 };
 
-// In-memory job storage (use database or cache for production)
-map<ExportJob> exportJobs = {};
-
 // Export file storage directory
 const string EXPORT_DIR = "./data/exports/";
+const string JOB_METADATA_FILE = "job-metadata.json";
 
 function init() returns error? {
     boolean|error? dbStatus = dbHandler.initDatabase(jdbcClient);
@@ -1182,8 +1180,19 @@ function performIpsSummaryOperation(string resourceType, string id) returns r4:B
 }
 
 // Utility function to initiate $export operation (Async - returns 202 Accepted)
-function initiateExportOperation(string resourceType, http:Request request) returns http:Response|r4:FHIRError {
-    log:printDebug(string `${resourceType}: Export - Initiate async export`);
+function initiateExportOperation(string resourceType, r4:FHIRContext fhirContext, string? patientId = ()) returns http:Response|r4:FHIRError {
+    // Extract output format from FHIRContext search parameters
+    string outputFormat = "split"; // default: separate files per resource type
+    map<r4:RequestSearchParameter[]> searchParams = fhirContext.getRequestSearchParameters();
+    r4:RequestSearchParameter[]? outputFormatParams = searchParams["_outputFormat"];
+    if outputFormatParams is r4:RequestSearchParameter[] && outputFormatParams.length() > 0 {
+        string? value = outputFormatParams[0].value;
+        if value is string && value == "single" {
+            outputFormat = "single"; // all resources in one file
+        }
+    }
+    
+    log:printDebug(string `${resourceType}: Export - Initiate async export${patientId is string ? " for patient " + patientId : ""} with output format: ${outputFormat}`);
     
     // Generate unique job ID
     string jobId = uuid:createType1AsString();
@@ -1192,23 +1201,41 @@ function initiateExportOperation(string resourceType, http:Request request) retu
     time:Utc currentTime = time:utcNow();
     string transactionTime = time:utcToString(currentTime);
     
+    string requestPath = patientId is string 
+        ? string `/fhir/r4/${resourceType}/${patientId}/\$export`
+        : string `/fhir/r4/${resourceType}/\$export`;
+    
     ExportJob job = {
         jobId: jobId,
         status: "in-progress",
         errorMessage: (),
         transactionTime: transactionTime,
-        request: string `/fhir/r4/${resourceType}/\$export`,
+        request: requestPath,
         output: []
     };
     
-    // Store job
-    lock {
-        exportJobs[jobId] = job;
+    // Create job directory and store job metadata
+    do {
+        string jobDir = EXPORT_DIR + jobId + "/";
+        check file:createDir(jobDir, file:RECURSIVE);
+        
+        string metadataPath = jobDir + JOB_METADATA_FILE;
+        json jobJson = job.toJson();
+        // Add patientId to metadata if present
+        if patientId is string {
+            map<json> jobMap = <map<json>>jobJson;
+            jobMap["patientId"] = patientId;
+            jobJson = jobMap;
+        }
+        check io:fileWriteJson(metadataPath, jobJson);
+    } on fail error e {
+        log:printError(string `Failed to create export job directory: ${e.message()}`);
+        return r4:createFHIRError("Failed to initiate export", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
     }
     
     // Start background processing
     worker ExportWorker {
-        processExportJob(jobId, resourceType);
+        processExportJob(jobId, resourceType, patientId, outputFormat);
     }
     
     // Return 202 Accepted with Content-Location header
@@ -1221,119 +1248,190 @@ function initiateExportOperation(string resourceType, http:Request request) retu
 }
 
 // Background worker to process export job
-function processExportJob(string jobId, string resourceType) {
-    log:printDebug(string `Export Job ${jobId}: Starting background processing`);
+function processExportJob(string jobId, string resourceType, string? patientId = (), string outputFormat = "split") {
+    log:printDebug(string `Export Job ${jobId}: Starting background processing${patientId is string ? " for patient " + patientId : ""} with output format: ${outputFormat}`);
     
     do {
         handlers:ReadHandler readHandler = new handlers:ReadHandler();
         
-        // Create export directory if it doesn't exist
         string jobDir = EXPORT_DIR + jobId + "/";
-        check file:createDir(jobDir, file:RECURSIVE);
-        
-        // Export Patient compartment resources
-        string[] compartmentResourceTypes = [
-            "Patient",
-            "AllergyIntolerance",
-            "Condition",
-            "Observation",
-            "MedicationStatement",
-            "MedicationRequest",
-            "Procedure",
-            "DiagnosticReport",
-            "Immunization",
-            "CarePlan",
-            "Encounter"
-        ];
-        
+        string metadataPath = jobDir + JOB_METADATA_FILE;
         ExportFile[] outputFiles = [];
         
-        foreach string resType in compartmentResourceTypes {
-            // Search for all resources of this type
-            map<string[]> searchParams = {};
-            json|error searchResult = readHandler.searchResources(jdbcClient, resType, searchParams);
+        if patientId is () {
+            // Patient ID is required for export - mark job as failed
+            do {
+                json jobMetadata = check io:fileReadJson(metadataPath);
+                ExportJob job = check jobMetadata.cloneWithType(ExportJob);
+                job.status = "failed";
+                job.errorMessage = "Patient-specific export requires a patient ID";
+                check io:fileWriteJson(metadataPath, job.toJson());
+            } on fail error e {
+                log:printError(string `Export Job ${jobId}: Failed to update metadata: ${e.message()}`);
+            }
+            return;
+        }
+        
+        // Patient-specific export using $everything logic (forward + reverse references)
+        json patientResource = check readHandler.readResource(jdbcClient, "Patient", patientId);
             
-            if searchResult is json {
-                r4:Bundle|error bundle = fhirParser:parse(searchResult).ensureType();
-                if bundle is r4:Bundle && bundle.entry is r4:BundleEntry[] {
-                    r4:BundleEntry[] entries = <r4:BundleEntry[]>bundle.entry;
+            // Track all resources by type
+            map<json[]> resourcesByType = {};
+            
+            // Add the Patient resource
+            resourcesByType["Patient"] = [patientResource];
+            
+            // Fetch all FORWARD references (resources the Patient references)
+            json[]|error forwardIncluded = readHandler.fetchAllReferencedResources(jdbcClient, "Patient", patientId);
+            
+            if forwardIncluded is json[] {
+                foreach json entry in forwardIncluded {
+                    map<json> entryMap = <map<json>>entry;
+                    json? resourceJson = entryMap["resource"];
                     
-                    if entries.length() > 0 {
-                        // Create NDJSON file
+                    if resourceJson is map<json> {
+                        string? resType = resourceJson["resourceType"] is string ? <string>resourceJson["resourceType"] : ();
+                        
+                        if resType is string {
+                            if !resourcesByType.hasKey(resType) {
+                                resourcesByType[resType] = [];
+                            }
+                            json[]? existingArray = resourcesByType.get(resType);
+                            if existingArray is json[] {
+                                existingArray.push(resourceJson);
+                                resourcesByType[resType] = existingArray;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Fetch all REVERSE references (resources that reference this Patient)
+            json[]|error reverseIncluded = readHandler.fetchAllReferencingResources(jdbcClient, "Patient", patientId);
+            
+            if reverseIncluded is json[] {
+                foreach json entry in reverseIncluded {
+                    map<json> entryMap = <map<json>>entry;
+                    json? resourceJson = entryMap["resource"];
+                    
+                    if resourceJson is map<json> {
+                        string? resType = resourceJson["resourceType"] is string ? <string>resourceJson["resourceType"] : ();
+                        
+                        if resType is string {
+                            if !resourcesByType.hasKey(resType) {
+                                resourcesByType[resType] = [];
+                            }
+                            json[]? existingArray = resourcesByType.get(resType);
+                            if existingArray is json[] {
+                                existingArray.push(resourceJson);
+                                resourcesByType[resType] = existingArray;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Write NDJSON files based on output format
+            if outputFormat == "single" {
+                // Single file containing all resources
+                string fileName = "export.ndjson";
+                string filePath = jobDir + fileName;
+                string ndjsonContent = "";
+                int totalCount = 0;
+                
+                foreach var [resType, resources] in resourcesByType.entries() {
+                    foreach json res in resources {
+                        ndjsonContent += res.toJsonString() + "\n";
+                        totalCount += 1;
+                    }
+                }
+                
+                check io:fileWriteString(filePath, ndjsonContent);
+                
+                outputFiles.push({
+                    'type: "Bundle",
+                    url: string `/fhir/_export/download/${jobId}/${fileName}`,
+                    count: totalCount
+                });
+                
+                log:printDebug(string `Export Job ${jobId}: Generated ${fileName} with ${totalCount} total resources`);
+            } else {
+                // Separate files per resource type (default)
+                foreach var [resType, resources] in resourcesByType.entries() {
+                    if resources.length() > 0 {
                         string fileName = resType + ".ndjson";
                         string filePath = jobDir + fileName;
                         
                         // Write NDJSON (one resource per line)
                         string ndjsonContent = "";
-                        foreach var entry in entries {
-                            anydata|r4:FHIRWireFormat resourceData = entry?.'resource;
-                            if resourceData is json {
-                                ndjsonContent += resourceData.toJsonString() + "\n";
-                            } else if resourceData is anydata {
-                                // Convert resource to json
-                                json|error resourceJson = resourceData.toJson();
-                                if resourceJson is json {
-                                    ndjsonContent += resourceJson.toJsonString() + "\n";
-                                } else {
-                                    log:printError(string `Export Job ${jobId}: Failed to convert ${resType} resource to json: ${resourceJson.message()}`);
-                                }
-                            }
+                        foreach json res in resources {
+                            ndjsonContent += res.toJsonString() + "\n";
                         }
                         
-                        if ndjsonContent.length() > 0 {
-                            check io:fileWriteString(filePath, ndjsonContent);
-                            
-                            // Add to output manifest
-                            outputFiles.push({
-                                'type: resType,
-                                url: string `/fhir/_export/download/${jobId}/${fileName}`,
-                                count: entries.length()
-                            });
-                            
-                            log:printDebug(string `Export Job ${jobId}: Generated ${fileName} with ${entries.length()} resources`);
-                        } else {
-                            log:printWarn(string `Export Job ${jobId}: No content generated for ${resType} despite ${entries.length()} entries`);
-                        }
+                        check io:fileWriteString(filePath, ndjsonContent);
+                        
+                        outputFiles.push({
+                            'type: resType,
+                            url: string `/fhir/_export/download/${jobId}/${fileName}`,
+                            count: resources.length()
+                        });
+                        
+                        log:printDebug(string `Export Job ${jobId}: Generated ${fileName} with ${resources.length()} resources`);
                     }
                 }
             }
-        }
         
         // Update job status to completed
-        lock {
-            ExportJob? job = exportJobs[jobId];
-            if job is ExportJob {
-                job.status = "completed";
-                job.output = outputFiles;
-                exportJobs[jobId] = job;
-            }
-        }
+        json jobMetadata = check io:fileReadJson(metadataPath);
+        ExportJob job = check jobMetadata.cloneWithType(ExportJob);
+        job.status = "completed";
+        job.output = outputFiles;
+        check io:fileWriteJson(metadataPath, job.toJson());
         
         log:printInfo(string `Export Job ${jobId}: Completed successfully with ${outputFiles.length()} files`);
         
     } on fail error e {
         // Update job status to failed
-        lock {
-            ExportJob? job = exportJobs[jobId];
-            if job is ExportJob {
-                job.status = "failed";
-                job.errorMessage = e.message();
-                exportJobs[jobId] = job;
-            }
+        string jobDir = EXPORT_DIR + jobId + "/";
+        string metadataPath = jobDir + JOB_METADATA_FILE;
+        
+        do {
+            json jobMetadata = check io:fileReadJson(metadataPath);
+            ExportJob job = check jobMetadata.cloneWithType(ExportJob);
+            job.status = "failed";
+            job.errorMessage = e.message();
+            check io:fileWriteJson(metadataPath, job.toJson());
+        } on fail error metadataError {
+            log:printError(string `Export Job ${jobId}: Failed to update job metadata: ${metadataError.message()}`);
         }
+        
         log:printError(string `Export Job ${jobId}: Failed - ${e.message()}`);
     }
 }
 
 // Utility function to check export job status
 function getExportStatus(string jobId) returns http:Response|r4:FHIRError {
-    ExportJob? job;
-    lock {
-        job = exportJobs[jobId];
+    // Read job metadata from file
+    string jobDir = EXPORT_DIR + jobId + "/";
+    string metadataPath = jobDir + JOB_METADATA_FILE;
+    
+    // Check if job directory exists
+    boolean|error dirExists = file:test(jobDir, file:EXISTS);
+    if dirExists is error || !dirExists {
+        return r4:createFHIRError("Export job not found", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
     }
     
-    if job is () {
-        return r4:createFHIRError("Export job not found", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+    // Read job metadata
+    json|error jobMetadata = io:fileReadJson(metadataPath);
+    if jobMetadata is error {
+        log:printError(string `Failed to read job metadata for ${jobId}: ${jobMetadata.message()}`);
+        return r4:createFHIRError("Failed to read export job status", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+    }
+    
+    ExportJob|error job = jobMetadata.cloneWithType(ExportJob);
+    if job is error {
+        log:printError(string `Failed to parse job metadata for ${jobId}: ${job.message()}`);
+        return r4:createFHIRError("Invalid export job metadata", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
     }
     
     http:Response response = new;
@@ -1376,13 +1474,25 @@ function getExportStatus(string jobId) returns http:Response|r4:FHIRError {
 
 // Utility function to download export file
 function downloadExportFile(string jobId, string fileName) returns http:Response|r4:FHIRError {
-    ExportJob? job;
-    lock {
-        job = exportJobs[jobId];
+    // Read job metadata from file
+    string jobDir = EXPORT_DIR + jobId + "/";
+    string metadataPath = jobDir + JOB_METADATA_FILE;
+    
+    // Check if job directory exists
+    boolean|error dirExists = file:test(jobDir, file:EXISTS);
+    if dirExists is error || !dirExists {
+        return r4:createFHIRError("Export job not found", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
     }
     
-    if job is () {
-        return r4:createFHIRError("Export job not found", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
+    // Read and validate job metadata
+    json|error jobMetadata = io:fileReadJson(metadataPath);
+    if jobMetadata is error {
+        return r4:createFHIRError("Failed to read export job metadata", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
+    }
+    
+    ExportJob|error job = jobMetadata.cloneWithType(ExportJob);
+    if job is error {
+        return r4:createFHIRError("Invalid export job metadata", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
     }
     
     if job.status != "completed" {
@@ -9786,9 +9896,9 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
         return performIpsSummaryOperation("Patient", id);
     }
 
-    // Export operation - bulk data export for Patient resources (async)
-    resource function get \$export(r4:FHIRContext fhirContext, http:Request request) returns http:Response|r4:FHIRError {
-        return initiateExportOperation("Patient", request);
+    // Patient-specific export operation - exports data for a specific patient (async)
+    resource function get [string id]/\$export(r4:FHIRContext fhirContext, http:Request request) returns http:Response|r4:FHIRError {
+        return initiateExportOperation("Patient", fhirContext, id);
     }
 
     // Search for resources
