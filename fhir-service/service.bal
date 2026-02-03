@@ -35,6 +35,21 @@ import ballerinax/java.jdbc;
 import ballerinax/health.fhir.r4.parser as fhirParser;
 import ballerinax/health.fhir.r4.validator;
 
+// IPS Configuration Record
+type IpsConfig record {|
+    string custodianOrganization;
+    string authorPractitioner;
+    string identifierSystem;
+    string documentTitle;
+|};
+
+configurable IpsConfig ips = {
+    custodianOrganization: "Organization/default-hospital",
+    authorPractitioner: "Practitioner/system",
+    identifierSystem: "urn:oid:2.16.840.1.113883.2.4.6.3",
+    documentTitle: "International Patient Summary"
+};
+
 # Generic types to wrap all implemented profiles for each resource.
 # Add required profile types here.
 public type Appointment international401:Appointment;
@@ -1109,9 +1124,9 @@ function performIpsSummaryOperation(string resourceType, string id) returns r4:B
             },
             "subject": {"reference": string `${resourceType}/${id}`},
             "date": timestamp,
-            "author": [{"reference": "Practitioner/system"}],
-            "title": "International Patient Summary",
-            "custodian": {"reference": "Organization/default-hospital"},
+            "author": [{"reference": ips.authorPractitioner}],
+            "title": ips.documentTitle,
+            "custodian": {"reference": ips.custodianOrganization},
             "section": compositionSections
         };
         
@@ -1120,7 +1135,7 @@ function performIpsSummaryOperation(string resourceType, string id) returns r4:B
         
         // 1. Composition as first entry (IPS requirement)
         entries.push({
-            fullUrl: string `Composition/${id}`,
+            fullUrl: string `Composition/ips-${id}`,
             'resource: composition
         });
         
@@ -1150,7 +1165,7 @@ function performIpsSummaryOperation(string resourceType, string id) returns r4:B
             'type: "document",  // IPS requires document type
             timestamp: timestamp,
             identifier: {
-                system: "urn:oid:2.16.840.1.113883.2.4.6.3",
+                system: ips.identifierSystem,
                 value: uuid:createType1AsString()
             },
             entry: entries

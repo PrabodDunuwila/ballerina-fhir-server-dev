@@ -16,3 +16,14 @@ useServerGeneratedIds = false
 # Server Base URL Configuration for mappers module
 [ballerina_fhir_server.mappers]
 baseUrl = "http://localhost:9090"
+
+# International Patient Summary (IPS) Configuration
+[ips]
+# Organization that maintains/custodian of the IPS documents
+custodianOrganization = "Organization/default-hospital"
+# Default author/practitioner for IPS documents
+authorPractitioner = "Practitioner/system"
+# Identifier system for IPS Bundle identifiers (OID or URI)
+identifierSystem = "urn:oid:2.16.840.1.113883.2.4.6.3"
+# IPS document title
+documentTitle = "International Patient Summary"
