@@ -847,7 +847,7 @@ isolated function issueDetailToOperationOutcomeIssue(r4:FHIRIssueDetail detail) 
 
 // Utility function to handle $everything operation (reuses _include and _revinclude implementation)
 function performEverythingOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-    log:printInfo(string `${resourceType}: Everything - Start Execution for ID: ${id}`);
+    log:printDebug(string `${resourceType}: Everything - Start Execution for ID: ${id}`);
     do {
         handlers:ReadHandler readHandler = new handlers:ReadHandler();
         
@@ -927,7 +927,7 @@ function performEverythingOperation(string resourceType, string id) returns r4:B
             entry: entries
         };
         
-        log:printInfo(string `${resourceType}: Everything - Retrieved ${entries.length()} resources (forward + reverse references)`);
+        log:printDebug(string `${resourceType}: Everything - Retrieved ${entries.length()} resources (forward + reverse references)`);
         return bundle;
         
     } on fail error e {
@@ -940,7 +940,7 @@ function performEverythingOperation(string resourceType, string id) returns r4:B
 // This creates a full International Patient Summary document with Composition resource
 // Uses direct database queries instead of HTTP calls for better performance
 function performIpsSummaryOperation(string resourceType, string id) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-    log:printInfo(string `${resourceType}: IPS Summary - Start Execution for ID: ${id}`);
+    log:printDebug(string `${resourceType}: IPS Summary - Start Execution for ID: ${id}`);
     
     // Define IPS sections with their resource types
     map<string[]> ipsSections = {
@@ -976,7 +976,7 @@ function performIpsSummaryOperation(string resourceType, string id) returns r4:B
         json[]|error forwardIncluded = readHandler.fetchAllReferencedResources(jdbcClient, resourceType, id);
         
         if forwardIncluded is json[] {
-            log:printInfo(string `IPS: Found ${forwardIncluded.length()} forward referenced resources`);
+            log:printDebug(string `IPS: Found ${forwardIncluded.length()} forward referenced resources`);
             // Organize resources by IPS section
             foreach json entry in forwardIncluded {
                 map<json> entryMap = <map<json>>entry;
@@ -1014,7 +1014,7 @@ function performIpsSummaryOperation(string resourceType, string id) returns r4:B
         json[]|error reverseIncluded = readHandler.fetchAllReferencingResources(jdbcClient, resourceType, id);
         
         if reverseIncluded is json[] {
-            log:printInfo(string `IPS: Found ${reverseIncluded.length()} reverse referenced resources`);
+            log:printDebug(string `IPS: Found ${reverseIncluded.length()} reverse referenced resources`);
             // Organize resources by IPS section
             foreach json entry in reverseIncluded {
                 map<json> entryMap = <map<json>>entry;
@@ -1171,7 +1171,7 @@ function performIpsSummaryOperation(string resourceType, string id) returns r4:B
             entry: entries
         };
         
-        log:printInfo(string `${resourceType}: IPS Summary - Generated ${entries.length()} entries using database access`);
+        log:printDebug(string `${resourceType}: IPS Summary - Generated ${entries.length()} entries using database access`);
         return ipsBundle;
         
     } on fail error e {
@@ -1183,7 +1183,7 @@ function performIpsSummaryOperation(string resourceType, string id) returns r4:B
 
 // Utility function to initiate $export operation (Async - returns 202 Accepted)
 function initiateExportOperation(string resourceType, http:Request request) returns http:Response|r4:FHIRError {
-    log:printInfo(string `${resourceType}: Export - Initiate async export`);
+    log:printDebug(string `${resourceType}: Export - Initiate async export`);
     
     // Generate unique job ID
     string jobId = uuid:createType1AsString();
@@ -1216,13 +1216,13 @@ function initiateExportOperation(string resourceType, http:Request request) retu
     response.statusCode = 202;
     response.setHeader("Content-Location", string `/fhir/_export/status/${jobId}`);
     
-    log:printInfo(string `${resourceType}: Export - Job ${jobId} initiated`);
+    log:printDebug(string `${resourceType}: Export - Job ${jobId} initiated`);
     return response;
 }
 
 // Background worker to process export job
 function processExportJob(string jobId, string resourceType) {
-    log:printInfo(string `Export Job ${jobId}: Starting background processing`);
+    log:printDebug(string `Export Job ${jobId}: Starting background processing`);
     
     do {
         handlers:ReadHandler readHandler = new handlers:ReadHandler();
@@ -1290,7 +1290,7 @@ function processExportJob(string jobId, string resourceType) {
                                 count: entries.length()
                             });
                             
-                            log:printInfo(string `Export Job ${jobId}: Generated ${fileName} with ${entries.length()} resources`);
+                            log:printDebug(string `Export Job ${jobId}: Generated ${fileName} with ${entries.length()} resources`);
                         } else {
                             log:printWarn(string `Export Job ${jobId}: No content generated for ${resType} despite ${entries.length()} entries`);
                         }
@@ -1409,7 +1409,7 @@ function downloadExportFile(string jobId, string fileName) returns http:Response
 
 // Utility function to handle $validate operation
 isolated function performValidateOperation(string resourceType, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
-    log:printInfo(string `${resourceType}: Validate - Start Execution`);
+    log:printDebug(string `${resourceType}: Validate - Start Execution`);
     do {
         // Extract the resource from Parameters
         international401:ParametersParameter[]? parameters = params.'parameter;
@@ -1629,6 +1629,11 @@ service /fhir/r4/Account on new fhirr4:Listener(config = r4_api_config:accountAp
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Account");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Account", params);
+    }
 }
 
 // // # Invoice API                                                                                                          #
@@ -1687,6 +1692,11 @@ service /fhir/r4/Invoice on new fhirr4:Listener(config = r4_api_config:invoiceAp
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Invoice");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Invoice", params);
     }
 }
 
@@ -1747,6 +1757,11 @@ service /fhir/r4/CatalogEntry on new fhirr4:Listener(config = r4_api_config:cata
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("CatalogEntry");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("CatalogEntry", params);
+    }
 }
 
 // // # EventDefinition API                                                                                                          #
@@ -1805,6 +1820,11 @@ service /fhir/r4/EventDefinition on new fhirr4:Listener(config = r4_api_config:e
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("EventDefinition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("EventDefinition", params);
     }
 }
 
@@ -1865,6 +1885,11 @@ service /fhir/r4/DocumentManifest on new fhirr4:Listener(config = r4_api_config:
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("DocumentManifest");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("DocumentManifest", params);
+    }
 }
 
 // // # MessageDefinition API                                                                                                          #
@@ -1916,6 +1941,11 @@ service /fhir/r4/MessageDefinition on new fhirr4:Listener(config = r4_api_config
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MessageDefinition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MessageDefinition", params);
     }
 }
 
@@ -1969,6 +1999,11 @@ service /fhir/r4/Goal on new fhirr4:Listener(config = r4_api_config:goalApiConfi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Goal");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Goal", params);
+    }
 }
 
 // // # MedicinalProductPackaged API                                                                                                          #
@@ -2020,6 +2055,11 @@ service /fhir/r4/MedicinalProductPackaged on new fhirr4:Listener(config = r4_api
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductPackaged");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductPackaged", params);
     }
 }
 
@@ -2073,6 +2113,11 @@ service /fhir/r4/Endpoint on new fhirr4:Listener(config = r4_api_config:endpoint
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Endpoint");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Endpoint", params);
+    }
 }
 
 // // # EnrollmentRequest API                                                                                                          #
@@ -2125,6 +2170,11 @@ service /fhir/r4/EnrollmentRequest on new fhirr4:Listener(config = r4_api_config
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("EnrollmentRequest");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("EnrollmentRequest", params);
+    }
 }
 
 // // # Consent API                                                                                                          #
@@ -2176,6 +2226,11 @@ service /fhir/r4/Consent on new fhirr4:Listener(config = r4_api_config:consentAp
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Consent");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Consent", params);
     }
 }
 
@@ -2239,6 +2294,11 @@ service /fhir/r4/CapabilityStatement on new fhirr4:Listener(config = r4_api_conf
     // isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
     //     return performAllResourceHistory("CapabilityStatement");
     // }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    // isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+    //     return performValidateOperation("Appointment", params);
+    // }
 }
 
 // // # Measure API                                                                                                          #
@@ -2299,6 +2359,11 @@ service /fhir/r4/Measure on new fhirr4:Listener(config = r4_api_config:measureAp
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Measure");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Measure", params);
+    }
 }
 
 // // # Medication API                                                                                                          #
@@ -2357,6 +2422,11 @@ service /fhir/r4/Medication on new fhirr4:Listener(config = r4_api_config:medica
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Medication");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Medication", params);
     }
 }
 
@@ -2418,6 +2488,11 @@ service /fhir/r4/ResearchSubject on new fhirr4:Listener(config = r4_api_config:r
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ResearchSubject");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ResearchSubject", params);
+    }
 }
 
 // // # Subscription API                                                                                                          #
@@ -2477,6 +2552,11 @@ service /fhir/r4/Subscription on new fhirr4:Listener(config = r4_api_config:subs
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Subscription");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Subscription", params);
     }
 }
 
@@ -2538,6 +2618,11 @@ service /fhir/r4/GraphDefinition on new fhirr4:Listener(config = r4_api_config:g
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("GraphDefinition");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("GraphDefinition", params);
+    }
 }
 
 // // # DocumentReference API                                                                                                          #
@@ -2597,6 +2682,11 @@ service /fhir/r4/DocumentReference on new fhirr4:Listener(config = r4_api_config
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("DocumentReference");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("DocumentReference", params);
     }
 }
 
@@ -2658,6 +2748,11 @@ service /fhir/r4/Parameters on new fhirr4:Listener(config = r4_api_config:parame
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Parameters");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Parameters", params);
+    }
 }
 
 // // # CoverageEligibilityResponse API                                                                                                          #
@@ -2717,6 +2812,11 @@ service /fhir/r4/CoverageEligibilityResponse on new fhirr4:Listener(config = r4_
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("CoverageEligibilityResponse");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("CoverageEligibilityResponse", params);
     }
 }
 
@@ -2778,6 +2878,11 @@ service /fhir/r4/MeasureReport on new fhirr4:Listener(config = r4_api_config:mea
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("CoverageEligibilityResponse");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("CoverageEligibilityResponse", params);
+    }
 }
 
 // // # SubstanceReferenceInformation API                                                                                                          #
@@ -2838,6 +2943,11 @@ service /fhir/r4/SubstanceReferenceInformation on new fhirr4:Listener(config = r
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SubstanceReferenceInformation");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SubstanceReferenceInformation", params);
+    }
 }
 
 // // # PractitionerRole API                                                                                                          #
@@ -2896,6 +3006,11 @@ service /fhir/r4/PractitionerRole on new fhirr4:Listener(config = r4_api_config:
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("PractitionerRole");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("PractitionerRole", params);
     }
 }
 
@@ -2956,6 +3071,11 @@ service /fhir/r4/RelatedPerson on new fhirr4:Listener(config = r4_api_config:rel
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("RelatedPerson");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("RelatedPerson", params);
+    }
 }
 
 // // # ServiceRequest API                                                                                                          #
@@ -3014,6 +3134,11 @@ service /fhir/r4/ServiceRequest on new fhirr4:Listener(config = r4_api_config:se
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ServiceRequest");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ServiceRequest", params);
     }
 }
 
@@ -3075,6 +3200,11 @@ service /fhir/r4/SupplyRequest on new fhirr4:Listener(config = r4_api_config:sup
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SupplyRequest");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SupplyRequest", params);
+    }
 }
 
 // // # Practitioner API                                                                                                          #
@@ -3133,6 +3263,11 @@ service /fhir/r4/Practitioner on new fhirr4:Listener(config = r4_api_config:prac
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Practitioner");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Practitioner", params);
     }
 }
 
@@ -3194,6 +3329,11 @@ service /fhir/r4/VerificationResult on new fhirr4:Listener(config = r4_api_confi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("VerificationResult");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("VerificationResult", params);
+    }
 }
 
 // // # SubstanceProtein API                                                                                                          #
@@ -3253,6 +3393,11 @@ service /fhir/r4/SubstanceProtein on new fhirr4:Listener(config = r4_api_config:
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SubstanceProtein");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SubstanceProtein", params);
     }
 }
 
@@ -3314,6 +3459,11 @@ service /fhir/r4/BodyStructure on new fhirr4:Listener(config = r4_api_config:bod
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("BodyStructure");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("BodyStructure", params);
+    }
 }
 
 // // # Slot API                                                                                                          #
@@ -3372,6 +3522,11 @@ service /fhir/r4/Slot on new fhirr4:Listener(config = r4_api_config:slotApiConfi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Slot");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Slot", params);
     }
 }
 
@@ -3433,6 +3588,11 @@ service /fhir/r4/Contract on new fhirr4:Listener(config = r4_api_config:contract
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Contract");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Contract", params);
+    }
 }
 
 // // # Person API                                                                                                          #
@@ -3493,6 +3653,11 @@ service /fhir/r4/Person on new fhirr4:Listener(config = r4_api_config:personApiC
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Person");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Person", params);
+    }
 }
 
 // // # RiskAssessment API                                                                                                          #
@@ -3552,6 +3717,11 @@ service /fhir/r4/RiskAssessment on new fhirr4:Listener(config = r4_api_config:ri
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("RiskAssessment");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("RiskAssessment", params);
     }
 }
 
@@ -3618,6 +3788,11 @@ service /fhir/r4/Group on new fhirr4:Listener(config = r4_api_config:groupApiCon
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Group");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Group", params);
+    }
 }
 
 // // # ResearchDefinition API                                                                                                          #
@@ -3677,6 +3852,11 @@ service /fhir/r4/ResearchDefinition on new fhirr4:Listener(config = r4_api_confi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ResearchDefinition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ResearchDefinition", params);
     }
 }
 
@@ -3738,6 +3918,11 @@ service /fhir/r4/PaymentNotice on new fhirr4:Listener(config = r4_api_config:pay
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("PaymentNotice");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("PaymentNotice", params);
+    }
 }
 
 // // # MedicinalProductManufactured API                                                                                                          #
@@ -3797,6 +3982,11 @@ service /fhir/r4/MedicinalProductManufactured on new fhirr4:Listener(config = r4
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductManufactured");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductManufactured", params);
     }
 }
 
@@ -3858,6 +4048,11 @@ service /fhir/r4/Organization on new fhirr4:Listener(config = r4_api_config:orga
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Organization");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Organization", params);
+    }
 }
 
 // // # ImplementationGuide API                                                                                                          #
@@ -3917,6 +4112,11 @@ service /fhir/r4/ImplementationGuide on new fhirr4:Listener(config = r4_api_conf
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ImplementationGuide");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ImplementationGuide", params);
     }
 }
 
@@ -3978,6 +4178,11 @@ service /fhir/r4/CareTeam on new fhirr4:Listener(config = r4_api_config:careteam
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("CareTeam");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("CareTeam", params);
+    }
 }
 
 // // # ImagingStudy API                                                                                                          #
@@ -4037,6 +4242,11 @@ service /fhir/r4/ImagingStudy on new fhirr4:Listener(config = r4_api_config:imag
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ImagingStudy");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ImagingStudy", params);
     }
 }
 
@@ -4098,6 +4308,11 @@ service /fhir/r4/FamilyMemberHistory on new fhirr4:Listener(config = r4_api_conf
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("FamilyMemberHistory");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("FamilyMemberHistory", params);
+    }
 }
 
 // // # ChargeItem API                                                                                                          #
@@ -4157,6 +4372,11 @@ service /fhir/r4/ChargeItem on new fhirr4:Listener(config = r4_api_config:charge
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ChargeItem");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ChargeItem", params);
     }
 }
 
@@ -4218,6 +4438,11 @@ service /fhir/r4/ResearchElementDefinition on new fhirr4:Listener(config = r4_ap
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ResearchElementDefinition");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ResearchElementDefinition", params);
+    }
 }
 
 // // # ObservationDefinition API                                                                                                          #
@@ -4278,6 +4503,11 @@ service /fhir/r4/ObservationDefinition on new fhirr4:Listener(config = r4_api_co
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ObservationDefinition");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ObservationDefinition", params);
+    }
 }
 
 // // # SubstanceSpecification API                                                                                                          #
@@ -4337,6 +4567,11 @@ service /fhir/r4/SubstanceSpecification on new fhirr4:Listener(config = r4_api_c
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SubstanceSpecification");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SubstanceSpecification", params);
     }
 }
 
@@ -4402,6 +4637,11 @@ service /fhir/r4/Encounter on new fhirr4:Listener(config = r4_api_config:encount
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Encounter");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Encounter", params);
+    }
 }
 
 // // # Substance API                                                                                                          #
@@ -4461,6 +4701,11 @@ service /fhir/r4/Substance on new fhirr4:Listener(config = r4_api_config:substan
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Substance");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Substance", params);
     }
 }
 
@@ -4524,6 +4769,11 @@ service /fhir/r4/SearchParameter on new fhirr4:Listener(config = r4_api_config:s
     // isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
     //     return performAllResourceHistory("SearchParameter");
     // }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SearchParameter", params);
+    }
 }
 
 // // # Communication API                                                                                                          #
@@ -4583,6 +4833,11 @@ service /fhir/r4/Communication on new fhirr4:Listener(config = r4_api_config:com
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Communication");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Communication", params);
     }
 }
 
@@ -4644,6 +4899,11 @@ service /fhir/r4/InsurancePlan on new fhirr4:Listener(config = r4_api_config:ins
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("InsurancePlan");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("InsurancePlan", params);
+    }
 }
 
 // // # ActivityDefinition API                                                                                                          #
@@ -4703,6 +4963,11 @@ service /fhir/r4/ActivityDefinition on new fhirr4:Listener(config = r4_api_confi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ActivityDefinition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ActivityDefinition", params);
     }
 }
 
@@ -4764,6 +5029,11 @@ service /fhir/r4/Linkage on new fhirr4:Listener(config = r4_api_config:linkageAp
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Linkage");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Linkage", params);
+    }
 }
 
 // // # SubstanceSourceMaterial API                                                                                                          #
@@ -4823,6 +5093,11 @@ service /fhir/r4/SubstanceSourceMaterial on new fhirr4:Listener(config = r4_api_
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SubstanceSourceMaterial");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SubstanceSourceMaterial", params);
     }
 }
 
@@ -4884,6 +5159,11 @@ service /fhir/r4/ImmunizationEvaluation on new fhirr4:Listener(config = r4_api_c
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ImmunizationEvaluation");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ImmunizationEvaluation", params);
+    }
 }
 
 // // # DeviceUseStatement API                                                                                                          #
@@ -4943,6 +5223,11 @@ service /fhir/r4/DeviceUseStatement on new fhirr4:Listener(config = r4_api_confi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("DeviceUseStatement");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("DeviceUseStatement", params);
     }
 }
 
@@ -5004,6 +5289,11 @@ service /fhir/r4/RequestGroup on new fhirr4:Listener(config = r4_api_config:requ
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("RequestGroup");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("RequestGroup", params);
+    }
 }
 
 // // # MessageHeader API                                                                                                          #
@@ -5063,6 +5353,11 @@ service /fhir/r4/MessageHeader on new fhirr4:Listener(config = r4_api_config:mes
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MessageHeader");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MessageHeader", params);
     }
 }
 
@@ -5124,6 +5419,11 @@ service /fhir/r4/DeviceRequest on new fhirr4:Listener(config = r4_api_config:dev
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("DeviceRequest");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("DeviceRequest", params);
+    }
 }
 
 // // # ImmunizationRecommendation API                                                                                                          #
@@ -5182,6 +5482,11 @@ service /fhir/r4/ImmunizationRecommendation on new fhirr4:Listener(config = r4_a
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ImmunizationRecommendation");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ImmunizationRecommendation", params);
     }
 }
 
@@ -5243,6 +5548,11 @@ service /fhir/r4/Task on new fhirr4:Listener(config = r4_api_config:taskApiConfi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Task");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Task", params);
+    }
 }
 
 // // # Provenance API                                                                                                          #
@@ -5302,6 +5612,11 @@ service /fhir/r4/Provenance on new fhirr4:Listener(config = r4_api_config:proven
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Provenance");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Provenance", params);
     }
 }
 
@@ -5363,6 +5678,11 @@ service /fhir/r4/Questionnaire on new fhirr4:Listener(config = r4_api_config:que
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Questionnaire");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Questionnaire", params);
+    }
 }
 
 // // # ExplanationOfBenefit API                                                                                                          #
@@ -5422,6 +5742,11 @@ service /fhir/r4/ExplanationOfBenefit on new fhirr4:Listener(config = r4_api_con
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ExplanationOfBenefit");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ExplanationOfBenefit", params);
     }
 }
 
@@ -5483,6 +5808,11 @@ service /fhir/r4/MedicinalProductPharmaceutical on new fhirr4:Listener(config = 
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductPharmaceutical");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductPharmaceutical", params);
+    }
 }
 
 // // # ResearchStudy API                                                                                                          #
@@ -5542,6 +5872,11 @@ service /fhir/r4/ResearchStudy on new fhirr4:Listener(config = r4_api_config:res
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ResearchStudy");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ResearchStudy", params);
     }
 }
 
@@ -5603,6 +5938,11 @@ service /fhir/r4/Specimen on new fhirr4:Listener(config = r4_api_config:specimen
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Specimen");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Specimen", params);
+    }
 }
 
 // // # CarePlan API                                                                                                          #
@@ -5663,6 +6003,11 @@ service /fhir/r4/CarePlan on new fhirr4:Listener(config = r4_api_config:careplan
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("CarePlan");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("CarePlan", params);
+    }
 }
 
 // // # AllergyIntolerance API                                                                                                          #
@@ -5722,6 +6067,11 @@ service /fhir/r4/AllergyIntolerance on new fhirr4:Listener(config = r4_api_confi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("AllergyIntolerance");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("AllergyIntolerance", params);
     }
 }
 
@@ -5826,6 +6176,11 @@ service /fhir/r4/StructureDefinition on new fhirr4:Listener(config = r4_api_conf
     // isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
     //     return performAllResourceHistory("StructureDefinition");
     // }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("StructureDefinition", params);
+    }
 }
 
 // // # ChargeItemDefinition API                                                                                                          #
@@ -5885,6 +6240,11 @@ service /fhir/r4/ChargeItemDefinition on new fhirr4:Listener(config = r4_api_con
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ChargeItemDefinition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ChargeItemDefinition", params);
     }
 }
 
@@ -5951,6 +6311,11 @@ service /fhir/r4/EpisodeOfCare on new fhirr4:Listener(config = r4_api_config:epi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("EpisodeOfCare");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("EpisodeOfCare", params);
+    }
 }
 
 // // # Procedure API                                                                                                          #
@@ -6009,6 +6374,11 @@ service /fhir/r4/Procedure on new fhirr4:Listener(config = r4_api_config:procedu
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Procedure");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Procedure", params);
     }
 }
 
@@ -6070,6 +6440,11 @@ service /fhir/r4/List on new fhirr4:Listener(config = r4_api_config:listApiConfi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("List");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("List", params);
+    }
 }
 
 // // # ConceptMap API                                                                                                          #
@@ -6129,6 +6504,11 @@ service /fhir/r4/ConceptMap on new fhirr4:Listener(config = r4_api_config:concep
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ConceptMap");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ConceptMap", params);
     }
 }
 
@@ -6190,6 +6570,11 @@ service /fhir/r4/OperationDefinition on new fhirr4:Listener(config = r4_api_conf
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("OperationDefinition");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("OperationDefinition", params);
+    }
 }
 
 // // # Immunization API                                                                                                          #
@@ -6249,6 +6634,11 @@ service /fhir/r4/Immunization on new fhirr4:Listener(config = r4_api_config:immu
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Immunization");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Immunization", params);
     }
 }
 
@@ -6310,6 +6700,11 @@ service /fhir/r4/MedicationRequest on new fhirr4:Listener(config = r4_api_config
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicationRequest");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicationRequest", params);
+    }
 }
 
 // // # EffectEvidenceSynthesis API                                                                                                          #
@@ -6369,6 +6764,11 @@ service /fhir/r4/EffectEvidenceSynthesis on new fhirr4:Listener(config = r4_api_
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("EffectEvidenceSynthesis");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("EffectEvidenceSynthesis", params);
     }
 }
 
@@ -6430,6 +6830,11 @@ service /fhir/r4/BiologicallyDerivedProduct on new fhirr4:Listener(config = r4_a
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("BiologicallyDerivedProduct");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("BiologicallyDerivedProduct", params);
+    }
 }
 
 // // # Device API                                                                                                          #
@@ -6488,6 +6893,11 @@ service /fhir/r4/Device on new fhirr4:Listener(config = r4_api_config:deviceApiC
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Device");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Device", params);
     }
 }
 
@@ -6549,6 +6959,11 @@ service /fhir/r4/VisionPrescription on new fhirr4:Listener(config = r4_api_confi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("VisionPrescription");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("VisionPrescription", params);
+    }
 }
 
 // // # Media API                                                                                                          #
@@ -6608,6 +7023,11 @@ service /fhir/r4/Media on new fhirr4:Listener(config = r4_api_config:mediaApiCon
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Media");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Media", params);
     }
 }
 
@@ -6669,6 +7089,11 @@ service /fhir/r4/MedicinalProductContraindication on new fhirr4:Listener(config 
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductContraindication");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductContraindication", params);
+    }
 }
 
 // // # EvidenceVariable API                                                                                                          #
@@ -6729,6 +7154,11 @@ service /fhir/r4/EvidenceVariable on new fhirr4:Listener(config = r4_api_config:
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("EvidenceVariable");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("EvidenceVariable", params);
+    }
 }
 
 // // # MolecularSequence API                                                                                                          #
@@ -6788,6 +7218,11 @@ service /fhir/r4/MolecularSequence on new fhirr4:Listener(config = r4_api_config
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MolecularSequence");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MolecularSequence", params);
     }
 }
 
@@ -6854,6 +7289,11 @@ service /fhir/r4/MedicinalProduct on new fhirr4:Listener(config = r4_api_config:
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProduct");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProduct", params);
+    }
 }
 
 // // # DeviceMetric API                                                                                                          #
@@ -6913,6 +7353,11 @@ service /fhir/r4/DeviceMetric on new fhirr4:Listener(config = r4_api_config:devi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("DeviceMetric");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("DeviceMetric", params);
     }
 }
 
@@ -6974,6 +7419,11 @@ service /fhir/r4/Flag on new fhirr4:Listener(config = r4_api_config:flagApiConfi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Flag");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Flag", params);
+    }
 }
 
 // // # SubstanceNucleicAcid API                                                                                                          #
@@ -7033,6 +7483,11 @@ service /fhir/r4/SubstanceNucleicAcid on new fhirr4:Listener(config = r4_api_con
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SubstanceNucleicAcid");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SubstanceNucleicAcid", params);
     }
 }
 
@@ -7094,6 +7549,11 @@ service /fhir/r4/RiskEvidenceSynthesis on new fhirr4:Listener(config = r4_api_co
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("RiskEvidenceSynthesis");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("RiskEvidenceSynthesis", params);
+    }
 }
 
 // // # AppointmentResponse API                                                                                                          #
@@ -7153,6 +7613,11 @@ service /fhir/r4/AppointmentResponse on new fhirr4:Listener(config = r4_api_conf
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("AppointmentResponse");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("AppointmentResponse", params);
     }
 }
 
@@ -7214,6 +7679,11 @@ service /fhir/r4/StructureMap on new fhirr4:Listener(config = r4_api_config:stru
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("StructureMap");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("StructureMap", params);
+    }
 }
 
 // // # AdverseEvent API                                                                                                          #
@@ -7273,6 +7743,11 @@ service /fhir/r4/AdverseEvent on new fhirr4:Listener(config = r4_api_config:adve
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("AdverseEvent");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("AdverseEvent", params);
     }
 }
 
@@ -7334,6 +7809,11 @@ service /fhir/r4/GuidanceResponse on new fhirr4:Listener(config = r4_api_config:
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("GuidanceResponse");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("GuidanceResponse", params);
+    }
 }
 
 // // # Observation API                                                                                                          #
@@ -7392,6 +7872,11 @@ service /fhir/r4/Observation on new fhirr4:Listener(config = r4_api_config:obser
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Observation");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Observation", params);
     }
 }
 
@@ -7453,6 +7938,11 @@ service /fhir/r4/MedicationAdministration on new fhirr4:Listener(config = r4_api
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicationAdministration");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicationAdministration", params);
+    }
 }
 
 // // # EnrollmentResponse API                                                                                                          #
@@ -7512,6 +8002,11 @@ service /fhir/r4/EnrollmentResponse on new fhirr4:Listener(config = r4_api_confi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("EnrollmentResponse");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("EnrollmentResponse", params);
     }
 }
 
@@ -7573,6 +8068,11 @@ service /fhir/r4/Library on new fhirr4:Listener(config = r4_api_config:libraryAp
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Library");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Library", params);
+    }
 }
 
 // // # Binary API                                                                                                          #
@@ -7632,6 +8132,11 @@ service /fhir/r4/Binary on new fhirr4:Listener(config = r4_api_config:binaryApiC
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Binary");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Binary", params);
     }
 }
 
@@ -7693,6 +8198,11 @@ service /fhir/r4/MedicinalProductInteraction on new fhirr4:Listener(config = r4_
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductInteraction");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductInteraction", params);
+    }
 }
 
 // // # MedicationStatement API                                                                                                          #
@@ -7752,6 +8262,11 @@ service /fhir/r4/MedicationStatement on new fhirr4:Listener(config = r4_api_conf
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicationStatement");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicationStatement", params);
     }
 }
 
@@ -7813,6 +8328,11 @@ service /fhir/r4/CommunicationRequest on new fhirr4:Listener(config = r4_api_con
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("CommunicationRequest");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("CommunicationRequest", params);
+    }
 }
 
 // // # TestScript API                                                                                                          #
@@ -7872,6 +8392,11 @@ service /fhir/r4/TestScript on new fhirr4:Listener(config = r4_api_config:testsc
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("TestScript");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("TestScript", params);
     }
 }
 
@@ -7933,6 +8458,11 @@ service /fhir/r4/SubstancePolymer on new fhirr4:Listener(config = r4_api_config:
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SubstancePolymer");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SubstancePolymer", params);
+    }
 }
 
 // // # Basic API                                                                                                          #
@@ -7992,6 +8522,11 @@ service /fhir/r4/Basic on new fhirr4:Listener(config = r4_api_config:basicApiCon
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Basic");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Basic", params);
     }
 }
 
@@ -8053,6 +8588,11 @@ service /fhir/r4/TestReport on new fhirr4:Listener(config = r4_api_config:testre
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("TestReport");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("TestReport", params);
+    }
 }
 
 // // # ClaimResponse API                                                                                                          #
@@ -8112,6 +8652,11 @@ service /fhir/r4/ClaimResponse on new fhirr4:Listener(config = r4_api_config:cla
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ClaimResponse");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ClaimResponse", params);
     }
 }
 
@@ -8173,6 +8718,11 @@ service /fhir/r4/MedicationDispense on new fhirr4:Listener(config = r4_api_confi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicationDispense");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicationDispense", params);
+    }
 }
 
 // // # DiagnosticReport API                                                                                                          #
@@ -8232,6 +8782,11 @@ service /fhir/r4/DiagnosticReport on new fhirr4:Listener(config = r4_api_config:
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("DiagnosticReport");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("DiagnosticReport", params);
     }
 }
 
@@ -8293,6 +8848,11 @@ service /fhir/r4/OrganizationAffiliation on new fhirr4:Listener(config = r4_api_
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("OrganizationAffiliation");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("OrganizationAffiliation", params);
+    }
 }
 
 // // # HealthcareService API                                                                                                          #
@@ -8351,6 +8911,11 @@ service /fhir/r4/HealthcareService on new fhirr4:Listener(config = r4_api_config
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("HealthcareService");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("HealthcareService", params);
     }
 }
 
@@ -8412,6 +8977,11 @@ service /fhir/r4/MedicinalProductIndication on new fhirr4:Listener(config = r4_a
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductIndication");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductIndication", params);
+    }
 }
 
 // // # NutritionOrder API                                                                                                          #
@@ -8471,6 +9041,11 @@ service /fhir/r4/NutritionOrder on new fhirr4:Listener(config = r4_api_config:nu
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("NutritionOrder");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("NutritionOrder", params);
     }
 }
 
@@ -8532,6 +9107,11 @@ service /fhir/r4/TerminologyCapabilities on new fhirr4:Listener(config = r4_api_
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("TerminologyCapabilities");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("TerminologyCapabilities", params);
+    }
 }
 
 // // # Evidence API                                                                                                          #
@@ -8591,6 +9171,11 @@ service /fhir/r4/Evidence on new fhirr4:Listener(config = r4_api_config:evidence
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Evidence");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Evidence", params);
     }
 }
 
@@ -8652,6 +9237,11 @@ service /fhir/r4/AuditEvent on new fhirr4:Listener(config = r4_api_config:audite
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("AuditEvent");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("AuditEvent", params);
+    }
 }
 
 // // # PaymentReconciliation API                                                                                                          #
@@ -8712,6 +9302,11 @@ service /fhir/r4/PaymentReconciliation on new fhirr4:Listener(config = r4_api_co
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("PaymentReconciliation");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("PaymentReconciliation", params);
+    }
 }
 
 // // # Condition API                                                                                                          #
@@ -8770,6 +9365,11 @@ service /fhir/r4/Condition on new fhirr4:Listener(config = r4_api_config:conditi
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Condition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Condition", params);
     }
 }
 
@@ -8831,6 +9431,11 @@ service /fhir/r4/SpecimenDefinition on new fhirr4:Listener(config = r4_api_confi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SpecimenDefinition");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SpecimenDefinition", params);
+    }
 }
 
 // // # Composition API                                                                                                          #
@@ -8890,6 +9495,11 @@ service /fhir/r4/Composition on new fhirr4:Listener(config = r4_api_config:compo
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Composition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Composition", params);
     }
 }
 
@@ -8951,6 +9561,11 @@ service /fhir/r4/DetectedIssue on new fhirr4:Listener(config = r4_api_config:det
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("DetectedIssue");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("DetectedIssue", params);
+    }
 }
 
 // // # CompartmentDefinition API                                                                                                          #
@@ -9011,6 +9626,11 @@ service /fhir/r4/CompartmentDefinition on new fhirr4:Listener(config = r4_api_co
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("CompartmentDefinition");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("CompartmentDefinition", params);
+    }
 }
 
 // // # MedicinalProductIngredient API                                                                                                          #
@@ -9070,6 +9690,11 @@ service /fhir/r4/MedicinalProductIngredient on new fhirr4:Listener(config = r4_a
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductIngredient");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductIngredient", params);
     }
 }
 
@@ -9140,6 +9765,11 @@ service /fhir/r4/MedicationKnowledge on new fhirr4:Listener(config = r4_api_conf
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicationKnowledge");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicationKnowledge", params);
     }
 }
 
@@ -9215,6 +9845,11 @@ service /fhir/r4/Patient on new fhirr4:Listener(config = r4_api_config:patientAp
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Patient");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Patient", params);
+    }
 }
 
 // // # Coverage API                                                                                                          #
@@ -9274,6 +9909,11 @@ service /fhir/r4/Coverage on new fhirr4:Listener(config = r4_api_config:coverage
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Coverage");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Coverage", params);
     }
 }
 
@@ -9335,6 +9975,11 @@ service /fhir/r4/QuestionnaireResponse on new fhirr4:Listener(config = r4_api_co
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("QuestionnaireResponse");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("QuestionnaireResponse", params);
+    }
 }
 
 // // # CoverageEligibilityRequest API                                                                                                          #
@@ -9394,6 +10039,11 @@ service /fhir/r4/CoverageEligibilityRequest on new fhirr4:Listener(config = r4_a
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("CoverageEligibilityRequest");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("CoverageEligibilityRequest", params);
     }
 }
 
@@ -9455,6 +10105,11 @@ service /fhir/r4/NamingSystem on new fhirr4:Listener(config = r4_api_config:nami
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("NamingSystem");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("NamingSystem", params);
+    }
 }
 
 // // # MedicinalProductUndesirableEffect API                                                                                                          #
@@ -9514,6 +10169,11 @@ service /fhir/r4/MedicinalProductUndesirableEffect on new fhirr4:Listener(config
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductUndesirableEffect");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductUndesirableEffect", params);
     }
 }
 
@@ -9575,6 +10235,11 @@ service /fhir/r4/ExampleScenario on new fhirr4:Listener(config = r4_api_config:e
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ExampleScenario");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ExampleScenario", params);
+    }
 }
 
 // // # SupplyDelivery API                                                                                                          #
@@ -9634,6 +10299,11 @@ service /fhir/r4/SupplyDelivery on new fhirr4:Listener(config = r4_api_config:su
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("SupplyDelivery");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("SupplyDelivery", params);
     }
 }
 
@@ -9695,6 +10365,11 @@ service /fhir/r4/Schedule on new fhirr4:Listener(config = r4_api_config:schedule
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Schedule");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Schedule", params);
+    }
 }
 
 // // # DeviceDefinition API                                                                                                          #
@@ -9754,6 +10429,11 @@ service /fhir/r4/DeviceDefinition on new fhirr4:Listener(config = r4_api_config:
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("DeviceDefinition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("DeviceDefinition", params);
     }
 }
 
@@ -9815,6 +10495,11 @@ service /fhir/r4/ClinicalImpression on new fhirr4:Listener(config = r4_api_confi
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("ClinicalImpression");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("ClinicalImpression", params);
+    }
 }
 
 // // # PlanDefinition API                                                                                                          #
@@ -9874,6 +10559,11 @@ service /fhir/r4/PlanDefinition on new fhirr4:Listener(config = r4_api_config:pl
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("PlanDefinition");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("PlanDefinition", params);
     }
 }
 
@@ -9935,6 +10625,11 @@ service /fhir/r4/MedicinalProductAuthorization on new fhirr4:Listener(config = r
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("MedicinalProductAuthorization");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("MedicinalProductAuthorization", params);
+    }
 }
 
 // // # Claim API                                                                                                          #
@@ -9995,6 +10690,11 @@ service /fhir/r4/Claim on new fhirr4:Listener(config = r4_api_config:claimApiCon
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Claim");
     }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Claim", params);
+    }
 }
 
 // // # Location API                                                                                                          #
@@ -10053,6 +10753,11 @@ service /fhir/r4/Location on new fhirr4:Listener(config = r4_api_config:location
     // Retrieve the update history for all resources.
     isolated resource function get _history(r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
         return performAllResourceHistory("Location");
+    }
+
+    // Validate operation - accepts Parameters resource containing the resource to validate
+    isolated resource function post \$validate(r4:FHIRContext fhirContext, Parameters params) returns r4:OperationOutcome|r4:FHIRError {
+        return performValidateOperation("Location", params);
     }
 }
 
