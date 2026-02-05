@@ -884,7 +884,7 @@ function performEverythingOperation(string resourceType, string id) returns r4:B
                 string? fullUrl = entryMap["fullUrl"] is string ? <string>entryMap["fullUrl"] : ();
                 json? resourceJson = entryMap["resource"];
                 
-                if fullUrl is string && resourceJson is json && !addedResources.hasKey(fullUrl) {
+                if fullUrl is string && resourceJson != () && !addedResources.hasKey(fullUrl) {
                     entries.push({
                         fullUrl: fullUrl,
                         'resource: resourceJson
@@ -906,7 +906,7 @@ function performEverythingOperation(string resourceType, string id) returns r4:B
                 string? fullUrl = entryMap["fullUrl"] is string ? <string>entryMap["fullUrl"] : ();
                 json? resourceJson = entryMap["resource"];
                 
-                if fullUrl is string && resourceJson is json && !addedResources.hasKey(fullUrl) {
+                if fullUrl is string && resourceJson != () && !addedResources.hasKey(fullUrl) {
                     entries.push({
                         fullUrl: fullUrl,
                         'resource: resourceJson
@@ -1339,7 +1339,7 @@ function processExportJob(string jobId, string resourceType, string? patientId =
                 string ndjsonContent = "";
                 int totalCount = 0;
                 
-                foreach var [resType, resources] in resourcesByType.entries() {
+                foreach var [_, resources] in resourcesByType.entries() {
                     foreach json res in resources {
                         ndjsonContent += res.toJsonString() + "\n";
                         totalCount += 1;
@@ -1513,6 +1513,7 @@ function downloadExportFile(string jobId, string fileName) returns http:Response
         
         return response;
     } on fail error e {
+        log:printError(string `Failed to read export file: ${e.message()}`);
         return r4:createFHIRError(string `File not found: ${fileName}`, r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_NOT_FOUND);
     }
 }

@@ -242,7 +242,6 @@ public class DBHandler {
         final string[] readLines = check io:fileReadLines(dataFilePath);
         final string:RegExp regex = re `,`;
         int i = 0;
-        int totRecords = 0;
 
         foreach string line in readLines {
             i += 1;
@@ -263,10 +262,7 @@ public class DBHandler {
                 string sqlQuery = string `INSERT INTO "SEARCH_PARAM_RES_EXPRESSIONS" ("SEARCH_PARAM_NAME", "SEARCH_PARAM_TYPE", "RESOURCE_NAME", "EXPRESSION") VALUES ('${utils:escapeSql(searchParamName)}', '${utils:escapeSql(searchParamType)}', '${utils:escapeSql('resource)}', '${utils:escapeSql(expression)}')`;
                 sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
-                sql:ExecutionResult result = check jdbcClient->execute(query);
-                if result.lastInsertId is int {
-                    totRecords = <int>result.lastInsertId;
-                }
+                _ = check jdbcClient->execute(query);
             }
         }
         log:printInfo(string `Populated SEARCH_PARAM_RES_EXPRESSIONS table with ${i - 1} records from CSV`);
