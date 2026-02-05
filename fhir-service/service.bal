@@ -1192,6 +1192,32 @@ function initiateExportOperation(string resourceType, r4:FHIRContext fhirContext
         }
     }
     
+    // Extract _type parameter (comma-separated list of resource types to include)
+    // Supports both: ?_type=Org,Prac and ?_type=Org&_type=Prac
+    string[]? typeFilter = ();
+    r4:RequestSearchParameter[]? typeParams = searchParams["_type"];
+    if typeParams is r4:RequestSearchParameter[] && typeParams.length() > 0 {
+        string[] types = [];
+        // Iterate through all _type parameters
+        foreach var typeParam in typeParams {
+            string? typeValue = typeParam.value;
+            if typeValue is string && typeValue.trim().length() > 0 {
+                // Split comma-separated resource types and trim whitespace
+                string[] parts = re `,`.split(typeValue);
+                foreach string part in parts {
+                    string trimmed = part.trim();
+                    if trimmed.length() > 0 && !types.some(t => t == trimmed) {
+                        types.push(trimmed);
+                    }
+                }
+            }
+        }
+        if types.length() > 0 {
+            typeFilter = types;
+            log:printDebug(string `Export will filter resource types: ${typeFilter.toString()}`);
+        }
+    }
+    
     log:printDebug(string `${resourceType}: Export - Initiate async export${patientId is string ? " for patient " + patientId : ""} with output format: ${outputFormat}`);
     
     // Generate unique job ID
@@ -1221,22 +1247,24 @@ function initiateExportOperation(string resourceType, r4:FHIRContext fhirContext
         
         string metadataPath = jobDir + JOB_METADATA_FILE;
         json jobJson = job.toJson();
+        map<json> jobMap = <map<json>>jobJson;
         // Add patientId to metadata if present
         if patientId is string {
-            map<json> jobMap = <map<json>>jobJson;
             jobMap["patientId"] = patientId;
-            jobJson = jobMap;
         }
+        // Add typeFilter to metadata if present
+        if typeFilter is string[] {
+            jobMap["typeFilter"] = typeFilter;
+        }
+        jobJson = jobMap;
         check io:fileWriteJson(metadataPath, jobJson);
     } on fail error e {
         log:printError(string `Failed to create export job directory: ${e.message()}`);
         return r4:createFHIRError("Failed to initiate export", r4:ERROR, r4:PROCESSING, httpStatusCode = http:STATUS_INTERNAL_SERVER_ERROR);
     }
     
-    // Start background processing
-    worker ExportWorker {
-        processExportJob(jobId, resourceType, patientId, outputFormat);
-    }
+    // Start background processing in a new strand
+    future<()> _ = start processExportJob(jobId, resourceType, patientId, outputFormat, typeFilter);
     
     // Return 202 Accepted with Content-Location header
     http:Response response = new;
@@ -1248,7 +1276,7 @@ function initiateExportOperation(string resourceType, r4:FHIRContext fhirContext
 }
 
 // Background worker to process export job
-function processExportJob(string jobId, string resourceType, string? patientId = (), string outputFormat = "split") {
+function processExportJob(string jobId, string resourceType, string? patientId = (), string outputFormat = "split", string[]? typeFilter = ()) {
     log:printDebug(string `Export Job ${jobId}: Starting background processing${patientId is string ? " for patient " + patientId : ""} with output format: ${outputFormat}`);
     
     do {
@@ -1339,7 +1367,11 @@ function processExportJob(string jobId, string resourceType, string? patientId =
                 string ndjsonContent = "";
                 int totalCount = 0;
                 
-                foreach var [_, resources] in resourcesByType.entries() {
+                foreach var [resType, resources] in resourcesByType.entries() {
+                    // Apply type filter if specified
+                    if typeFilter is string[] && !typeFilter.some(t => t == resType) {
+                        continue;
+                    }
                     foreach json res in resources {
                         ndjsonContent += res.toJsonString() + "\n";
                         totalCount += 1;
@@ -1358,6 +1390,10 @@ function processExportJob(string jobId, string resourceType, string? patientId =
             } else {
                 // Separate files per resource type (default)
                 foreach var [resType, resources] in resourcesByType.entries() {
+                    // Apply type filter if specified
+                    if typeFilter is string[] && !typeFilter.some(t => t == resType) {
+                        continue;
+                    }
                     if resources.length() > 0 {
                         string fileName = resType + ".ndjson";
                         string filePath = jobDir + fileName;

@@ -357,6 +357,10 @@ public final r4:ResourceAPIConfig patientApiConfig = {
                {
                    name: "_outputFormat",
                    active: true
+               },
+               {
+                   name: "_type",
+                   active: true
                }
            ]
        }
