@@ -337,7 +337,7 @@ public type Claim international401:Claim;
 public type Location international401:Location;
 
 // Global Database Config Objects
-final handlers:DBHandler dbHandler = new handlers:DBHandler();
+final handlers:DBHandler dbHandler = check new handlers:DBHandler();
 final jdbc:Client jdbcClient = check dbHandler.initializeJdbcClient();
 
 // Export Job Management

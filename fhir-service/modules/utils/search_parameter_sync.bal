@@ -39,10 +39,10 @@ public isolated function syncSearchParameterToExpressions(jdbc:Client? jdbcClien
         
         // Check if entry already exists
         sql:ParameterizedQuery checkQuery = `
-            SELECT COUNT(*) as count FROM SEARCH_PARAM_RES_EXPRESSIONS 
-            WHERE SEARCH_PARAM_NAME = ${code} 
-            AND RESOURCE_NAME = ${resourceName}
-            AND IS_CUSTOM = ${true}
+            SELECT COUNT(*) as count FROM "SEARCH_PARAM_RES_EXPRESSIONS" 
+            WHERE "SEARCH_PARAM_NAME" = ${code} 
+            AND "RESOURCE_NAME" = ${resourceName}
+            AND "IS_CUSTOM" = ${true}
         `;
         
         stream<record {int count;}, error?> checkResult = validatedClient->query(checkQuery);
@@ -58,20 +58,20 @@ public isolated function syncSearchParameterToExpressions(jdbc:Client? jdbcClien
             // Update existing entry
             log:printDebug(string `Updating existing SearchParameter expression for '${code}' on ${resourceName}`);
             sql:ParameterizedQuery updateQuery = `
-                UPDATE SEARCH_PARAM_RES_EXPRESSIONS 
-                SET SEARCH_PARAM_TYPE = ${('type)},
-                    EXPRESSION = ${expression}
-                WHERE SEARCH_PARAM_NAME = ${code}
-                AND RESOURCE_NAME = ${resourceName}
-                AND IS_CUSTOM = ${true}
+                UPDATE "SEARCH_PARAM_RES_EXPRESSIONS" 
+                SET "SEARCH_PARAM_TYPE" = ${('type)},
+                    "EXPRESSION" = ${expression}
+                WHERE "SEARCH_PARAM_NAME" = ${code}
+                AND "RESOURCE_NAME" = ${resourceName}
+                AND "IS_CUSTOM" = ${true}
             `;
             _ = check validatedClient->execute(updateQuery);
         } else {
             // Insert new entry
             log:printDebug(string `Inserting new SearchParameter expression for '${code}' on ${resourceName}`);
             sql:ParameterizedQuery insertQuery = `
-                INSERT INTO SEARCH_PARAM_RES_EXPRESSIONS 
-                (SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION, IS_CUSTOM)
+                INSERT INTO "SEARCH_PARAM_RES_EXPRESSIONS" 
+                ("SEARCH_PARAM_NAME", "SEARCH_PARAM_TYPE", "RESOURCE_NAME", "EXPRESSION", "IS_CUSTOM")
                 VALUES (${code}, ${('type)}, ${resourceName}, ${expression}, ${true})
             `;
             _ = check validatedClient->execute(insertQuery);
@@ -93,9 +93,9 @@ public isolated function removeSearchParameterFromExpressions(jdbc:Client? jdbcC
     log:printInfo(string `Removing SearchParameter '${code}' from SEARCH_PARAM_RES_EXPRESSIONS`);
     
     sql:ParameterizedQuery deleteQuery = `
-        DELETE FROM SEARCH_PARAM_RES_EXPRESSIONS 
-        WHERE SEARCH_PARAM_NAME = ${code}
-        AND IS_CUSTOM = ${true}
+        DELETE FROM "SEARCH_PARAM_RES_EXPRESSIONS" 
+        WHERE "SEARCH_PARAM_NAME" = ${code}
+        AND "IS_CUSTOM" = ${true}
     `;
     
     sql:ExecutionResult result = check validatedClient->execute(deleteQuery);
@@ -111,8 +111,8 @@ public isolated function removeSearchParameterById(jdbc:Client? jdbcClient, stri
     
     // First, read the SearchParameter resource to get the code
     sql:ParameterizedQuery readQuery = `
-        SELECT RESOURCE_JSON FROM SearchParameterTable 
-        WHERE SEARCHPARAMETERTABLE_ID = ${resourceId}
+        SELECT "RESOURCE_JSON" FROM "SearchParameterTable" 
+        WHERE "SEARCHPARAMETERTABLE_ID" = ${resourceId}
     `;
     
     stream<record {byte[] RESOURCE_JSON;}, error?> resultStream = validatedClient->query(readQuery);
@@ -133,9 +133,9 @@ public isolated function removeSearchParameterById(jdbc:Client? jdbcClient, stri
     log:printInfo(string `Removing SearchParameter '${code}' (ID: ${resourceId}) from SEARCH_PARAM_RES_EXPRESSIONS`);
     
     sql:ParameterizedQuery deleteQuery = `
-        DELETE FROM SEARCH_PARAM_RES_EXPRESSIONS 
-        WHERE SEARCH_PARAM_NAME = ${code}
-        AND IS_CUSTOM = ${true}
+        DELETE FROM "SEARCH_PARAM_RES_EXPRESSIONS" 
+        WHERE "SEARCH_PARAM_NAME" = ${code}
+        AND "IS_CUSTOM" = ${true}
     `;
     
     sql:ExecutionResult result = check validatedClient->execute(deleteQuery);

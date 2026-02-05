@@ -24,7 +24,7 @@ public class HistoryHandler {
         byte[] resourceJsonBytes = check currentVersion.get("RESOURCE_JSON").ensureType();
         
         // Get the latest VERSION_ID from history table for this resource and increment by 1
-        string maxVersionQuery = string `SELECT MAX(VERSION_ID) as MAX_VERSION FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND RESOURCE_ID = '${utils:escapeSql(resourceId)}'`;
+        string maxVersionQuery = string `SELECT MAX("VERSION_ID") as "MAX_VERSION" FROM "RESOURCE_HISTORY" WHERE "RESOURCE_TYPE" = '${utils:escapeSql(resourceType)}' AND "RESOURCE_ID" = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery versionQuery = new utils:RawSQLQuery(maxVersionQuery);
         
         stream<record {|int? MAX_VERSION;|}, sql:Error?> versionStream = jdbcConn->query(versionQuery);
@@ -43,8 +43,19 @@ public class HistoryHandler {
         time:Civil now = time:utcToCivil(time:utcNow());
         string timestamp = string `'${utils:formatTimestamp(now)}'`;
         
+        // Format binary data based on database type
+        string normalizedDbType = dbType.toLowerAscii().trim();
+        string resourceJsonValue = "";
+        if normalizedDbType == "postgresql" || normalizedDbType == "postgres" {
+            // PostgreSQL: Use decode() function for BYTEA
+            resourceJsonValue = string `decode('${resourceJsonBytes.toBase16()}', 'hex')`;
+        } else {
+            // H2: Use X'...' hex literal format
+            resourceJsonValue = string `X'${resourceJsonBytes.toBase16()}'`;
+        }
+        
         // Insert into unified RESOURCE_HISTORY table with incremented version
-        string sqlQuery = string `INSERT INTO "RESOURCE_HISTORY" (RESOURCE_TYPE, RESOURCE_ID, VERSION_ID, OPERATION, CREATED_AT, RESOURCE_JSON) VALUES ('${utils:escapeSql(resourceType)}', '${utils:escapeSql(resourceId)}', ${newVersionId}, '${operation}', ${timestamp}, X'${resourceJsonBytes.toBase16()}')`;
+        string sqlQuery = string `INSERT INTO "RESOURCE_HISTORY" ("RESOURCE_TYPE", "RESOURCE_ID", "VERSION_ID", "OPERATION", "CREATED_AT", "RESOURCE_JSON") VALUES ('${utils:escapeSql(resourceType)}', '${utils:escapeSql(resourceId)}', ${newVersionId}, '${operation}', ${timestamp}, ${resourceJsonValue})`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
         
         _ = check jdbcConn->execute(query);
@@ -57,7 +68,7 @@ public class HistoryHandler {
         log:printDebug(string `Fetching ${resourceType}/${resourceId}/_history/${versionId}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON, VERSION_ID, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND RESOURCE_ID = '${utils:escapeSql(resourceId)}' AND VERSION_ID = ${versionId}`;
+        string sqlQuery = string `SELECT "RESOURCE_JSON", "VERSION_ID", "OPERATION", "CREATED_AT" FROM "RESOURCE_HISTORY" WHERE "RESOURCE_TYPE" = '${utils:escapeSql(resourceType)}' AND "RESOURCE_ID" = '${utils:escapeSql(resourceId)}' AND "VERSION_ID" = ${versionId}`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);
@@ -97,7 +108,7 @@ public class HistoryHandler {
         log:printDebug(string `Fetching all history for ${resourceType}/${resourceId}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON, VERSION_ID, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND RESOURCE_ID = '${utils:escapeSql(resourceId)}' ORDER BY VERSION_ID DESC`;
+        string sqlQuery = string `SELECT "RESOURCE_JSON", "VERSION_ID", "OPERATION", "CREATED_AT" FROM "RESOURCE_HISTORY" WHERE "RESOURCE_TYPE" = '${utils:escapeSql(resourceType)}' AND "RESOURCE_ID" = '${utils:escapeSql(resourceId)}' ORDER BY "VERSION_ID" DESC`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);
@@ -136,7 +147,7 @@ public class HistoryHandler {
         log:printDebug(string `Fetching all history for resource type: ${resourceType}`);
         jdbc:Client jdbcConn = check utils:getValidatedJdbcClient(self.jdbcClient);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON, VERSION_ID, OPERATION, CREATED_AT FROM "RESOURCE_HISTORY" WHERE RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' ORDER BY CREATED_AT DESC`;
+        string sqlQuery = string `SELECT "RESOURCE_JSON", "VERSION_ID", "OPERATION", "CREATED_AT" FROM "RESOURCE_HISTORY" WHERE "RESOURCE_TYPE" = '${utils:escapeSql(resourceType)}' ORDER BY "CREATED_AT" DESC`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; string OPERATION; time:Civil CREATED_AT;|}, sql:Error?> resultStream = jdbcConn->query(query);

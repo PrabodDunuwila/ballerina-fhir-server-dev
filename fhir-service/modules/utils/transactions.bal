@@ -42,7 +42,7 @@ public class TransactionHandler {
         // Delete newly created references using JDBC
         if jdbcClient is jdbc:Client {
             foreach int refId in 'transaction.savedReferenceIds.reverse() {
-                string deleteQuery = string `DELETE FROM "REFERENCES" WHERE ID = ${refId}`;
+                string deleteQuery = string `DELETE FROM "REFERENCES" WHERE "ID" = ${refId}`;
                 sql:ExecutionResult|error result = jdbcClient->execute(new RawSQLQuery(deleteQuery));
                 if result is error {
                     log:printError(string `Failed to delete reference ${refId} during rollback: ${result.message()}`);
@@ -148,7 +148,7 @@ public class TransactionHandler {
         // Delete newly created references using JDBC
         if jdbcClient is jdbc:Client {
             foreach int refId in 'transaction.savedReferenceIds.reverse() {
-                string deleteQuery = string `DELETE FROM "REFERENCES" WHERE ID = ${refId}`;
+                string deleteQuery = string `DELETE FROM "REFERENCES" WHERE "ID" = ${refId}`;
                 sql:ExecutionResult|error result = jdbcClient->execute(new RawSQLQuery(deleteQuery));
                 if result is error {
                     log:printError(string `Failed to delete reference ${refId} during rollback: ${result.message()}`);
@@ -176,7 +176,7 @@ public class TransactionHandler {
         string[] setClauses = [];
         foreach var [columnName, value] in backup.entries() {
             string columnValue = self.formatValue(value);
-            setClauses.push(string `${columnName} = ${columnValue}`);
+            setClauses.push(string `"${columnName}" = ${columnValue}`);
         }
 
         if setClauses.length() == 0 {
@@ -184,7 +184,7 @@ public class TransactionHandler {
         }
 
         // Build and execute UPDATE query
-        string updateQuery = string `UPDATE "${tableName}" SET ${string:'join(", ", ...setClauses)} WHERE ${primaryKeyColumn} = '${resourceId}'`;
+        string updateQuery = string `UPDATE "${tableName}" SET ${string:'join(", ", ...setClauses)} WHERE "${primaryKeyColumn}" = '${resourceId}'`;
         sql:ExecutionResult result = check jdbcClient->execute(new RawSQLQuery(updateQuery));
 
         if result.affectedRowCount == 0 {
@@ -228,7 +228,7 @@ public class TransactionHandler {
         int refId = check int:fromString(ref.get("ID").toString());
 
         // Build INSERT query
-        string insertQuery = string `INSERT INTO "REFERENCES" (ID, SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID, SOURCE_EXPRESSION, TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID, DISPLAY_VALUE, CREATED_AT, UPDATED_AT, LAST_UPDATED) VALUES (${refId}, '${escapedSourceResType}', '${escapedSourceResId}', '${escapedSourceExpr}', '${escapedTargetResType}', '${escapedTargetResId}', '${escapedDisplayValue}', '${createdAt}', '${updatedAt}', '${lastUpdated}')`;
+        string insertQuery = string `INSERT INTO "REFERENCES" ("ID", "SOURCE_RESOURCE_TYPE", "SOURCE_RESOURCE_ID", "SOURCE_EXPRESSION", "TARGET_RESOURCE_TYPE", "TARGET_RESOURCE_ID", "DISPLAY_VALUE", "CREATED_AT", "UPDATED_AT", "LAST_UPDATED") VALUES (${refId}, '${escapedSourceResType}', '${escapedSourceResId}', '${escapedSourceExpr}', '${escapedTargetResType}', '${escapedTargetResId}', '${escapedDisplayValue}', '${createdAt}', '${updatedAt}', '${lastUpdated}')`;
 
         _ = check jdbcClient->execute(new RawSQLQuery(insertQuery));
     }

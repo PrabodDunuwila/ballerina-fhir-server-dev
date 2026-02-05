@@ -357,11 +357,11 @@ isolated function saveExtractedSearchParams(
     
     foreach ExtractedSearchParam param in params {
         sql:ParameterizedQuery insertQuery = `
-            INSERT INTO CUSTOM_EXTENSION_SEARCH_PARAMS 
-            (RESOURCE_TYPE, RESOURCE_ID, PARAM_NAME, PARAM_TYPE, 
-             VALUE_STRING, VALUE_NUMBER, VALUE_DATE, 
-             VALUE_TOKEN_SYSTEM, VALUE_TOKEN_CODE,
-             VALUE_REFERENCE_TYPE, VALUE_REFERENCE_ID)
+            INSERT INTO "CUSTOM_EXTENSION_SEARCH_PARAMS" 
+            ("RESOURCE_TYPE", "RESOURCE_ID", "PARAM_NAME", "PARAM_TYPE", 
+             "VALUE_STRING", "VALUE_NUMBER", "VALUE_DATE", 
+             "VALUE_TOKEN_SYSTEM", "VALUE_TOKEN_CODE",
+             "VALUE_REFERENCE_TYPE", "VALUE_REFERENCE_ID")
             VALUES (
                 ${resourceType}, 
                 ${resourceId}, 
@@ -394,9 +394,9 @@ public isolated function deleteSearchParametersForResource(
 ) returns error? {
     
     sql:ParameterizedQuery deleteQuery = `
-        DELETE FROM CUSTOM_EXTENSION_SEARCH_PARAMS 
-        WHERE RESOURCE_TYPE = ${resourceType} 
-        AND RESOURCE_ID = ${resourceId}
+        DELETE FROM "CUSTOM_EXTENSION_SEARCH_PARAMS" 
+        WHERE "RESOURCE_TYPE" = ${resourceType} 
+        AND "RESOURCE_ID" = ${resourceId}
     `;
     
     sql:ExecutionResult result = check jdbcClient->execute(deleteQuery);
@@ -458,10 +458,10 @@ isolated function getCustomSearchParamExpressions(
 ) returns SearchParamExpression[]|error {
     
     sql:ParameterizedQuery query = `
-        SELECT SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION 
-        FROM SEARCH_PARAM_RES_EXPRESSIONS 
-        WHERE RESOURCE_NAME = ${resourceType}
-        AND IS_CUSTOM = ${true}
+        SELECT "SEARCH_PARAM_NAME", "SEARCH_PARAM_TYPE", "RESOURCE_NAME", "EXPRESSION" 
+        FROM "SEARCH_PARAM_RES_EXPRESSIONS" 
+        WHERE "RESOURCE_NAME" = ${resourceType}
+        AND "IS_CUSTOM" = ${true}
     `;
     
     stream<record {|
@@ -497,9 +497,9 @@ isolated function getSearchParamExpressions(
 ) returns SearchParamExpression[]|error {
     
     sql:ParameterizedQuery query = `
-        SELECT SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION 
-        FROM SEARCH_PARAM_RES_EXPRESSIONS 
-        WHERE RESOURCE_NAME = ${resourceType}
+        SELECT "SEARCH_PARAM_NAME", "SEARCH_PARAM_TYPE", "RESOURCE_NAME", "EXPRESSION" 
+        FROM "SEARCH_PARAM_RES_EXPRESSIONS" 
+        WHERE "RESOURCE_NAME" = ${resourceType}
     `;
     
     stream<record {|

@@ -328,7 +328,7 @@ public class UpdateHandler {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT * FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        string sqlQuery = string `SELECT * FROM "${tableName}" WHERE "${primaryKey}" = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|anydata...;|}, sql:Error?> resultStream = jdbcConn->query(query);
@@ -354,7 +354,7 @@ public class UpdateHandler {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        string sqlQuery = string `SELECT "RESOURCE_JSON" FROM "${tableName}" WHERE "${primaryKey}" = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON;|}, sql:Error?> resultStream = jdbcConn->query(query);
@@ -405,7 +405,7 @@ public class UpdateHandler {
             return error("JDBC client not initialized");
         }
 
-        string sqlQuery = string `SELECT ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND SOURCE_RESOURCE_ID = '${utils:escapeSql(resourceId)}'`;
+        string sqlQuery = string `SELECT "ID" FROM "REFERENCES" WHERE "SOURCE_RESOURCE_TYPE" = '${utils:escapeSql(resourceType)}' AND "SOURCE_RESOURCE_ID" = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|int ID;|}, sql:Error?> resultStream = jdbcConn->query(query);
@@ -439,7 +439,7 @@ public class UpdateHandler {
             } else {
                 formattedValue = self.transactionHandler.formatValue(value);
             }
-            setClauses.push(string `${key} = ${formattedValue}`);
+            setClauses.push(string `"${key}" = ${formattedValue}`);
         }
 
         if setClauses.length() == 0 {
@@ -447,7 +447,7 @@ public class UpdateHandler {
         }
 
         string setClause = string:'join(", ", ...setClauses);
-        string sqlQuery = string `UPDATE "${tableName}" SET ${setClause} WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        string sqlQuery = string `UPDATE "${tableName}" SET ${setClause} WHERE "${primaryKey}" = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         sql:ExecutionResult|sql:Error result = jdbcConn->execute(query);

@@ -164,8 +164,10 @@ public class CreateHandler {
         
         log:printDebug(string `Prepared insert with ${columnNames.length()} columns for ${resourceType}/${resourceId}`);
         
-        // Build INSERT query string
-        string columnNamesStr = string:'join(", ", ...columnNames);
+        // Build INSERT query string with quoted column names for PostgreSQL compatibility
+        string[] quotedColumnNames = from string colName in columnNames
+                                      select string `"${colName}"`;
+        string columnNamesStr = string:'join(", ", ...quotedColumnNames);
         
         // Build values string using consolidated formatting utility
         string[] valueStrings = [];

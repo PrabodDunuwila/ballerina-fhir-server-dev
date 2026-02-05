@@ -61,7 +61,7 @@ public isolated function searchResourcesByCustomParams(jdbc:Client jdbcClient, s
 isolated function buildCustomExtensionSearchQuery(jdbc:Client jdbcClient, string resourceType, map<string[]> searchParams) returns sql:ParameterizedQuery|error {
     
     // Start building the query
-    string baseQuery = string `SELECT DISTINCT RESOURCE_ID FROM CUSTOM_EXTENSION_SEARCH_PARAMS WHERE RESOURCE_TYPE = '${escapeSql(resourceType)}'`;
+    string baseQuery = string `SELECT DISTINCT "RESOURCE_ID" FROM "CUSTOM_EXTENSION_SEARCH_PARAMS" WHERE "RESOURCE_TYPE" = '${escapeSql(resourceType)}'`;
     
     // Add conditions for each search parameter
     string[] conditions = [];
@@ -111,10 +111,10 @@ isolated function buildSearchCondition(string paramName, string paramType, strin
             // For string type, use exact match
             string[] valueClauses = [];
             foreach string value in paramValues {
-                valueClauses.push(string `VALUE_STRING = '${escapeSql(value)}'`);
+                valueClauses.push(string `"VALUE_STRING" = '${escapeSql(value)}'`);
             }
             string valueCondition = string:'join(" OR ", ...valueClauses);
-            return string `PARAM_NAME = '${escapeSql(paramName)}' AND (${valueCondition})`;
+            return string `"PARAM_NAME" = '${escapeSql(paramName)}' AND (${valueCondition})`;
         }
         "token" => {
             // For token type, exact match on code (with optional system)
@@ -124,14 +124,14 @@ isolated function buildSearchCondition(string paramName, string paramType, strin
                 string[] parts = re `\|`.split(value);
                 if parts.length() == 2 {
                     // System and code provided
-                    valueClauses.push(string `(VALUE_TOKEN_SYSTEM = '${escapeSql(parts[0])}' AND VALUE_TOKEN_CODE = '${escapeSql(parts[1])}')`);
+                    valueClauses.push(string `("VALUE_TOKEN_SYSTEM" = '${escapeSql(parts[0])}' AND "VALUE_TOKEN_CODE" = '${escapeSql(parts[1])}')`);
                 } else {
                     // Just code provided
-                    valueClauses.push(string `VALUE_TOKEN_CODE = '${escapeSql(value)}'`);
+                    valueClauses.push(string `"VALUE_TOKEN_CODE" = '${escapeSql(value)}'`);
                 }
             }
             string valueCondition = string:'join(" OR ", ...valueClauses);
-            return string `PARAM_NAME = '${escapeSql(paramName)}' AND (${valueCondition})`;
+            return string `"PARAM_NAME" = '${escapeSql(paramName)}' AND (${valueCondition})`;
         }
         "number" => {
             // For number type, exact match or range
@@ -139,23 +139,23 @@ isolated function buildSearchCondition(string paramName, string paramType, strin
             foreach string value in paramValues {
                 decimal|error numValue = decimal:fromString(value);
                 if numValue is decimal {
-                    valueClauses.push(string `VALUE_NUMBER = ${numValue.toString()}`);
+                    valueClauses.push(string `"VALUE_NUMBER" = ${numValue.toString()}`);
                 }
             }
             if valueClauses.length() == 0 {
                 return ();
             }
             string valueCondition = string:'join(" OR ", ...valueClauses);
-            return string `PARAM_NAME = '${escapeSql(paramName)}' AND (${valueCondition})`;
+            return string `"PARAM_NAME" = '${escapeSql(paramName)}' AND (${valueCondition})`;
         }
         "date" => {
             // For date type, exact match or range (simplified - can be enhanced)
             string[] valueClauses = [];
             foreach string value in paramValues {
-                valueClauses.push(string `VALUE_DATE = '${escapeSql(value)}'`);
+                valueClauses.push(string `"VALUE_DATE" = '${escapeSql(value)}'`);
             }
             string valueCondition = string:'join(" OR ", ...valueClauses);
-            return string `PARAM_NAME = '${escapeSql(paramName)}' AND (${valueCondition})`;
+            return string `"PARAM_NAME" = '${escapeSql(paramName)}' AND (${valueCondition})`;
         }
         "reference" => {
             // For reference type, match on type and ID
@@ -163,23 +163,23 @@ isolated function buildSearchCondition(string paramName, string paramType, strin
             foreach string value in paramValues {
                 string[] parts = re `/`.split(value);
                 if parts.length() == 2 {
-                    valueClauses.push(string `(VALUE_REFERENCE_TYPE = '${escapeSql(parts[0])}' AND VALUE_REFERENCE_ID = '${escapeSql(parts[1])}')`);
+                    valueClauses.push(string `("VALUE_REFERENCE_TYPE" = '${escapeSql(parts[0])}' AND "VALUE_REFERENCE_ID" = '${escapeSql(parts[1])}')`);
                 } else {
                     // Just ID provided, match any type
-                    valueClauses.push(string `VALUE_REFERENCE_ID = '${escapeSql(value)}'`);
+                    valueClauses.push(string `"VALUE_REFERENCE_ID" = '${escapeSql(value)}'`);
                 }
             }
             string valueCondition = string:'join(" OR ", ...valueClauses);
-            return string `PARAM_NAME = '${escapeSql(paramName)}' AND (${valueCondition})`;
+            return string `"PARAM_NAME" = '${escapeSql(paramName)}' AND (${valueCondition})`;
         }
         "uri" => {
             // For URI type, exact match
             string[] valueClauses = [];
             foreach string value in paramValues {
-                valueClauses.push(string `VALUE_STRING = '${escapeSql(value)}'`);
+                valueClauses.push(string `"VALUE_STRING" = '${escapeSql(value)}'`);
             }
             string valueCondition = string:'join(" OR ", ...valueClauses);
-            return string `PARAM_NAME = '${escapeSql(paramName)}' AND (${valueCondition})`;
+            return string `"PARAM_NAME" = '${escapeSql(paramName)}' AND (${valueCondition})`;
         }
         _ => {
             log:printWarn(string `Unsupported search parameter type '${paramType}' for '${paramName}'`);
@@ -196,11 +196,11 @@ isolated function buildSearchCondition(string paramName, string paramType, strin
 # + return - Parameter type (string, token, etc.) or () if not found, or error
 isolated function getSearchParamType(jdbc:Client jdbcClient, string resourceType, string paramName) returns string?|error {
     sql:ParameterizedQuery query = `
-        SELECT SEARCH_PARAM_TYPE 
-        FROM SEARCH_PARAM_RES_EXPRESSIONS 
-        WHERE RESOURCE_NAME = ${resourceType} 
-        AND SEARCH_PARAM_NAME = ${paramName}
-        AND IS_CUSTOM = ${true}
+        SELECT "SEARCH_PARAM_TYPE" 
+        FROM "SEARCH_PARAM_RES_EXPRESSIONS" 
+        WHERE "RESOURCE_NAME" = ${resourceType} 
+        AND "SEARCH_PARAM_NAME" = ${paramName}
+        AND "IS_CUSTOM" = ${true}
         LIMIT 1
     `;
     
@@ -225,10 +225,10 @@ isolated function getSearchParamType(jdbc:Client jdbcClient, string resourceType
 public isolated function getSearchParameterType(jdbc:Client jdbcClient, string resourceType, string paramName) returns string?|error {
     
     sql:ParameterizedQuery query = `
-        SELECT SEARCH_PARAM_TYPE 
-        FROM SEARCH_PARAM_RES_EXPRESSIONS 
-        WHERE RESOURCE_NAME = ${resourceType} 
-        AND SEARCH_PARAM_NAME = ${paramName}
+        SELECT "SEARCH_PARAM_TYPE" 
+        FROM "SEARCH_PARAM_RES_EXPRESSIONS" 
+        WHERE "RESOURCE_NAME" = ${resourceType} 
+        AND "SEARCH_PARAM_NAME" = ${paramName}
         LIMIT 1
     `;
     

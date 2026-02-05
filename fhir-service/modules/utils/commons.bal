@@ -57,7 +57,15 @@ public isolated function formatSqlValue(anydata value) returns string {
         return string `'${dateVal.year}-${padZero(dateVal.month)}-${padZero(dateVal.day)}'`;
     } else if value is byte[] {
         byte[] bytes = <byte[]>value;
-        return string `X'${bytes.toBase16()}'`;
+        // Database-specific binary data formatting
+        string normalizedDbType = dbType.toLowerAscii().trim();
+        if normalizedDbType == "postgresql" || normalizedDbType == "postgres" {
+            // PostgreSQL: Use decode() function for BYTEA
+            return string `decode('${bytes.toBase16()}', 'hex')`;
+        } else {
+            // H2: Use X'...' hex literal format
+            return string `X'${bytes.toBase16()}'`;
+        }
     } else {
         string escaped = escapeSql(value.toString());
         return string `'${escaped}'`;
@@ -119,7 +127,7 @@ public isolated function validateReferenceExists(jdbc:Client? jdbcClient, string
     string primaryKeyColumn = getPrimaryKeyColumn(resourceType);
     
     // Build SELECT COUNT query with escaped resourceId
-    string countQuery = string `SELECT COUNT(*) as count FROM "${tableName}" WHERE ${primaryKeyColumn} = '${escapeSql(resourceId)}'`;
+    string countQuery = string `SELECT COUNT(*) as count FROM "${tableName}" WHERE "${primaryKeyColumn}" = '${escapeSql(resourceId)}'`;
     
     // Execute query using RawSQLQuery
     RawSQLQuery query = new(countQuery);
@@ -207,7 +215,7 @@ public isolated function deleteResource(jdbc:Client? jdbcClient, string resource
     string primaryKeyColumn = getPrimaryKeyColumn(resourceType);
     
     // Build DELETE query with escaped resourceId
-    string deleteQuery = string `DELETE FROM "${tableName}" WHERE ${primaryKeyColumn} = '${escapeSql(resourceId)}'`;
+    string deleteQuery = string `DELETE FROM "${tableName}" WHERE "${primaryKeyColumn}" = '${escapeSql(resourceId)}'`;
     
     // Execute query using RawSQLQuery
     RawSQLQuery query = new(deleteQuery);
@@ -227,7 +235,7 @@ public isolated function deleteReferences(jdbc:Client? jdbcClient, int[] referen
 
     foreach int refId in referenceIds {
         // Build DELETE query for REFERENCES table
-        string deleteQuery = string `DELETE FROM "REFERENCES" WHERE ID = ${refId}`;
+        string deleteQuery = string `DELETE FROM "REFERENCES" WHERE "ID" = ${refId}`;
         
         // Execute query using RawSQLQuery
         RawSQLQuery query = new(deleteQuery);
@@ -325,7 +333,7 @@ public isolated function saveSingleReference(jdbc:Client? jdbcClient, string sou
     string timestamp = string `${currentTime.year}-${formatTwoDigits(currentTime.month)}-${formatTwoDigits(currentTime.day)} ${formatTwoDigits(currentTime.hour)}:${formatTwoDigits(currentTime.minute)}:${formatSeconds(seconds)}`;
 
     // Build INSERT query for REFERENCES table
-    string insertQuery = string `INSERT INTO "REFERENCES" (SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID, SOURCE_EXPRESSION, TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID, DISPLAY_VALUE, CREATED_AT, UPDATED_AT, LAST_UPDATED) VALUES ('${escapedSourceResType}', '${escapedSourceResId}', '${escapedSourceExpression}', '${escapedTargetResourceType}', '${escapedTargetResourceId}', '${escapedDisplayValue}', '${timestamp}', '${timestamp}', '${timestamp}')`;
+    string insertQuery = string `INSERT INTO "REFERENCES" ("SOURCE_RESOURCE_TYPE", "SOURCE_RESOURCE_ID", "SOURCE_EXPRESSION", "TARGET_RESOURCE_TYPE", "TARGET_RESOURCE_ID", "DISPLAY_VALUE", "CREATED_AT", "UPDATED_AT", "LAST_UPDATED") VALUES ('${escapedSourceResType}', '${escapedSourceResId}', '${escapedSourceExpression}', '${escapedTargetResourceType}', '${escapedTargetResourceId}', '${escapedDisplayValue}', '${timestamp}', '${timestamp}', '${timestamp}')`;
     
     // Execute query using RawSQLQuery
     RawSQLQuery query = new(insertQuery);

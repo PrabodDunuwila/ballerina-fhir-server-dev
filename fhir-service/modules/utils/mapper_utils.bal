@@ -3,6 +3,9 @@ import ballerina/sql;
 import ballerina/time;
 import ballerinax/java.jdbc;
 
+// Database type configuration (shared from handlers module)
+public configurable string dbType = "h2";
+
 // ============================================================================
 // CACHE
 // ============================================================================
@@ -92,13 +95,8 @@ public isolated function getTableColumns(jdbc:Client jdbcClient, string tableNam
     
     log:printDebug(string `Cache miss - querying columns for table: ${tableName}`);
     
-    // Query the database schema for column names
-    // H2 stores table names in uppercase by default
-    sql:ParameterizedQuery query = `SELECT COLUMN_NAME 
-                                     FROM INFORMATION_SCHEMA.COLUMNS 
-                                     WHERE TABLE_SCHEMA = 'PUBLIC' 
-                                     AND TABLE_NAME = ${tableName}
-                                     ORDER BY ORDINAL_POSITION`;
+    // Get the database-specific query based on dbType
+    sql:ParameterizedQuery query = getTableColumnsQuery(tableName, dbType);
     
     stream<record {|string COLUMN_NAME;|}, sql:Error?> columnStream = jdbcClient->query(query);
     
@@ -120,4 +118,28 @@ public isolated function getTableColumns(jdbc:Client jdbcClient, string tableNam
     }
     
     return columns;
+}
+
+// Helper function to get database-specific query for table columns
+isolated function getTableColumnsQuery(string tableName, string databaseType) returns sql:ParameterizedQuery {
+    string normalizedType = databaseType.toLowerAscii().trim();
+    
+    match normalizedType {
+        "postgresql" | "postgres" => {
+            // PostgreSQL: lowercase schema and column names
+            return `SELECT column_name AS COLUMN_NAME
+                    FROM information_schema.columns 
+                    WHERE table_schema = 'public' 
+                      AND table_name = ${tableName}
+                    ORDER BY ordinal_position`;
+        }
+        _ => {
+            // H2 (default): uppercase schema, standard column names
+            return `SELECT COLUMN_NAME 
+                    FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = 'PUBLIC' 
+                      AND TABLE_NAME = ${tableName}
+                    ORDER BY ORDINAL_POSITION`;
+        }
+    }
 }

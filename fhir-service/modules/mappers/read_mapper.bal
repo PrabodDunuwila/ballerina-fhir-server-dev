@@ -1,4 +1,5 @@
 import ballerina_fhir_server.utils;
+import ballerina_fhir_server.utils as mapperUtils;
 
 import ballerina/sql;
 import ballerina/time;
@@ -22,7 +23,7 @@ public class ReadMapper {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT RESOURCE_JSON, VERSION_ID, LAST_UPDATED FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        string sqlQuery = string `SELECT "RESOURCE_JSON", "VERSION_ID", "LAST_UPDATED" FROM "${tableName}" WHERE "${primaryKey}" = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED;|}, sql:Error?> resultStream = jdbcClient->query(query);
@@ -61,6 +62,10 @@ public class ReadMapper {
             return error("JDBC client is not initialized");
         }
 
+        // Get table columns to validate search parameters
+        string tableName = utils:getTableName(resourceType);
+        string[] tableColumns = check mapperUtils:getTableColumns(jdbcClient, tableName);
+
         // First, check if there are any custom extension search parameters
         map<string[]> customParams = {};
         map<string[]> standardParams = {};
@@ -92,7 +97,6 @@ public class ReadMapper {
             }
         }
 
-        string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
         // Check for reference parameters and query the REFERENCES table
@@ -133,7 +137,7 @@ public class ReadMapper {
                     // The TARGET_RESOURCE_TYPE already provides the specificity we need
                     // (e.g., searching patient=Patient/123 matches any reference to that Patient,
                     //  whether stored as "actor", "patient", "subject", etc.)
-                    string refQuery = string `SELECT DISTINCT SOURCE_RESOURCE_ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND TARGET_RESOURCE_TYPE = '${utils:escapeSql(targetType)}' AND TARGET_RESOURCE_ID = '${utils:escapeSql(targetId)}'`;
+                    string refQuery = string `SELECT DISTINCT "SOURCE_RESOURCE_ID" FROM "REFERENCES" WHERE "SOURCE_RESOURCE_TYPE" = '${utils:escapeSql(resourceType)}' AND "TARGET_RESOURCE_TYPE" = '${utils:escapeSql(targetType)}' AND "TARGET_RESOURCE_ID" = '${utils:escapeSql(targetId)}'`;
                     
                     sql:ParameterizedQuery query = new utils:RawSQLQuery(refQuery);
 
@@ -199,7 +203,7 @@ public class ReadMapper {
         
         if finalResourceIds is string[] && finalResourceIds.length() > 0 {
             string idList = string:'join("', '", ...finalResourceIds);
-            whereClause = string ` WHERE ${primaryKey} IN ('${idList}')`;
+            whereClause = string ` WHERE "${primaryKey}" IN ('${idList}')`;
         } else if finalResourceIds is string[] && finalResourceIds.length() == 0 {
             // No matches from filtering, return empty bundle
             return self.createEmptyBundle();
@@ -210,9 +214,9 @@ public class ReadMapper {
             string[] idValues = queryParams.get("_id");
             if idValues.length() > 0 {
                 if whereClause == "" {
-                    whereClause = string ` WHERE ${primaryKey} = '${idValues[0]}'`;
+                    whereClause = string ` WHERE "${primaryKey}" = '${idValues[0]}'`;
                 } else {
-                    whereClause = whereClause + string ` AND ${primaryKey} = '${idValues[0]}'`;
+                    whereClause = whereClause + string ` AND "${primaryKey}" = '${idValues[0]}'`;
                 }
             }
         }
@@ -226,9 +230,9 @@ public class ReadMapper {
                 // Search for profile URL in the RESOURCE_JSON meta.profile array
                 // Format: "profile":["http://example.org/fhir/StructureDefinition/CustomPatient"]
                 if whereClause == "" {
-                    whereClause = string ` WHERE RESOURCE_JSON LIKE '%"profile":%"${sanitizedProfile}"%'`;
+                    whereClause = string ` WHERE "RESOURCE_JSON" LIKE '%"profile":%"${sanitizedProfile}"%'`;
                 } else {
-                    whereClause = whereClause + string ` AND RESOURCE_JSON LIKE '%"profile":%"${sanitizedProfile}"%'`;
+                    whereClause = whereClause + string ` AND "RESOURCE_JSON" LIKE '%"profile":%"${sanitizedProfile}"%'`;
                 }
             }
         }
@@ -339,6 +343,12 @@ public class ReadMapper {
             // Map FHIR search parameter names to database column names
             string? columnName = self.mapSearchParamToColumn(paramName);
             
+            // Validate that the column exists in the table schema
+            if columnName is string && !self.arrayContains(tableColumns, columnName) {
+                // Column doesn't exist - skip this search parameter
+                continue;
+            }
+            
             if columnName is string {
                 // For token parameters with system|code format
                 // Token columns contain JSON like [{"coding":[{"system":"...","code":"..."}]}]
@@ -371,9 +381,9 @@ public class ReadMapper {
                     } else if tokenSystem is string {
                         // Case 4: [system]| - System matches, any code
                         if whereClause == "" {
-                            whereClause = string ` WHERE (${columnName} LIKE '%"system":"${sanitizedSystem}"%' OR ${columnName} LIKE '%"system": "${sanitizedSystem}"%')`;
+                            whereClause = string ` WHERE ("${columnName}" LIKE '%"system":"${sanitizedSystem}"%' OR "${columnName}" LIKE '%"system": "${sanitizedSystem}"%')`;
                         } else {
-                            whereClause = whereClause + string ` AND (${columnName} LIKE '%"system":"${sanitizedSystem}"%' OR ${columnName} LIKE '%"system": "${sanitizedSystem}"%')`;
+                            whereClause = whereClause + string ` AND ("${columnName}" LIKE '%"system":"${sanitizedSystem}"%' OR "${columnName}" LIKE '%"system": "${sanitizedSystem}"%')`;
                         }
                     }
                 }
@@ -381,23 +391,23 @@ public class ReadMapper {
                 else if operator == "=" {
                     string sanitizedValue = utils:escapeSql(searchValue);
                     if whereClause == "" {
-                        whereClause = string ` WHERE ${columnName} LIKE '%${sanitizedValue}%'`;
+                        whereClause = string ` WHERE "${columnName}" LIKE '%${sanitizedValue}%'`;
                     } else {
-                        whereClause = whereClause + string ` AND ${columnName} LIKE '%${sanitizedValue}%'`;
+                        whereClause = whereClause + string ` AND "${columnName}" LIKE '%${sanitizedValue}%'`;
                     }
                 } else {
                     // Use exact comparison for date/numeric operators
                     string sanitizedValue = utils:escapeSql(searchValue);
                     if whereClause == "" {
-                        whereClause = string ` WHERE ${columnName} ${operator} '${sanitizedValue}'`;
+                        whereClause = string ` WHERE "${columnName}" ${operator} '${sanitizedValue}'`;
                     } else {
-                        whereClause = whereClause + string ` AND ${columnName} ${operator} '${sanitizedValue}'`;
+                        whereClause = whereClause + string ` AND "${columnName}" ${operator} '${sanitizedValue}'`;
                     }
                 }
             }
         }
 
-        string sqlQuery = string `SELECT ${primaryKey}, RESOURCE_JSON, VERSION_ID, LAST_UPDATED FROM "${tableName}"${whereClause}`;
+        string sqlQuery = string `SELECT "${primaryKey}", "RESOURCE_JSON", "VERSION_ID", "LAST_UPDATED" FROM "${tableName}"${whereClause}`;
         sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED; string...;|}, sql:Error?> resultStream = jdbcClient->query(query);
@@ -597,7 +607,7 @@ public class ReadMapper {
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
         string limitClause = 'limit is int ? string ` LIMIT ${'limit}` : "";
-        string sqlQuery = string `SELECT ${primaryKey}, RESOURCE_JSON, VERSION_ID, LAST_UPDATED FROM "${tableName}"${limitClause}`;
+        string sqlQuery = string `SELECT "${primaryKey}", "RESOURCE_JSON", "VERSION_ID", "LAST_UPDATED" FROM "${tableName}"${limitClause}`;
         sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
 
         stream<record {|byte[] RESOURCE_JSON; int VERSION_ID; time:Civil LAST_UPDATED; string...;|}, sql:Error?> resultStream = jdbcClient->query(query);
@@ -657,7 +667,7 @@ public class ReadMapper {
             return error("JDBC client is not initialized");
         }
 
-        string sqlQuery = string `SELECT ID, SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID, SOURCE_EXPRESSION, TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID, DISPLAY_VALUE FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(resourceType)}' AND SOURCE_RESOURCE_ID = '${utils:escapeSql(resourceId)}'`;
+        string sqlQuery = string `SELECT "ID", "SOURCE_RESOURCE_TYPE", "SOURCE_RESOURCE_ID", "SOURCE_EXPRESSION", "TARGET_RESOURCE_TYPE", "TARGET_RESOURCE_ID", "DISPLAY_VALUE" FROM "REFERENCES" WHERE "SOURCE_RESOURCE_TYPE" = '${utils:escapeSql(resourceType)}' AND "SOURCE_RESOURCE_ID" = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|string ID; string SOURCE_RESOURCE_TYPE; string SOURCE_RESOURCE_ID; string SOURCE_EXPRESSION; string? TARGET_RESOURCE_TYPE; string? TARGET_RESOURCE_ID; string? DISPLAY_VALUE;|}, sql:Error?> resultStream = jdbcClient->query(query);
@@ -700,7 +710,7 @@ public class ReadMapper {
 
         string tableName = utils:getTableName(resourceType);
 
-        string sqlQuery = string `SELECT COUNT(*) AS COUNT FROM "${tableName}"`;
+        string sqlQuery = string `SELECT COUNT(*) AS "COUNT" FROM "${tableName}"`;
         sql:ParameterizedQuery query = new RawSQLQuery(sqlQuery);
 
         record {|int COUNT;|}? result = check jdbcClient->queryRow(query);
@@ -721,7 +731,7 @@ public class ReadMapper {
         string tableName = utils:getTableName(resourceType);
         string primaryKey = utils:getPrimaryKeyColumn(resourceType);
 
-        string sqlQuery = string `SELECT ${primaryKey}, VERSION_ID, LAST_UPDATED, CREATED_AT FROM "${tableName}" WHERE ${primaryKey} = '${utils:escapeSql(resourceId)}'`;
+        string sqlQuery = string `SELECT "${primaryKey}", "VERSION_ID", "LAST_UPDATED", "CREATED_AT" FROM "${tableName}" WHERE "${primaryKey}" = '${utils:escapeSql(resourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(sqlQuery);
 
         stream<record {|anydata...;|}, sql:Error?> resultStream = jdbcClient->query(query);
@@ -775,7 +785,7 @@ public class ReadMapper {
         // We extract the reference field name (the part before .where) to match SOURCE_EXPRESSION
         
         // Get the FHIRPath expression for this search parameter from the search_param_res_expressions table
-        string searchParamQuery = string `SELECT EXPRESSION FROM "SEARCH_PARAM_RES_EXPRESSIONS" WHERE RESOURCE_NAME = '${utils:escapeSql(sourceResourceType)}' AND SEARCH_PARAM_NAME = '${utils:escapeSql(searchParamName)}' AND SEARCH_PARAM_TYPE = 'reference'`;
+        string searchParamQuery = string `SELECT "EXPRESSION" FROM "SEARCH_PARAM_RES_EXPRESSIONS" WHERE "RESOURCE_NAME" = '${utils:escapeSql(sourceResourceType)}' AND "SEARCH_PARAM_NAME" = '${utils:escapeSql(searchParamName)}' AND "SEARCH_PARAM_TYPE" = 'reference'`;
         sql:ParameterizedQuery spQuery = new utils:RawSQLQuery(searchParamQuery);
         
         stream<record {|string EXPRESSION;|}, sql:Error?> spStream = jdbcClient->query(spQuery);
@@ -834,20 +844,20 @@ public class ReadMapper {
             }
         }
         
-        string whereClause = string `SOURCE_RESOURCE_TYPE = '${utils:escapeSql(sourceResourceType)}' AND SOURCE_RESOURCE_ID = '${utils:escapeSql(sourceResourceId)}'`;
+        string whereClause = string `"SOURCE_RESOURCE_TYPE" = '${utils:escapeSql(sourceResourceType)}' AND "SOURCE_RESOURCE_ID" = '${utils:escapeSql(sourceResourceId)}'`;
         
         // Filter by SOURCE_EXPRESSION matching the reference field name
         if referenceField is string {
-            whereClause = whereClause + string ` AND SOURCE_EXPRESSION = '${utils:escapeSql(referenceField)}'`;
+            whereClause = whereClause + string ` AND "SOURCE_EXPRESSION" = '${utils:escapeSql(referenceField)}'`;
         }
         
         // Filter by target resource type - use extracted type from expression if available, otherwise use provided targetResourceType
         string? finalTargetType = extractedTargetType is string ? extractedTargetType : targetResourceType;
         if finalTargetType is string {
-            whereClause = whereClause + string ` AND TARGET_RESOURCE_TYPE = '${utils:escapeSql(finalTargetType)}'`;
+            whereClause = whereClause + string ` AND "TARGET_RESOURCE_TYPE" = '${utils:escapeSql(finalTargetType)}'`;
         }
         
-        string refQuery = string `SELECT DISTINCT TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID FROM "REFERENCES" WHERE ${whereClause}`;
+        string refQuery = string `SELECT DISTINCT "TARGET_RESOURCE_TYPE", "TARGET_RESOURCE_ID" FROM "REFERENCES" WHERE ${whereClause}`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(refQuery);
 
         stream<record {|string TARGET_RESOURCE_TYPE; string TARGET_RESOURCE_ID;|}, sql:Error?> refStream = jdbcClient->query(query);
@@ -887,7 +897,7 @@ public class ReadMapper {
         json[] includedEntries = [];
         
         // Query all references for this source resource
-        string refQuery = string `SELECT DISTINCT TARGET_RESOURCE_TYPE, TARGET_RESOURCE_ID FROM "REFERENCES" WHERE SOURCE_RESOURCE_TYPE = '${utils:escapeSql(sourceResourceType)}' AND SOURCE_RESOURCE_ID = '${utils:escapeSql(sourceResourceId)}'`;
+        string refQuery = string `SELECT DISTINCT "TARGET_RESOURCE_TYPE", "TARGET_RESOURCE_ID" FROM "REFERENCES" WHERE "SOURCE_RESOURCE_TYPE" = '${utils:escapeSql(sourceResourceType)}' AND "SOURCE_RESOURCE_ID" = '${utils:escapeSql(sourceResourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(refQuery);
 
         stream<record {|string TARGET_RESOURCE_TYPE; string TARGET_RESOURCE_ID;|}, sql:Error?> refStream = jdbcClient->query(query);
@@ -937,7 +947,7 @@ public class ReadMapper {
         
         // Get the FHIRPath expression for this search parameter
         // For Provenance:target, we get the expression like "Provenance.target.where(resolve() is MedicationRequest)"
-        string searchParamQuery = string `SELECT EXPRESSION FROM "SEARCH_PARAM_RES_EXPRESSIONS" WHERE RESOURCE_NAME = '${utils:escapeSql(sourceResourceType)}' AND SEARCH_PARAM_NAME = '${utils:escapeSql(searchParamName)}' AND SEARCH_PARAM_TYPE = 'reference'`;
+        string searchParamQuery = string `SELECT "EXPRESSION" FROM "SEARCH_PARAM_RES_EXPRESSIONS" WHERE "RESOURCE_NAME" = '${utils:escapeSql(sourceResourceType)}' AND "SEARCH_PARAM_NAME" = '${utils:escapeSql(searchParamName)}' AND "SEARCH_PARAM_TYPE" = 'reference'`;
         sql:ParameterizedQuery spQuery = new utils:RawSQLQuery(searchParamQuery);
         
         stream<record {|string EXPRESSION;|}, sql:Error?> spStream = jdbcClient->query(spQuery);
@@ -990,10 +1000,10 @@ public class ReadMapper {
         // - TARGET_RESOURCE_ID = the ID of our matched resource
         // - SOURCE_EXPRESSION = the field name (e.g., "target")
         
-        string whereClause = string `TARGET_RESOURCE_TYPE = '${utils:escapeSql(targetResourceType)}' AND TARGET_RESOURCE_ID = '${utils:escapeSql(targetResourceId)}' AND SOURCE_RESOURCE_TYPE = '${utils:escapeSql(sourceResourceType)}'`;
+        string whereClause = string `"TARGET_RESOURCE_TYPE" = '${utils:escapeSql(targetResourceType)}' AND "TARGET_RESOURCE_ID" = '${utils:escapeSql(targetResourceId)}' AND "SOURCE_RESOURCE_TYPE" = '${utils:escapeSql(sourceResourceType)}'`;
         
         if referenceField is string {
-            whereClause = whereClause + string ` AND SOURCE_EXPRESSION = '${utils:escapeSql(referenceField)}'`;
+            whereClause = whereClause + string ` AND "SOURCE_EXPRESSION" = '${utils:escapeSql(referenceField)}'`;
         }
         
         // Optional: filter by expected target type from the expression
@@ -1003,7 +1013,7 @@ public class ReadMapper {
             // This is already filtered by TARGET_RESOURCE_TYPE above
         }
         
-        string refQuery = string `SELECT DISTINCT SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID FROM "REFERENCES" WHERE ${whereClause}`;
+        string refQuery = string `SELECT DISTINCT "SOURCE_RESOURCE_TYPE", "SOURCE_RESOURCE_ID" FROM "REFERENCES" WHERE ${whereClause}`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(refQuery);
 
         stream<record {|string SOURCE_RESOURCE_TYPE; string SOURCE_RESOURCE_ID;|}, sql:Error?> refStream = jdbcClient->query(query);
@@ -1043,7 +1053,7 @@ public class ReadMapper {
         json[] revIncludedEntries = [];
         
         // Query all resources that reference this target resource
-        string refQuery = string `SELECT DISTINCT SOURCE_RESOURCE_TYPE, SOURCE_RESOURCE_ID FROM "REFERENCES" WHERE TARGET_RESOURCE_TYPE = '${utils:escapeSql(targetResourceType)}' AND TARGET_RESOURCE_ID = '${utils:escapeSql(targetResourceId)}'`;
+        string refQuery = string `SELECT DISTINCT "SOURCE_RESOURCE_TYPE", "SOURCE_RESOURCE_ID" FROM "REFERENCES" WHERE "TARGET_RESOURCE_TYPE" = '${utils:escapeSql(targetResourceType)}' AND "TARGET_RESOURCE_ID" = '${utils:escapeSql(targetResourceId)}'`;
         sql:ParameterizedQuery query = new utils:RawSQLQuery(refQuery);
 
         stream<record {|string SOURCE_RESOURCE_TYPE; string SOURCE_RESOURCE_ID;|}, sql:Error?> refStream = jdbcClient->query(query);
@@ -1078,10 +1088,10 @@ public class ReadMapper {
     private isolated function isCustomSearchParam(jdbc:Client jdbcClient, string resourceType, string paramName) returns boolean|error {
         sql:ParameterizedQuery query = `
             SELECT COUNT(*) as count
-            FROM SEARCH_PARAM_RES_EXPRESSIONS 
-            WHERE RESOURCE_NAME = ${resourceType}
-            AND SEARCH_PARAM_NAME = ${paramName}
-            AND IS_CUSTOM = ${true}
+            FROM "SEARCH_PARAM_RES_EXPRESSIONS" 
+            WHERE "RESOURCE_NAME" = ${resourceType}
+            AND "SEARCH_PARAM_NAME" = ${paramName}
+            AND "IS_CUSTOM" = ${true}
         `;
         
         stream<record {int count;}, sql:Error?> resultStream = jdbcClient->query(query);

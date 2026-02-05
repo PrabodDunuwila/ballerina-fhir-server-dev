@@ -93,7 +93,7 @@ public class FHIRMapper {
     }
 
     private isolated function getSearchParamExpressions(jdbc:Client jdbcClient, string resourceName) returns utils:SearchParamExpression[]|error? {
-        sql:ParameterizedQuery pq = `SELECT ID, SEARCH_PARAM_NAME, SEARCH_PARAM_TYPE, RESOURCE_NAME, EXPRESSION FROM search_param_res_expressions WHERE RESOURCE_NAME = ${resourceName}`;
+        sql:ParameterizedQuery pq = `SELECT "ID", "SEARCH_PARAM_NAME", "SEARCH_PARAM_TYPE", "RESOURCE_NAME", "EXPRESSION" FROM "SEARCH_PARAM_RES_EXPRESSIONS" WHERE "RESOURCE_NAME" = ${resourceName}`;
         stream<SearchParamRow, error?> result = jdbcClient->query(pq);
 
         utils:SearchParamExpression[] expressions = [];

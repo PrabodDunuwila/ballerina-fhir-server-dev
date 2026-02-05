@@ -1,14 +1,24 @@
 # JDBC Database Configuration for db_handler module
 [ballerina_fhir_server.handlers]
+# Database type: "h2" or "postgresql"
+dbType = "h2"
+# Database connection URL
+# For H2: 
 dbUrl = "jdbc:h2:./data/fhir-db"
 dbUser = "sa"
 dbPassword = ""
+# For PostgreSQL:
+# dbUrl = "jdbc:postgresql://localhost:5432/fhir_db"
+# dbUser = "prabod"
+# dbPassword = "Passw0rd"
 # Set to true to clear all data and reinitialize the database on startup
 # Set to false to keep existing data from previous runs
 clearDataOnStartup = false
 
 # Resource ID Generation Configuration
 [ballerina_fhir_server.utils]
+# Database type (must match handlers.dbType)
+dbType = "h2"
 # If true, the server generates unique IDs for new resources (client-provided IDs are ignored)
 # If false, the server uses the ID provided by the client in the resource JSON (if not provided, returns error)
 useServerGeneratedIds = false
